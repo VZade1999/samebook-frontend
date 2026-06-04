@@ -1,0 +1,232 @@
+// Color variables
+$primary-color: #e69138;
+$primary-light: #f6b26b;
+$background-color: #f5f7fb;
+$border-radius-lg: 16px;
+$border-radius-md: 14px;
+$border-radius-sm: 10px;
+$spacing-lg: 24px;
+$spacing-md: 16px;
+$spacing-sm: 10px;
+
+// Main page styles
+.quotation-page {
+  padding: $spacing-lg;
+  background: $background-color;
+  min-height: 100vh;
+}
+
+.quotation-card {
+  border-radius: $border-radius-lg;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// Header styles
+.quotation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  > div:first-child {
+    h2 {
+      margin-bottom: 8px !important;
+      color: #333;
+    }
+  }
+}
+
+.quotation-number {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+}
+
+// Section card styles
+.section-card {
+  margin-bottom: $spacing-lg;
+  border: 1px solid rgb(186, 183, 183);
+  border-radius: $border-radius-md;
+  box-shadow: 1px 4px rgba(0, 0, 0, 0.06);
+
+  .ant-card-head {
+    border-radius: $border-radius-md $border-radius-md 0 0;
+    background: #fafafa;
+  }
+}
+
+// Item row styles
+.item-row {
+  margin-bottom: $spacing-sm;
+}
+
+// Add item button styles
+.add-item-btn {
+  margin-top: $spacing-sm;
+}
+
+// Grand total styles
+.grand-total {
+  text-align: right;
+  padding: 16px 0;
+
+  h3 {
+    margin: 0 !important;
+    color: $primary-color !important;
+    font-weight: 600;
+  }
+}
+
+// Form input styles
+.ant-input,
+.ant-input-number,
+.ant-picker,
+.ant-select-selector {
+  border-radius: $border-radius-sm !important;
+  border-color: #d9d9d9 !important;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: $primary-light !important;
+  }
+
+  &:focus,
+  &.ant-input-focused,
+  .ant-select-focused .ant-select-selector {
+    border-color: $primary-color !important;
+    box-shadow: 0 0 0 2px rgba(230, 145, 56, 0.2) !important;
+  }
+}
+
+// Button styles
+.ant-btn-primary {
+  background: linear-gradient(
+    135deg,
+    $primary-light 0%,
+    $primary-color 100%
+  ) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(230, 145, 56, 0.3);
+  font-weight: 600;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(230, 145, 56, 0.4) !important;
+  }
+
+  &:active {
+    box-shadow: 0 2px 6px rgba(230, 145, 56, 0.3) !important;
+  }
+}
+
+// Secondary button styles
+.ant-btn-dashed {
+  border-color: $primary-light !important;
+  color: $primary-color !important;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: $primary-color !important;
+    border-color: $primary-color !important;
+    background: rgba(230, 145, 56, 0.05) !important;
+  }
+}
+
+// Danger button styles
+.ant-btn-dangerous {
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #ff4d4f !important;
+  }
+}
+
+// Table styles
+table {
+  thead {
+    tr {
+      th {
+        color: #333;
+        font-weight: 600;
+        padding: 12px !important;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      &:hover {
+        background-color: #fafafa;
+      }
+
+      td {
+        padding: 8px !important;
+
+        .ant-form-item {
+          margin-bottom: 0 !important;
+        }
+      }
+    }
+  }
+}
+
+// Form item styles
+.ant-form-item {
+  margin-bottom: 16px;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .quotation-page {
+    padding: 16px;
+  }
+
+  .quotation-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .quotation-number {
+      width: 100%;
+    }
+  }
+
+  .section-card {
+    margin-bottom: 16px;
+  }
+
+  table {
+    font-size: 12px;
+
+    thead th,
+    tbody td {
+      padding: 6px !important;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .quotation-page {
+    padding: 12px;
+  }
+
+  .quotation-header {
+    gap: 8px;
+
+    div {
+      h2 {
+        font-size: 20px !important;
+      }
+    }
+  }
+
+  table {
+    font-size: 11px;
+
+    thead th,
+    tbody td {
+      padding: 4px !important;
+    }
+  }
+}

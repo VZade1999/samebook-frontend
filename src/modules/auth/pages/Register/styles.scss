@@ -1,0 +1,241 @@
+@use "../../../../style/variables" as *;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.register-page {
+  width: 100%;
+  animation: slideUp 0.6s ease;
+
+  &__container {
+    width: 100%;
+  }
+
+  /* Logo */
+  &__logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .logo-icon {
+    display: grid;
+    grid-template-columns: repeat(2, 14px);
+    gap: 8px;
+
+    .logo-box {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+
+      &.red {
+        background: $error-color;
+      }
+
+      &.green {
+        background: $success-color;
+      }
+
+      &.blue {
+        background: $info-color;
+      }
+
+      &.yellow {
+        background: $warning-color;
+      }
+    }
+  }
+
+  /* Header */
+  &__header {
+    text-align: center;
+    margin-bottom: 32px;
+
+    .ant-typography-h2 {
+      color: $text-primary !important;
+      font-size: 34px !important;
+      font-weight: 700;
+      margin-bottom: 8px !important;
+      letter-spacing: -0.5px;
+    }
+
+    .ant-typography-secondary {
+      color: $text-primary !important;
+      font-size: 14px;
+    }
+  }
+
+  /* Alert */
+  &__alert {
+    margin-bottom: 20px;
+    border-radius: 12px;
+  }
+
+  /* Form */
+  &__form {
+    .ant-form-item {
+      margin-bottom: 19px;
+    }
+
+    .ant-form-item-label > label {
+      color: $text-primary !important;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .ant-input,
+    .ant-input-password {
+      transition: all 0.3s ease;
+
+      &:hover,
+      &:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+      }
+    }
+
+    .ant-input::placeholder {
+      color: #64748b !important;
+    }
+
+    .ant-input-prefix {
+      color: #94a3b8;
+      margin-right: 8px;
+    }
+
+    .country-code {
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 500;
+    }
+  }
+
+  /* Info Box */
+  &__info {
+    background: rgba(228, 62, 53, 0.08);
+    border: 1px solid rgba(7, 7, 7, 0.15);
+
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+
+    .ant-typography {
+      color: #070707;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  }
+
+  /* Checkbox */
+  &__checkbox {
+    .ant-checkbox-wrapper {
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .ant-checkbox-inner {
+      background: transparent;
+      border-color: #64748b;
+    }
+  }
+
+  /* Links */
+  .link-primary {
+    color: #818cf8;
+    font-weight: 500;
+    text-decoration: none;
+    transition: 0.2s ease;
+
+    &:hover {
+      color: #a5b4fc;
+    }
+  }
+
+  /* Button */
+  &__btn {
+    height: 52px !important;
+    border: none !important;
+    border-radius: 14px !important;
+
+    background: $primary-button!important;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
+
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      opacity: 0.95;
+    }
+  }
+
+  /* Footer */
+  &__footer {
+    margin-top: 28px;
+    text-align: center;
+
+    .ant-typography-secondary {
+      color: #94a3b8 !important;
+      font-size: 13px;
+    }
+  }
+}
+
+/* Animation */
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .register-page {
+    &__header {
+      .ant-typography-h2 {
+        font-size: 28px !important;
+      }
+
+      .ant-typography-secondary {
+        font-size: 13px !important;
+      }
+    }
+
+    &__form {
+      .ant-form-item {
+        margin-bottom: 16px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .register-page {
+    &__header {
+      margin-bottom: 24px;
+
+      .ant-typography-h2 {
+        font-size: 24px !important;
+      }
+    }
+
+    &__btn {
+      height: 48px !important;
+    }
+  }
+}

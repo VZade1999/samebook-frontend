@@ -1,0 +1,35 @@
+export const ASYNC_GET_PRODUCTS = "ASYNC_GET_PRODUCTS";
+export const ASYNC_GET_PRODUCTS_SUCCESS = "ASYNC_GET_PRODUCTS_SUCCESS";
+export const ASYNC_GET_PRODUCTS_FAILED = "ASYNC_GET_PRODUCTS_FAILED";
+
+export const ASYNC_CREATE_PRODUCT = "ASYNC_CREATE_PRODUCT";
+export const ASYNC_CREATE_PRODUCT_SUCCESS = "ASYNC_CREATE_PRODUCT_SUCCESS";
+export const ASYNC_CREATE_PRODUCT_FAILED = "ASYNC_CREATE_PRODUCT_FAILED";
+
+export const ASYNC_UPDATE_PRODUCT = "ASYNC_UPDATE_PRODUCT";
+export const ASYNC_UPDATE_PRODUCT_SUCCESS = "ASYNC_UPDATE_PRODUCT_SUCCESS";
+export const ASYNC_UPDATE_PRODUCT_FAILED = "ASYNC_UPDATE_PRODUCT_FAILED";
+
+export const ASYNC_DELETE_PRODUCT = "ASYNC_DELETE_PRODUCT";
+export const ASYNC_DELETE_PRODUCT_SUCCESS = "ASYNC_DELETE_PRODUCT_SUCCESS";
+export const ASYNC_DELETE_PRODUCT_FAILED = "ASYNC_DELETE_PRODUCT_FAILED";
+
+export const getProducts = (payload) => ({
+  type: ASYNC_GET_PRODUCTS,
+  payload,
+});
+
+export const createProduct = (payload) => ({
+  type: ASYNC_CREATE_PRODUCT,
+  payload,
+});
+
+export const updateProduct = (payload) => ({
+  type: ASYNC_UPDATE_PRODUCT,
+  payload,
+});
+
+export const deleteProduct = (payload) => ({
+  type: ASYNC_DELETE_PRODUCT,
+  payload,
+});

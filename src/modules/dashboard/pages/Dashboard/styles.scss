@@ -1,0 +1,18 @@
+.dashboard-page {
+  &__header {
+    margin-bottom: 24px;
+  }
+
+  .ant-card {
+    border-radius: 14px;
+
+    h3 {
+      color: #777;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      margin: 0;
+    }
+  }
+}

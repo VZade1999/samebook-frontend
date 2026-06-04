@@ -1,0 +1,119 @@
+/* =========================================================
+   SAMEBOOK DESIGN TOKENS
+========================================================= */
+
+/* =========================
+   BRAND COLORS
+========================= */
+
+$brand-50: #fce5cd;
+$brand-100: #f9cb9c;
+$brand-200: #f6b26b;
+$brand-300: #e69138;
+$brand-400: #b45f06;
+
+/* =========================
+   PRIMARY COLORS
+========================= */
+
+$primary-color: $brand-300;
+$primary-hover: $brand-400;
+
+$secondary-color: $brand-200;
+
+/* =========================
+   TEXT COLORS
+========================= */
+
+$text-primary: #000000;
+$text-secondary: #6b7280;
+$text-tertiary: #111111;
+
+$text-white: #ffffff;
+
+/* =========================
+   BACKGROUNDS
+========================= */
+
+$background-primary: #000000;
+$background-secondary: #ffffff;
+
+$background-muted: #f8fafc;
+$background-card: #ffffff;
+
+/* =========================
+   BORDER COLORS
+========================= */
+
+$border-primary: #ffffff;
+$border-secondary: #000000;
+
+$border-light: #e5e7eb;
+
+/* =========================
+   STATUS COLORS
+========================= */
+
+$success-color: #22c55e;
+$error-color: #ef4444;
+$warning-color: #facc15;
+$info-color: #3b82f6;
+
+/* =========================
+   GRADIENTS
+========================= */
+
+$primary-gradient: linear-gradient(
+  135deg,
+  #f6b26b 0%,
+  #e69138 50%,
+  #b45f06 100%
+);
+
+$dark-gradient: linear-gradient(135deg, #111111 0%, #1f1f1f 100%);
+
+/* =========================
+   SHADOWS
+========================= */
+
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+$shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+$shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.18);
+
+$shadow-brand: 0 10px 30px rgba(230, 145, 56, 0.25);
+
+/* =========================
+   BORDER RADIUS
+========================= */
+
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 18px;
+$radius-xl: 28px;
+
+/* =========================
+   SPACING
+========================= */
+
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+/* =========================
+   TRANSITIONS
+========================= */
+
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;
+
+/* =========================
+   BUTTONS
+========================= */
+
+$primary-button: rgb(183, 120, 10);
+$secondary-button: #111111;

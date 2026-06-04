@@ -1,0 +1,170 @@
+@use "../../style/variables" as *;
+
+.dashboard-layout {
+  min-height: 100vh;
+}
+
+/* =========================
+   BRAND SECTION
+========================= */
+
+.brand {
+  height: 72px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 0 20px;
+
+  border-bottom: 1px solid #f1f5f9;
+
+  background: #ffffff;
+}
+
+/* Logo */
+
+.logo-icon {
+  display: grid;
+  grid-template-columns: repeat(2, 12px);
+  gap: 6px;
+
+  flex-shrink: 0;
+
+  .logo-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+
+    &.red {
+      background: $error-color;
+    }
+
+    &.green {
+      background: $success-color;
+    }
+
+    &.blue {
+      background: $info-color;
+    }
+
+    &.yellow {
+      background: $warning-color;
+    }
+  }
+}
+
+/* Brand Text */
+
+.logo {
+  font-size: 24px;
+  font-weight: 600;
+
+  letter-spacing: 0.2px;
+
+  color: black;
+
+  user-select: none;
+
+  span {
+    color: black;
+  }
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.ant-layout-sider {
+  border-right: 1px solid #f1f5f9;
+}
+
+.ant-menu {
+  border-inline-end: none !important;
+  padding-top: 12px;
+}
+
+.ant-menu-item {
+  margin-inline: 10px !important;
+  width: calc(100% - 20px) !important;
+
+  border-radius: 12px;
+
+  font-weight: 500;
+
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(230, 145, 56, 0.08) !important;
+    color: $primary-color !important;
+  }
+}
+
+.ant-menu-item-selected {
+  background: rgba(230, 145, 56, 0.12) !important;
+  color: $primary-color !important;
+
+  &::after {
+    display: none;
+  }
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.dashboard-header {
+  background: white !important;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 24px;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* =========================
+   CONTENT
+========================= */
+
+.dashboard-content {
+  padding: 24px;
+  background: #f8fafc;
+
+  min-height: calc(100vh - 64px);
+
+  .dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding: 12px;
+
+    .dashboard-container {
+      padding: 0 8px;
+    }
+  }
+}
+
+/* =========================
+   PROFILE
+========================= */
+
+.profile-section {
+  cursor: pointer;
+  font-weight: 500;
+}
