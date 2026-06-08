@@ -86,7 +86,11 @@ const QuotationPage = () => {
   useEffect(() => {
     // When create/update finishes (transition from true -> false) and there's no error,
     // close the form and reset editing state so list is shown.
-    if (prevCreateLoadingRef.current && !createLoading && !quotationState.error) {
+    if (
+      prevCreateLoadingRef.current &&
+      !createLoading &&
+      !quotationState.error
+    ) {
       setShowForm(false);
       setEditingQuotation(null);
       form.resetFields();
@@ -154,27 +158,27 @@ const QuotationPage = () => {
   };
 
   const getStatusColor = (status?: string) => {
-    if (!status) return 'default';
+    if (!status) return "default";
 
     switch (status.toLowerCase()) {
-      case 'sent':
-        return 'green';
-      case 'draft':
-        return 'default';
-      case 'expired':
-        return 'red';
-      case 'approved':
-        return 'blue';
-      case 'rejected':
-        return 'volcano';
-      case 'paid':
-        return 'cyan';
-      case 'partial':
-      case 'partially_paid':
-      case 'partially-paid':
-        return 'gold';
+      case "sent":
+        return "green";
+      case "draft":
+        return "default";
+      case "expired":
+        return "red";
+      case "approved":
+        return "blue";
+      case "rejected":
+        return "volcano";
+      case "paid":
+        return "cyan";
+      case "partial":
+      case "partially_paid":
+      case "partially-paid":
+        return "gold";
       default:
-        return 'purple';
+        return "purple";
     }
   };
 
@@ -297,9 +301,9 @@ const QuotationPage = () => {
   };
 
   const handleEdit = (record: any) => {
-        console.log('record.customer_name :', record.customer_name);
+    console.log("record.customer_name :", record.customer_name);
     setEditingQuotation(record);
-    console.log('record.customer_name :', record.customer_name);
+    console.log("record.customer_name :", record.customer_name);
     dispatch(
       getCustomers({
         search: record.customer_name,
@@ -318,13 +322,13 @@ const QuotationPage = () => {
       typeof record.shipping_address_snapshot === "string"
         ? JSON.parse(record.shipping_address_snapshot)
         : record.shipping_address_snapshot;
-   console.log('this is working', record.customer_name);
-      getCustomers({
-        search: record.customer_name,
-        page: 1,
-        limit: 10,
-      }),
-    console.log('this is working', record.customer_name);
+    console.log("this is working", record.customer_name);
+    (getCustomers({
+      search: record.customer_name,
+      page: 1,
+      limit: 10,
+    }),
+      console.log("this is working", record.customer_name));
     form.setFieldsValue({
       customerId: record.customer_id,
 
@@ -432,7 +436,7 @@ const QuotationPage = () => {
       title: "Customer",
       dataIndex: "customer",
       key: "customer",
-      width: 220,
+      width: 180,
 
       render: (_: any, record: any) => (
         <div>
@@ -461,14 +465,14 @@ const QuotationPage = () => {
       title: "Grand Total",
       dataIndex: "grand_total",
       key: "grand_total",
-      width: 160,
+      width: 90,
       render: (value: any) => formatCurrency(value),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 130,
+      width: 90,
       render: (status: string) => {
         const statusColor = getStatusColor(status);
         return (
@@ -479,10 +483,64 @@ const QuotationPage = () => {
       },
     },
     {
+      title: "QT Expiry",
+      dataIndex: "validity_date",
+      key: "validity_date",
+      width: 120,
+      render: (value: string) =>
+        value ? new Date(value).toISOString().split("T")[0] : "-",
+    },
+    {
+      title: "Created By",
+      dataIndex: "created_by",
+      key: "created_by",
+      width: 140,
+
+      render: (_: any, record: any) => (
+        <div>
+          <div
+            style={{
+              fontWeight: 500,
+            }}
+          >
+            {record.created_by_user.first_name}{" "}
+            {record.created_by_user.last_name}
+          </div>
+        </div>
+      ),
+    },
+    {
       title: "Created At",
       dataIndex: "created_at",
       key: "created_at",
-      width: 200,
+      width: 180,
+      render: (value: string) =>
+        value ? new Date(value).toLocaleString() : "-",
+    },
+    {
+      title: "Updated By",
+      dataIndex: "updated_by",
+      key: "updated_by",
+      width: 140,
+
+      render: (_: any, record: any) => (
+        <div>
+          <div
+            style={{
+              fontWeight: 500,
+            }}
+          >
+            {record.updated_by_user?.first_name}{" "}
+            {record.updated_by_user?.last_name}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Updated At",
+      dataIndex: "updated_at",
+      key: "updated_at",
+      width: 180,
       render: (value: string) =>
         value ? new Date(value).toLocaleString() : "-",
     },
@@ -540,10 +598,26 @@ const QuotationPage = () => {
     },
     {
       title: "Discount",
-      dataIndex: "discount_percent",
-      key: "discount_percent",
+      dataIndex: "discount_amount",
+      key: "discount_amount",
+      render: (value: any, record: any) => {
+        const discountAmount = Number(value ?? record.discount_amount ?? 0);
+        const discountPercent = Number(record.discount_percent ?? 0);
+
+        return (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <span>{formatCurrency(discountAmount)}</span>
+            <Text type="secondary">{discountPercent}%</Text>
+          </div>
+        );
+      },
+    },
+      {
+      title: "Discounted Rate",
+      dataIndex: "discounted_rate",
+      key: "discounted_rate",
       render: (value: any, record: any) =>
-        `${record.discount_percent ?? record.discount ?? 0}%`,
+        formatCurrency(record.discounted_rate || record.total || 0),
     },
     {
       title: "Amount",
@@ -565,6 +639,8 @@ const QuotationPage = () => {
     typeof selectedQuotation?.billing_address_snapshot === "string"
       ? JSON.parse(selectedQuotation.billing_address_snapshot)
       : selectedQuotation?.billing_address_snapshot;
+
+      console.log(selectedQuotation,'selectedQuotation')
   return (
     <div style={{ padding: 10 }}>
       {showForm ? (
@@ -576,8 +652,6 @@ const QuotationPage = () => {
                 Create professional quotations for customers
               </Text>
             </div>
-
-        
           </div>
 
           <Divider />
@@ -806,30 +880,64 @@ const QuotationPage = () => {
                 <Card title="Summary" size="small">
                   <Descriptions bordered column={1} size="small">
                     <Descriptions.Item label="Sub Total">
-                      {formatCurrency(
-                        selectedQuotation.sub_total ||
-                          selectedQuotation.subTotal,
-                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>Subtotal</div>
+                        <div style={{ fontWeight: 600 }}>{formatCurrency(
+                          selectedQuotation?.sub_total ?? selectedQuotation?.subTotal ?? 0,
+                        )}</div>
+                      </div>
                     </Descriptions.Item>
+
                     <Descriptions.Item label="Discount">
-                      {`${Number(selectedQuotation.discount || 0)}%`}
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>{Number(selectedQuotation?.discount_percent ?? 0)}%</div>
+                        <div>{formatCurrency(selectedQuotation?.discount_amount ?? 0)}</div>
+                      </div>
                     </Descriptions.Item>
-                    <Descriptions.Item label="GST Total">
-                      {formatCurrency(
-                        selectedQuotation.gst_total || selectedQuotation.gst,
-                      )}
-                    </Descriptions.Item>
+
+                    {((selectedQuotation?.cgst_percent ?? 0) > 0 || (selectedQuotation?.cgst_amount ?? 0) > 0) && (
+                      <Descriptions.Item label="CGST">
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div>{Number(selectedQuotation?.cgst_percent ?? 0)}%</div>
+                          <div>{formatCurrency(selectedQuotation?.cgst_amount ?? 0)}</div>
+                        </div>
+                      </Descriptions.Item>
+                    )}
+
+                    {((selectedQuotation?.sgst_percent ?? 0) > 0 || (selectedQuotation?.sgst_amount ?? 0) > 0) && (
+                      <Descriptions.Item label="SGST">
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div>{Number(selectedQuotation?.sgst_percent ?? 0)}%</div>
+                          <div>{formatCurrency(selectedQuotation?.sgst_amount ?? 0)}</div>
+                        </div>
+                      </Descriptions.Item>
+                    )}
+
+                    {((selectedQuotation?.igst_percent ?? 0) > 0 || (selectedQuotation?.igst_amount ?? 0) > 0) && (
+                      <Descriptions.Item label="IGST">
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div>{Number(selectedQuotation?.igst_percent ?? 0)}%</div>
+                          <div>{formatCurrency(selectedQuotation?.igst_amount ?? 0)}</div>
+                        </div>
+                      </Descriptions.Item>
+                    )}
+
                     <Descriptions.Item label="Transport Charges">
-                      {formatCurrency(
-                        selectedQuotation.transport_charges ||
-                          selectedQuotation.transport,
-                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div />
+                        <div>{formatCurrency(
+                          selectedQuotation?.transport_charges ?? selectedQuotation?.transport ?? 0,
+                        )}</div>
+                      </div>
                     </Descriptions.Item>
+
                     <Descriptions.Item label="Grand Total">
-                      {formatCurrency(
-                        selectedQuotation.grand_total ||
-                          selectedQuotation.grandTotal,
-                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div />
+                        <div style={{ fontWeight: 700, fontSize: 16 }}>{formatCurrency(
+                          selectedQuotation?.grand_total ?? selectedQuotation?.grandTotal ?? 0,
+                        )}</div>
+                      </div>
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
