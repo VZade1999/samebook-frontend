@@ -185,100 +185,89 @@ const QuotationPage = () => {
   const handleFinish = (values: any) => {
     const customerId = values.customerId;
     const userId = authState?.user?.id;
-
     const items = (values.items || []).map((item: any) => ({
-      product_name:
-        item?.itemName || item?.product_name || item?.description || "",
+      product_name: item?.itemName,
+      hsn_code: item?.hsn_code,
       qty: Number(item?.quantity || item?.qty || 0),
       rate: Number(item?.price || item?.rate || 0),
-      discount_percent: Number(item?.discount || item?.discount_percent || 0),
-      amount: Number(item?.total || item?.amount || 0),
+      discount_percent: Number(item?.discount || 0),
     }));
+
+    const subTotal = Number(values.subTotal || 0);
+    const discountPercent = Number(values.discount || 0);
+    const discountAmount = Number(values.discount_amount ?? (subTotal * discountPercent) / 100);
+    const taxableAmount = subTotal - discountAmount;
+    const cgstPercent = Number(values.cgst || 0);
+    const sgstPercent = Number(values.sgst || 0);
+    const igstPercent = Number(values.igst || 0);
+    const cgstAmount = (taxableAmount * cgstPercent) / 100;
+    const sgstAmount = (taxableAmount * sgstPercent) / 100;
+    const igstAmount = (taxableAmount * igstPercent) / 100;
+    const gstTotal = cgstAmount + sgstAmount + igstAmount;
+    const transportCharges = Number(values.transport || 0);
+    const grandTotal = Number(values.grandTotal || taxableAmount + gstTotal + transportCharges);
 
     const payload: any = {
       company_id: companDetails ? JSON.parse(companDetails).id : null,
       customer_id: Number(customerId) || undefined,
       user_id: Number(userId) || undefined,
       quotation_date: new Date().toISOString(),
-      validity_date: values.validity
-        ? computeValidityDate(values.validity)
-        : undefined,
+      validity_date: values.validity ? computeValidityDate(values.validity) : undefined,
       notes: values.notes,
-      sub_total: Number(values.subTotal || 0),
-      discount: Number(values.discount || 0),
-      gst_total: Number(values.gst || 0),
-      transport_charges: Number(values.transport || 0),
-      grand_total: Number(values.grandTotal || 0),
+      sub_total: subTotal,
+      discount_percent: discountPercent,
+      discount_amount: discountAmount,
+      cgst_percent: cgstPercent,
+      cgst_amount: cgstAmount,
+      sgst_percent: sgstPercent,
+      sgst_amount: sgstAmount,
+      igst_percent: igstPercent,
+      igst_amount: igstAmount,
+      transport_charges: transportCharges,
+      grand_total: grandTotal,
       items,
-
       contact_person_id: values.contactPersonId,
-
       billing_address_id: values.billingAddressId,
-
       shipping_address_id: values.shippingAddressId,
-
       customer_name: values.customerName,
-
       customer_type: values.customerType,
       customer_gst_number: values.customerGSTN,
-
       contact_person_name: values.customerName,
-
       contact_person_email: values.customerEmail,
-
       contact_person_phone: values.customerPhone,
-
       billing_address_snapshot: JSON.parse(values.billingAddressSnapshot),
-
       shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
     };
 
     if (editingQuotation) {
       const updatePayload = {
         id: editingQuotation.id,
-
         user_id: Number(userId),
-
         customer_id: Number(values.customerId),
-
         contact_person_id: values.contactPersonId,
-
         billing_address_id: values.billingAddressId,
-
         shipping_address_id: values.shippingAddressId,
-
         customer_name: values.customerName,
-
         customer_type: values.customerType,
-
         customer_gst_number: values.customerGSTN,
-
         contact_person_name: values.customerName,
-
         contact_person_email: values.customerEmail,
-
         contact_person_phone: values.customerPhone,
-
         billing_address_snapshot: JSON.parse(values.billingAddressSnapshot),
-
         shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
-
-        validity_date: values.validity
-          ? computeValidityDate(values.validity)
-          : undefined,
-
+        validity_date: values.validity ? computeValidityDate(values.validity) : undefined,
         notes: values.notes,
-
-        sub_total: Number(values.subTotal || 0),
-
-        discount: Number(values.discount || 0),
-
-        gst_total: Number(values.gst || 0),
-
-        transport_charges: Number(values.transport || 0),
-
-        grand_total: Number(values.grandTotal || 0),
-
+        sub_total: subTotal,
+        discount_percent: discountPercent,
+        discount_amount: discountAmount,
+        cgst_percent: cgstPercent,
+        cgst_amount: cgstAmount,
+        sgst_percent: sgstPercent,
+        sgst_amount: sgstAmount,
+        igst_percent: igstPercent,
+        igst_amount: igstAmount,
+        transport_charges: transportCharges,
+        grand_total: grandTotal,
         items,
       };
 
@@ -379,6 +368,8 @@ const QuotationPage = () => {
       items: (record.items || []).map((item: any) => ({
         itemName: item.product_name,
 
+        hsn_code: item.hsn_code || item.hsn || "",
+
         quantity: item.qty,
 
         price: item.rate,
@@ -392,7 +383,13 @@ const QuotationPage = () => {
 
       discount: record.discount,
 
-      gst: record.gst_total,
+      cgst: record.cgst_percent,
+
+      sgst: record.sgst_percent,
+
+      igst: record.igst_percent,
+
+      placeOfOrder: billingSnapshot?.state || shippingSnapshot?.state,
 
       transport: record.transport_charges,
 

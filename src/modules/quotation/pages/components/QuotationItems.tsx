@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Card, Form, AutoComplete, InputNumber } from "antd";
+import { Button, Card, Form, AutoComplete, Input, InputNumber } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
 // Mock item data - replace with API call
@@ -127,6 +127,17 @@ const QuotationItems = () => {
                       style={{
                         padding: "12px",
                         textAlign: "left",
+                        width: "18%",
+                        backgroundColor: "#fafafa",
+                        fontWeight: 600,
+                      }}
+                    >
+                      HSN Code
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        textAlign: "left",
                         width: "10%",
                         backgroundColor: "#fafafa",
                         fontWeight: 600,
@@ -214,6 +225,25 @@ const QuotationItems = () => {
                             filterOption={false}
                             style={{ width: "100%" }}
                             notFoundContent="No items found"
+                          />
+                        </Form.Item>
+                      </td>
+                      <td style={{ padding: "8px" }}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, "hsn_code"]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Required",
+                            },
+                          ]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input
+                            placeholder="HSN Code"
+                            style={{ width: "100%" }}
+                            size="small"
                           />
                         </Form.Item>
                       </td>

@@ -21,6 +21,9 @@ const QuotationSummary = () => {
     discount: 0,
     discountAmount: 0,
     gstAmount: 0,
+    sgstAmount: 0,
+    cgstAmount: 0,
+    igstAmount: 0,
     transport: 0,
     grandTotal: 0,
   });
@@ -28,15 +31,23 @@ const QuotationSummary = () => {
   // Watch form values and calculate totals
   const subTotal = Form.useWatch("subTotal", form);
   const discount = Form.useWatch("discount", form);
-  const gst = Form.useWatch("gst", form);
+  const cgst = Form.useWatch("cgst", form);
+  const sgst = Form.useWatch("sgst", form);
+  const igst = Form.useWatch("igst", form);
   const transport = Form.useWatch("transport", form);
+  const placeOfOrder = Form.useWatch("placeOfOrder", form);
 
   useEffect(() => {
     const calculateTotals = () => {
       const sub = Number(subTotal) || 0;
       const discountPercent = Number(discount) || 0;
-      const gstPercent = Number(gst) || 0;
+      const cgstPercent = Number(cgst) || 0;
+      const sgstPercent = Number(sgst) || 0;
+      const igstPercent = Number(igst) || 0;
       const transportCharges = Number(transport) || 0;
+
+      const isMaharashtra =
+        String(placeOfOrder || "").trim().toLowerCase() === "maharashtra";
 
       // Calculate discount amount
       const discountAmount = (sub * discountPercent) / 100;
@@ -44,11 +55,23 @@ const QuotationSummary = () => {
       // Calculate subtotal after discount
       const subtotalAfterDiscount = sub - discountAmount;
 
-      // Calculate GST amount
-      const gstAmount = (subtotalAfterDiscount * gstPercent) / 100;
+      // Calculate tax amounts
+      const cgstAmount = isMaharashtra
+        ? (subtotalAfterDiscount * cgstPercent) / 100
+        : 0;
+      const sgstAmount = isMaharashtra
+        ? (subtotalAfterDiscount * sgstPercent) / 100
+        : 0;
+      const igstAmount = isMaharashtra
+        ? 0
+        : (subtotalAfterDiscount * igstPercent) / 100;
+      const totalTaxAmount = cgstAmount + sgstAmount + igstAmount;
+      const combinedTaxPercent = isMaharashtra
+        ? cgstPercent + sgstPercent
+        : igstPercent;
 
       // Calculate grand total
-      const grandTotal = subtotalAfterDiscount + gstAmount + transportCharges;
+      const grandTotal = subtotalAfterDiscount + totalTaxAmount + transportCharges;
 
       const safe = (v: any) => {
         const n = Number(v);
@@ -56,29 +79,35 @@ const QuotationSummary = () => {
       };
 
       const discountAmountSafe = safe(discountAmount);
-      const gstAmountSafe = safe(gstAmount);
+      const totalTaxAmountSafe = safe(totalTaxAmount);
+      const sgstAmountSafe = safe(sgstAmount);
+      const cgstAmountSafe = safe(cgstAmount);
+      const igstAmountSafe = safe(igstAmount);
       const grandTotalSafe = safe(grandTotal);
 
       setTotals({
         subTotal: safe(sub),
         discount: safe(discountPercent),
         discountAmount: parseFloat(discountAmountSafe.toFixed(2)),
-        gstAmount: parseFloat(gstAmountSafe.toFixed(2)),
+        gstAmount: parseFloat(totalTaxAmountSafe.toFixed(2)),
+        sgstAmount: parseFloat(sgstAmountSafe.toFixed(2)),
+        cgstAmount: parseFloat(cgstAmountSafe.toFixed(2)),
+        igstAmount: parseFloat(igstAmountSafe.toFixed(2)),
         transport: safe(transportCharges),
         grandTotal: parseFloat(grandTotalSafe.toFixed(2)),
       });
 
-      // Update form fields
+      // Keep legacy GST field synced for payload compatibility
       form?.setFieldsValue({
         subTotal: safe(sub),
         discount: safe(discountPercent),
-        gst: safe(gstPercent),
+        gst: safe(combinedTaxPercent),
         transport: safe(transportCharges),
       });
     };
 
     calculateTotals();
-  }, [subTotal, discount, gst, transport, form]);
+  }, [subTotal, discount, cgst, sgst, igst, transport, placeOfOrder, form]);
 
   return (
     <>
@@ -113,18 +142,51 @@ const QuotationSummary = () => {
           </Col>
 
           <Col xs={24} md={6}>
-            <Form.Item label="GST (%)" name="gst">
-              <InputNumber
-                style={{ width: "100%" }}
-                placeholder="18"
-                min={0}
-                max={100}
-                step={0.01}
-              />
-            </Form.Item>
-            <div style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
-              Amount: ₹{totals.gstAmount}
-            </div>
+            {String(placeOfOrder || "").trim().toLowerCase() === "maharashtra" ? (
+              <>
+                <Form.Item label="CGST (%)" name="cgst">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    placeholder="9"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                  />
+                </Form.Item>
+                <Form.Item label="SGST (%)" name="sgst">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    placeholder="9"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                  />
+                </Form.Item>
+                <div
+                  style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}
+                >
+                  <div>CGST Amount: ₹{totals.cgstAmount}</div>
+                  <div>SGST Amount: ₹{totals.sgstAmount}</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <Form.Item label="IGST (%)" name="igst">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    placeholder="18"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                  />
+                </Form.Item>
+                <div
+                  style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}
+                >
+                  <div>IGST Amount: ₹{totals.igstAmount}</div>
+                </div>
+              </>
+            )}
           </Col>
 
           <Col xs={24} md={6}>
