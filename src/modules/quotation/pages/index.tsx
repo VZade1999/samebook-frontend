@@ -162,6 +162,119 @@ const QuotationPage = () => {
     return diffDays > 0 ? diffDays.toString() : undefined;
   };
 
+  const parseJsonField = (raw: any) => {
+    if (typeof raw === "string") {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return undefined;
+      }
+    }
+    return raw;
+  };
+
+  useEffect(() => {
+    if (!editingQuotation || !selectedQuotation) {
+      return;
+    }
+
+    if (selectedQuotation.id !== editingQuotation.id) {
+      return;
+    }
+
+    const billingSnapshot = parseJsonField(selectedQuotation.billing_address_snapshot);
+    const shippingSnapshot = parseJsonField(selectedQuotation.shipping_address_snapshot);
+    const businessSnapshotRaw = selectedQuotation.business_details_snapshot;
+    const businessSnapshot = businessSnapshotRaw
+      ? parseJsonField(businessSnapshotRaw) || {}
+      : {};
+
+    form.setFieldsValue({
+      customerId: selectedQuotation.customer_id,
+      customerName: selectedQuotation.customer_name,
+      customerType: selectedQuotation.customer_type,
+      companyName: selectedQuotation.company_name,
+      customerGSTN: selectedQuotation.customer_gst_number,
+      customerEmail: selectedQuotation.contact_person_email,
+      customerPhone: selectedQuotation.contact_person_phone,
+      contactPersonId: selectedQuotation.contact_person_id,
+      billingAddressId: selectedQuotation.billing_address_id,
+      shippingAddressId: selectedQuotation.shipping_address_id,
+      billingAddressSnapshot: JSON.stringify(billingSnapshot),
+      shippingAddressSnapshot: JSON.stringify(shippingSnapshot),
+      businessDetailsSnapshot: JSON.stringify(businessSnapshot),
+      businessName: businessSnapshot.businessName ?? selectedQuotation.company_name ?? "",
+      selectedAddress: Array.isArray(businessSnapshot.selectedAddress)
+        ? businessSnapshot.selectedAddress
+        : [],
+      selectedLocation: Array.isArray(businessSnapshot.selectedLocation)
+        ? businessSnapshot.selectedLocation
+        : [],
+      selectedPhones: Array.isArray(businessSnapshot.selectedPhones)
+        ? businessSnapshot.selectedPhones
+        : [],
+      selectedEmails: Array.isArray(businessSnapshot.selectedEmails)
+        ? businessSnapshot.selectedEmails
+        : [],
+      businessAddress:
+        businessSnapshot.businessAddress ??
+        [
+          billingSnapshot?.address_line_1,
+          billingSnapshot?.address_line_2,
+          billingSnapshot?.city,
+          billingSnapshot?.state,
+          billingSnapshot?.country,
+          billingSnapshot?.postal_code,
+        ]
+          .filter(Boolean)
+          .join(", "),
+      businessGST: businessSnapshot.businessGST ?? "",
+      businessPhone: businessSnapshot.businessPhone ?? "",
+      businessEmail: businessSnapshot.businessEmail ?? "",
+      businessMeta: Array.isArray(businessSnapshot.businessMeta)
+        ? businessSnapshot.businessMeta
+        : [],
+      billingAddress: [
+        billingSnapshot?.address_line_1,
+        billingSnapshot?.address_line_2,
+        billingSnapshot?.city,
+        billingSnapshot?.state,
+        billingSnapshot?.country,
+        billingSnapshot?.postal_code,
+      ]
+        .filter(Boolean)
+        .join(", "),
+      shippingAddress: [
+        shippingSnapshot?.address_line_1,
+        shippingSnapshot?.address_line_2,
+        shippingSnapshot?.city,
+        shippingSnapshot?.state,
+        shippingSnapshot?.country,
+        shippingSnapshot?.postal_code,
+      ]
+        .filter(Boolean)
+        .join(", "),
+      items: (selectedQuotation.items || []).map((item: any) => ({
+        itemName: item.product_name,
+        hsn_code: item.hsn_code || item.hsn || "",
+        quantity: item.qty,
+        price: item.rate,
+        discount: item.discount_percent,
+        total: item.amount,
+      })),
+      subTotal: selectedQuotation.sub_total,
+      discount: selectedQuotation.discount,
+      cgst: selectedQuotation.cgst_percent,
+      sgst: selectedQuotation.sgst_percent,
+      igst: selectedQuotation.igst_percent,
+      placeOfOrder: billingSnapshot?.state || shippingSnapshot?.state,
+      transport: selectedQuotation.transport_charges,
+      grandTotal: selectedQuotation.grand_total,
+      validity: getValidityOption(selectedQuotation.validity_date),
+      notes: selectedQuotation.notes,
+    });
+  }, [editingQuotation, selectedQuotation, form]);
+
   const downloadQuotationPDF = async (quotation: any) => {
     setDownloadingQuotationId(quotation.id);
     try {
@@ -303,11 +416,15 @@ const QuotationPage = () => {
       dispatch(updateQuotation(updatePayload));
       setEditingQuotation(null);
     } else {
-      if (!payload.company_id || !payload.customer_id || !payload.user_id) {
+      const missingFields = [];
+      if (!payload.customer_id) missingFields.push("selected customer");
+      if (!payload.company_id) missingFields.push("company details");
+      if (!payload.user_id) missingFields.push("login");
+
+      if (missingFields.length) {
         notification.error({
           message: "Missing Required Fields",
-          description:
-            "Please select a customer and ensure you are logged in before creating a quotation.",
+          description: `Please provide ${missingFields.join(" and ")} before creating a quotation.`,
         });
         return;
       }
@@ -321,7 +438,6 @@ const QuotationPage = () => {
   const handleEdit = (record: any) => {
     console.log("record.customer_name :", record.customer_name);
     setEditingQuotation(record);
-    console.log("record.customer_name :", record.customer_name);
     dispatch(
       getCustomers({
         search: record.customer_name,
@@ -329,6 +445,7 @@ const QuotationPage = () => {
         limit: 10,
       }),
     );
+    dispatch(getQuotationDetails(record.id));
     setShowForm(true);
 
     const billingSnapshot =
@@ -340,40 +457,59 @@ const QuotationPage = () => {
       typeof record.shipping_address_snapshot === "string"
         ? JSON.parse(record.shipping_address_snapshot)
         : record.shipping_address_snapshot;
-    console.log("this is working", record.customer_name);
-    (getCustomers({
-      search: record.customer_name,
-      page: 1,
-      limit: 10,
-    }),
-      console.log("this is working", record.customer_name));
+
+    const businessSnapshotRaw = record.business_details_snapshot;
+    const businessSnapshot = businessSnapshotRaw
+      ? typeof businessSnapshotRaw === "string"
+        ? JSON.parse(businessSnapshotRaw)
+        : businessSnapshotRaw
+      : {};
+
     form.setFieldsValue({
       customerId: record.customer_id,
-
       customerName: record.customer_name,
-
       customerType: record.customer_type,
-
       companyName: record.company_name,
-
       customerGSTN: record.customer_gst_number,
-
       customerEmail: record.contact_person_email,
-
       customerPhone: record.contact_person_phone,
-
       contactPersonId: record.contact_person_id,
-
       billingAddressId: record.billing_address_id,
-
       shippingAddressId: record.shipping_address_id,
-
       billingAddressSnapshot: JSON.stringify(billingSnapshot),
-
       shippingAddressSnapshot: JSON.stringify(shippingSnapshot),
-
-      businessDetailsSnapshot: JSON.stringify(record.business_details_snapshot || {}),
-
+      businessDetailsSnapshot: JSON.stringify(businessSnapshot),
+      businessName: businessSnapshot.businessName ?? record.company_name ?? "",
+      selectedAddress: Array.isArray(businessSnapshot.selectedAddress)
+        ? businessSnapshot.selectedAddress
+        : [],
+      selectedLocation: Array.isArray(businessSnapshot.selectedLocation)
+        ? businessSnapshot.selectedLocation
+        : [],
+      selectedPhones: Array.isArray(businessSnapshot.selectedPhones)
+        ? businessSnapshot.selectedPhones
+        : [],
+      selectedEmails: Array.isArray(businessSnapshot.selectedEmails)
+        ? businessSnapshot.selectedEmails
+        : [],
+      businessAddress:
+        businessSnapshot.businessAddress ??
+        [
+          billingSnapshot?.address_line_1,
+          billingSnapshot?.address_line_2,
+          billingSnapshot?.city,
+          billingSnapshot?.state,
+          billingSnapshot?.country,
+          billingSnapshot?.postal_code,
+        ]
+          .filter(Boolean)
+          .join(", "),
+      businessGST: businessSnapshot.businessGST ?? "",
+      businessPhone: businessSnapshot.businessPhone ?? "",
+      businessEmail: businessSnapshot.businessEmail ?? "",
+      businessMeta: Array.isArray(businessSnapshot.businessMeta)
+        ? businessSnapshot.businessMeta
+        : [],
       billingAddress: [
         billingSnapshot?.address_line_1,
         billingSnapshot?.address_line_2,
@@ -674,7 +810,34 @@ const QuotationPage = () => {
       ? JSON.parse(selectedQuotation.billing_address_snapshot)
       : selectedQuotation?.billing_address_snapshot;
 
-      console.log(selectedQuotation,'selectedQuotation')
+  const businessSnapshot = (() => {
+    try {
+      return typeof selectedQuotation?.business_details_snapshot === "string"
+        ? JSON.parse(selectedQuotation.business_details_snapshot)
+        : selectedQuotation?.business_details_snapshot || {};
+    } catch (error) {
+      return selectedQuotation?.business_details_snapshot || {};
+    }
+  })();
+
+  const businessDetailsText = [
+    businessSnapshot.businessName,
+    typeof businessSnapshot.businessAddress === "string"
+      ? businessSnapshot.businessAddress.replace(/\n/g, ", ")
+      : undefined,
+    businessSnapshot.businessPhone ? `Phone: ${businessSnapshot.businessPhone}` : undefined,
+    businessSnapshot.businessEmail ? `Email: ${businessSnapshot.businessEmail}` : undefined,
+    businessSnapshot.businessGST ? `GST: ${businessSnapshot.businessGST}` : undefined,
+    ...(Array.isArray(businessSnapshot.businessMeta)
+      ? businessSnapshot.businessMeta
+          .filter((meta: any) => meta?.key && meta?.value)
+          .map((meta: any) => `${meta.key}: ${meta.value}`)
+      : []),
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
+  console.log(selectedQuotation, 'selectedQuotation')
   return (
     <div style={{ padding: 10 }}>
       {showForm ? (
@@ -856,6 +1019,9 @@ const QuotationPage = () => {
                       {selectedQuotation.status || "N/A"}
                     </Tag>
                   </Descriptions.Item>
+                  <Descriptions.Item label="Version">
+                    {selectedQuotation.version_number ?? 1}
+                  </Descriptions.Item>
                   <Descriptions.Item label="Shipping Address">
                     {[
                       shippingAddress?.address_line_1,
@@ -880,6 +1046,9 @@ const QuotationPage = () => {
                     ]
                       .filter(Boolean)
                       .join(", ")}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Business Details">
+                    {businessDetailsText || "No business details available"}
                   </Descriptions.Item>
                   <Descriptions.Item label="Created At">
                     {selectedQuotation.created_at
@@ -984,14 +1153,18 @@ const QuotationPage = () => {
                   renderItem={(item: any) => (
                     <List.Item>
                       <List.Item.Meta
-                        title={`Version ${item.version_number || item.id}`}
+                        title={`Version ${item.version_number || item.id}${item.action_type ? ` — ${item.action_type}` : ""}`}
                         description={
                           <>
                             <div>
-                              {item.message ||
-                                item.description ||
-                                item.notes ||
-                                "Snapshot available"}
+                              {item.change_reason || item.action_type || "Quotation snapshot saved"}
+                            </div>
+                            <div style={{ marginTop: 4, color: 'rgba(0,0,0,0.65)' }}>
+                              {item.changed_by_user
+                                ? `By ${item.changed_by_user.first_name || ''} ${item.changed_by_user.last_name || ''}`.trim()
+                                : item.changed_by
+                                ? `By user ${item.changed_by}`
+                                : "By unknown user"}
                             </div>
                             <small>
                               {item.created_at
@@ -1015,10 +1188,16 @@ const QuotationPage = () => {
                   renderItem={(item: any) => (
                     <List.Item>
                       <List.Item.Meta
-                        title={`${item.action || item.type || "Event"} ${item.performed_by ? `by ${item.performed_by}` : ""}`}
+                        title={item.action_type || item.type || "Event"}
                         description={
                           <>
-                            <div>{item.details || item.meta || ""}</div>
+                            <div>
+                              {item.changed_by_user
+                                ? `Changed by ${item.changed_by_user.first_name || ''} ${item.changed_by_user.last_name || ''}`.trim()
+                                : item.changed_by
+                                ? `Changed by user ${item.changed_by}`
+                                : "Timeline event"}
+                            </div>
                             <small>
                               {item.created_at
                                 ? new Date(item.created_at).toLocaleString()

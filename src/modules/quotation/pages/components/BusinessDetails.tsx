@@ -26,6 +26,7 @@ const BusinessDetails = () => {
   const [selectedPhoneIds, setSelectedPhoneIds] = useState<any[]>([]);
   const [selectedEmailIds, setSelectedEmailIds] = useState<any[]>([]);
 
+  const businessDetailsSnapshotValue = Form.useWatch("businessDetailsSnapshot", form);
   const companyPhoneOptionId = "company-primary-phone";
   const companyEmailOptionId = "company-primary-email";
 
@@ -151,7 +152,7 @@ const BusinessDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // react to store updates
+  // react to store updates and restore snapshot selections when editing quotations
   useEffect(() => {
     if (!companyState) return;
     setLoading(!!companyState.loading);
@@ -211,7 +212,7 @@ const BusinessDetails = () => {
 
       if (form) {
         form.setFieldsValue({
-          businessName: details.name,
+          businessName: existingSnapshot?.businessName ?? details.name,
           selectedAddress: initialAddressIds,
           selectedLocation: initialLocationIds,
           selectedPhones: initialPhoneIds,
@@ -237,7 +238,7 @@ const BusinessDetails = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyState?.companyDetails]);
+  }, [companyState?.companyDetails, businessDetailsSnapshotValue]);
 
   const handleAddressChange = (value: any[]) => {
     const selectedIds = value || [];
@@ -259,6 +260,10 @@ const BusinessDetails = () => {
         businessMeta: form.getFieldValue('businessMeta') || [],
       }),
     });
+    // re-validate address/location combined requirement
+    try {
+      form.validateFields(['selectedAddress', 'selectedLocation']);
+    } catch (e) {}
   };
 
   const handleLocationChange = (value: any[]) => {
@@ -281,6 +286,10 @@ const BusinessDetails = () => {
         businessMeta: form.getFieldValue('businessMeta') || [],
       }),
     });
+    // re-validate address/location combined requirement
+    try {
+      form.validateFields(['selectedAddress', 'selectedLocation']);
+    } catch (e) {}
   };
 
   const handlePhoneChange = (value: any[]) => {
@@ -304,6 +313,10 @@ const BusinessDetails = () => {
         businessMeta: form.getFieldValue('businessMeta') || [],
       }),
     });
+    // re-validate phone requirement
+    try {
+      form.validateFields(['selectedPhones']);
+    } catch (e) {}
   };
 
   const handleEmailChange = (value: any[]) => {
@@ -327,6 +340,10 @@ const BusinessDetails = () => {
         businessMeta: form.getFieldValue('businessMeta') || [],
       }),
     });
+    // re-validate email requirement
+    try {
+      form.validateFields(['selectedEmails']);
+    } catch (e) {}
   };
 
   const handleMetadataChange = (value: any[]) => {
@@ -361,9 +378,27 @@ const BusinessDetails = () => {
           <Form.Item name="businessDetailsSnapshot" hidden>
             <Input type="hidden" />
           </Form.Item>
+          <Form.Item label="Business Name" name="businessName">
+            <Input placeholder="Business name" disabled />
+          </Form.Item>
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item label="Select Address" name="selectedAddress">
+              <Form.Item
+                label="Select Address"
+                name="selectedAddress"
+                dependencies={["selectedLocation"]}
+                rules={[
+                  {
+                    validator: (_: any) => {
+                      const sa = form.getFieldValue("selectedAddress") || [];
+                      const sl = form.getFieldValue("selectedLocation") || [];
+                      return (Array.isArray(sa) && sa.length) || (Array.isArray(sl) && sl.length)
+                        ? Promise.resolve()
+                        : Promise.reject(new Error("Please select at least one address or one location"));
+                    },
+                  },
+                ]}
+              >
                 <Select
                   mode="multiple"
                   value={selectedAddressIds}
@@ -394,7 +429,22 @@ const BusinessDetails = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="Select Location" name="selectedLocation">
+              <Form.Item
+                label="Select Location"
+                name="selectedLocation"
+                dependencies={["selectedAddress"]}
+                rules={[
+                  {
+                    validator: (_: any) => {
+                      const sa = form.getFieldValue("selectedAddress") || [];
+                      const sl = form.getFieldValue("selectedLocation") || [];
+                      return (Array.isArray(sa) && sa.length) || (Array.isArray(sl) && sl.length)
+                        ? Promise.resolve()
+                        : Promise.reject(new Error("Please select at least one address or one location"));
+                    },
+                  },
+                ]}
+              >
                 <Select
                   mode="multiple"
                   value={selectedLocationIds}
@@ -427,7 +477,18 @@ const BusinessDetails = () => {
 
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item label="Select Phone(s)" name="selectedPhones">
+              <Form.Item
+                label="Select Phone(s)"
+                name="selectedPhones"
+                rules={[
+                  {
+                    validator: (_: any, value: any[]) =>
+                      value && value.length
+                        ? Promise.resolve()
+                        : Promise.reject(new Error("Please select at least one phone number")),
+                  },
+                ]}
+              >
                 <Select
                   mode="multiple"
                   value={selectedPhoneIds}
@@ -448,7 +509,18 @@ const BusinessDetails = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="Select Email(s)" name="selectedEmails">
+              <Form.Item
+                label="Select Email(s)"
+                name="selectedEmails"
+                rules={[
+                  {
+                    validator: (_: any, value: any[]) =>
+                      value && value.length
+                        ? Promise.resolve()
+                        : Promise.reject(new Error("Please select at least one email address")),
+                  },
+                ]}
+              >
                 <Select
                   mode="multiple"
                   value={selectedEmailIds}

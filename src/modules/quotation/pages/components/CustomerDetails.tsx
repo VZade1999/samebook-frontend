@@ -141,6 +141,7 @@ const CustomerDetails = () => {
   // Handle customer search
   const handleCustomerSearch = (value: string) => {
     setSearchValue(value);
+    form.setFieldsValue({ customerId: undefined });
   };
 
   // Handle customer selection
