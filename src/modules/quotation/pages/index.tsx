@@ -27,6 +27,7 @@ import {
   SearchOutlined,
   EyeOutlined,
   CloseCircleOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -39,6 +40,8 @@ import {
   sendQuotation,
   updateQuotation,
 } from "../redux/quotationActions";
+import { downloadQuotationPDF as downloadQuotationPDFHelper } from "../components/quotationPdf";
+import QuotationService from "../redux";
 
 import BusinessDetails from "./components/BusinessDetails";
 import CustomerDetails from "./components/CustomerDetails";
@@ -68,6 +71,8 @@ const QuotationPage = () => {
   const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(
     null,
   );
+  const [downloadingQuotationId, setDownloadingQuotationId] = useState<number | null>(null);
+  const quotationService = new QuotationService();
 
   const quotationState = useSelector((state: any) => state.quotations);
   const authState = useSelector((state: any) => state.authn);
@@ -157,6 +162,18 @@ const QuotationPage = () => {
     return diffDays > 0 ? diffDays.toString() : undefined;
   };
 
+  const downloadQuotationPDF = async (quotation: any) => {
+    setDownloadingQuotationId(quotation.id);
+    try {
+      await downloadQuotationPDFHelper(
+        quotation,
+        async (id: number) => quotationService.getQuotationDetails(id),
+      );
+    } finally {
+      setDownloadingQuotationId(null);
+    }
+  };
+
   const getStatusColor = (status?: string) => {
     if (!status) return "default";
 
@@ -185,7 +202,17 @@ const QuotationPage = () => {
   const handleFinish = (values: any) => {
     const customerId = values.customerId;
     const userId = authState?.user?.id;
-    const items = (values.items || []).map((item: any) => ({
+
+    const itemsRaw = values.items || [];
+    if (!itemsRaw.length) {
+      notification.error({
+        message: "No items added",
+        description: "Please add at least one item to the quotation before saving.",
+      });
+      return;
+    }
+
+    const items = itemsRaw.map((item: any) => ({
       product_name: item?.itemName,
       hsn_code: item?.hsn_code,
       qty: Number(item?.quantity || item?.qty || 0),
@@ -545,9 +572,15 @@ const QuotationPage = () => {
       title: "Action",
       key: "action",
       fixed: "right" as const,
-      width: 160,
+      width: 180,
       render: (_: any, record: any) => (
         <Space size="small">
+          <Button
+            type="text"
+            icon={<DownloadOutlined style={{ color: "#1890ff" }} />}
+            loading={downloadingQuotationId === record.id}
+            onClick={() => downloadQuotationPDF(record)}
+          />
           <Button
             type="text"
             icon={<EyeOutlined style={{ color: "#1890ff" }} />}

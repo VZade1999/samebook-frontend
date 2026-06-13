@@ -24,6 +24,12 @@ class QuotationService {
     return instance.post(`/quotation/${id}/send`, { user_id });
   }
 
+  downloadQuotation(id: number) {
+    return instance.get(`/quotation/${id}/download`, {
+      responseType: 'blob',
+    });
+  }
+
   createQuotation(payload: any) {
     return instance.post('/quotation', payload);
   }
