@@ -50,6 +50,7 @@ import QuotationSummary from "./components/QuotationSummary";
 
 import { StorageService } from "@/storage";
 import { getCustomers } from "@/modules/customers/redux/customerActions";
+import { useAccess } from "@/permissions/useAccess";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -76,6 +77,7 @@ const QuotationPage = () => {
 
   const quotationState = useSelector((state: any) => state.quotations);
   const authState = useSelector((state: any) => state.authn);
+  const { can } = useAccess();
   const quotationData = quotationState?.quotations || {};
   const quotations = quotationData?.rows || [];
   const pagination = quotationData?.pagination || {};
@@ -715,32 +717,38 @@ const QuotationPage = () => {
       width: 180,
       render: (_: any, record: any) => (
         <Space size="small">
-          <Button
-            type="text"
-            icon={<DownloadOutlined style={{ color: "#1890ff" }} />}
-            loading={downloadingQuotationId === record.id}
-            onClick={() => downloadQuotationPDF(record)}
-          />
+          {can("quotation.download") && (
+            <Button
+              type="text"
+              icon={<DownloadOutlined style={{ color: "#1890ff" }} />}
+              loading={downloadingQuotationId === record.id}
+              onClick={() => downloadQuotationPDF(record)}
+            />
+          )}
           <Button
             type="text"
             icon={<EyeOutlined style={{ color: "#1890ff" }} />}
             onClick={() => handleView(record)}
           />
-          <Button
-            type="text"
-            icon={<EditOutlined style={{ color: "#1677ff" }} />}
-            onClick={() => handleEdit(record)}
-          />
-          <Popconfirm
-            title="Delete Quotation"
-            description="Are you sure you want to delete this quotation?"
-            onConfirm={() => handleDelete(record)}
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="text" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {can("quotation.update") && (
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: "#1677ff" }} />}
+              onClick={() => handleEdit(record)}
+            />
+          )}
+          {can("quotation.delete") && (
+            <Popconfirm
+              title="Delete Quotation"
+              description="Are you sure you want to delete this quotation?"
+              onConfirm={() => handleDelete(record)}
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+            >
+              <Button type="text" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -877,14 +885,16 @@ const QuotationPage = () => {
 
             <Form.Item style={{ marginTop: 24 }}>
               <Space wrap>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  loading={createLoading}
-                >
-                  {editingQuotation ? "Save Changes" : "Save Quotation"}
-                </Button>
+                {(editingQuotation ? can("quotation.update") : can("quotation.create")) && (
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    loading={createLoading}
+                  >
+                    {editingQuotation ? "Save Changes" : "Save Quotation"}
+                  </Button>
+                )}
                 <Button
                   type="default"
                   icon={<CloseCircleOutlined />}
@@ -905,17 +915,19 @@ const QuotationPage = () => {
       <Card
         title="Quotations"
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setShowForm(true);
-              setEditingQuotation(null);
-              form.resetFields();
-            }}
-          >
-            Add Quotation
-          </Button>
+          can("quotation.create") && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setShowForm(true);
+                setEditingQuotation(null);
+                form.resetFields();
+              }}
+            >
+              Add Quotation
+            </Button>
+          )
         }
       >
         <Space direction="vertical" style={{ width: "100%" }} size="large">
@@ -984,9 +996,11 @@ const QuotationPage = () => {
         footer={
           <Space>
             <Button onClick={() => setDetailsVisible(false)}>Close</Button>
-            <Button type="primary" loading={actionLoading} onClick={handleSend}>
-              Send Quotation
-            </Button>
+              {can("quotation.send") && (
+                <Button type="primary" loading={actionLoading} onClick={handleSend}>
+                  Send Quotation
+                </Button>
+              )}
           </Space>
         }
       >
@@ -1034,7 +1048,6 @@ const QuotationPage = () => {
                       .filter(Boolean)
                       .join(", ")}
                   </Descriptions.Item>
-
                   <Descriptions.Item label="Billing Address">
                     {[
                       billingAddress?.address_line_1,
