@@ -32,6 +32,16 @@ export async function downloadQuotationPDF(
         ? JSON.parse(data.billing_address_snapshot)
         : data.billing_address_snapshot || {};
 
+    const shippingAddress =
+      typeof data.shipping_address_snapshot === "string"
+        ? JSON.parse(data.shipping_address_snapshot)
+        : data.shipping_address_snapshot || {};
+
+    const businessSnapshot =
+      typeof data.business_details_snapshot === "string"
+        ? JSON.parse(data.business_details_snapshot)
+        : data.business_details_snapshot || {};
+
     const billingAddressLines = [
       billingAddress.address_line_1,
       billingAddress.address_line_2,
@@ -40,6 +50,52 @@ export async function downloadQuotationPDF(
         .filter(Boolean)
         .join(" - "),
     ].filter(Boolean);
+
+    // Build business detail lines, filtering out undefined/empty entries
+    const businessDetailsLines: string[] = [
+      businessSnapshot.businessName,
+      ...(typeof businessSnapshot.businessAddress === "string"
+        ? businessSnapshot.businessAddress
+            .split("\n")
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+        : []),
+      businessSnapshot.businessPhone
+        ? `Phone: ${businessSnapshot.businessPhone}`
+        : undefined,
+      businessSnapshot.businessEmail
+        ? `Email: ${businessSnapshot.businessEmail}`
+        : undefined,
+      businessSnapshot.businessGST
+        ? `GST: ${businessSnapshot.businessGST}`
+        : undefined,
+      ...(Array.isArray(businessSnapshot.businessMeta)
+        ? businessSnapshot.businessMeta
+            .filter(
+              (meta: any) =>
+                meta?.key &&
+                meta?.value &&
+                meta.key !== "undefined" &&
+                meta.value !== "undefined",
+            )
+            .map((meta: any) => `${meta.key}: ${meta.value}`)
+        : []),
+    ].filter(Boolean) as string[];
+
+    // ─── Footer business info ─────────────────────────────────────────────────
+    // Extract state & country from businessAddress (last address line split)
+    const businessAddrParts =
+      typeof businessSnapshot.businessAddress === "string"
+        ? businessSnapshot.businessAddress
+            .split("\n")
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+        : [];
+    // Use last address part as location (usually "City State Pincode")
+    const businessLocation = businessAddrParts[businessAddrParts.length - 1] || "";
+
+    const footerEmail = businessSnapshot.businessEmail || "sales@yourcompany.com";
+    const footerPhone = businessSnapshot.businessPhone || "9999999999";
 
     const doc = new jsPDF({
       orientation: "portrait",
@@ -54,7 +110,6 @@ export async function downloadQuotationPDF(
 
     // ─── helpers ──────────────────────────────────────────────────────────────
     const drawPageBase = () => {
-      // White background
       doc.setFillColor(255, 255, 255);
       doc.rect(0, 0, pageWidth, pageHeight, "F");
     };
@@ -71,11 +126,9 @@ export async function downloadQuotationPDF(
     drawPageBase();
 
     // ─── HEADER ──────────────────────────────────────────────────────────────
-    // Company logo placeholder (small black square like in the design)
     doc.setFillColor(30, 30, 30);
     doc.rect(marginL, 38, 18, 18, "F");
 
-    // Company name
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     setBlack();
@@ -85,34 +138,49 @@ export async function downloadQuotationPDF(
     setGray();
     doc.text("Your slogan or tagline here", marginL + 26, 60);
 
-    // "QUOTATION" title – top right
     doc.setFont("helvetica", "bold");
     doc.setFontSize(30);
     setBlack();
     doc.text("QUOTATION", marginR, 55, { align: "right" });
 
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setBlack();
+    doc.text(`QUOTATION NO: ${data.quotation_number || "-"}`, marginR, 80, {
+      align: "right",
+    });
+
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     setGray();
-    doc.text(
-      `DATE. ${formatDate(data.quotation_date)}`,
-      marginR,
-      70,
-      { align: "right" },
-    );
+    doc.text(`VALID UNTIL: ${formatDate(data.validity_date)}`, marginR, 96, {
+      align: "right",
+    });
 
     // ─── ADDRESS CARD ────────────────────────────────────────────────────────
     const cardTop = 100;
-    const cardH = 130;
+    const LINE_H = 14;
+    const TOP_PAD = 22;
+    const NAME_H = 20;
+    const PHONE_H = data.contact_person_phone ? LINE_H : 0;
+    const BOTTOM_PAD = 16;
+
+    const leftContentH =
+      TOP_PAD + NAME_H + billingAddressLines.length * LINE_H + PHONE_H + BOTTOM_PAD;
+
+    const rightContentH =
+      TOP_PAD + NAME_H + (businessDetailsLines.length - 1) * LINE_H + BOTTOM_PAD;
+
+    const cardH = Math.max(leftContentH, rightContentH, 100);
     const midX = pageWidth / 2;
+    const col1 = marginL + 18;
+    const col2 = midX + 10;
+    const maxColWidth = midX - marginL - 28;
 
     doc.setFillColor(248, 248, 248);
     doc.roundedRect(marginL, cardTop, pageWidth - 90, cardH, 4, 4, "F");
 
-    const col1 = marginL + 18;
-    const col2 = midX + 10;
-
-    // LEFT – Bill To
+    // ── Left: Customer ───────────────────────────────────────────────────────
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setGray();
@@ -128,63 +196,51 @@ export async function downloadQuotationPDF(
     setBlack();
     let addrY = cardTop + 57;
     billingAddressLines.forEach((line) => {
-      doc.text(line, col1, addrY);
-      addrY += 14;
+      const wrapped = doc.splitTextToSize(line, maxColWidth);
+      wrapped.forEach((wl: string) => {
+        doc.text(wl, col1, addrY);
+        addrY += LINE_H;
+      });
     });
     if (data.contact_person_phone) {
+      setGray();
       doc.text(`(${data.contact_person_phone})`, col1, addrY);
     }
 
-    // Divider
+    // ── Divider ──────────────────────────────────────────────────────────────
     doc.setDrawColor(210, 210, 210);
     doc.setLineWidth(0.5);
     doc.line(midX, cardTop + 12, midX, cardTop + cardH - 12);
 
-    // RIGHT – Ship To / Quotation Details
+    // ── Right: Business Details ───────────────────────────────────────────────
+    let detY = cardTop + 22;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setGray();
-    doc.text("QUOTATION DETAILS", col2, cardTop + 22);
+    doc.text("BUSINESS DETAILS", col2, detY);
+    detY += 18;
 
-    const detailsData = [
-      ["Quotation No", data.quotation_number || "-"],
-      ["Date", formatDate(data.quotation_date)],
-      ["Valid Until", formatDate(data.validity_date)],
-      ["Status", data.status || "-"],
-      ["Total Items", String(data.items?.length || 0)],
-    ];
-
-    let detY = cardTop + 40;
-    detailsData.forEach(([label, value]) => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      setBlack();
-      doc.text(label, col2, detY);
-      doc.setFont("helvetica", "normal");
-      setGray();
-      doc.text(String(value), col2 + 90, detY);
-      detY += 16;
+    businessDetailsLines.forEach((line, idx) => {
+      if (idx === 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        setBlack();
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        setBlack();
+      }
+      const wrapped = doc.splitTextToSize(line, maxColWidth);
+      wrapped.forEach((wl: string) => {
+        doc.text(wl, col2, detY);
+        detY += LINE_H;
+      });
     });
 
-    // ─── DATE + INVOICE NO ROW ───────────────────────────────────────────────
-    const metaY = cardTop + cardH + 28;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setGray();
-    doc.text(`DATE: ${formatDate(data.quotation_date).toUpperCase()}`, marginL, metaY);
-
-    doc.setFont("helvetica", "bold");
-    setBlack();
-    doc.text(
-      `QUOTATION NO: ${data.quotation_number || ""}`,
-      marginR,
-      metaY,
-      { align: "right" },
-    );
-
-    hLine(metaY + 8);
-
     // ─── ITEMS TABLE ─────────────────────────────────────────────────────────
+    const metaY = cardTop + cardH + 28;
+    hLine(metaY - 6);
+
     const rows =
       data.items?.map((item: any, index: number) => [
         `${index + 1}.`,
@@ -199,7 +255,9 @@ export async function downloadQuotationPDF(
     autoTable(doc, {
       startY: metaY + 18,
       margin: { left: marginL, right: 45 },
-      head: [["NO", "ITEM DESCRIPTION", "HSN", "QTY", "PRICE", "DISCOUNT", "TOTAL"]],
+      head: [
+        ["NO", "ITEM DESCRIPTION", "HSN", "QTY", "PRICE", "DISCOUNT", "TOTAL"],
+      ],
       body: rows,
       theme: "plain",
       headStyles: {
@@ -226,8 +284,7 @@ export async function downloadQuotationPDF(
         5: { halign: "right" },
         6: { halign: "right" },
       },
-      // Top border below header only, and bottom border at end
-      didParseCell: (data) => {
+      didParseCell: (data: any) => {
         if (data.row.section === "head") {
           data.cell.styles.lineWidth = { bottom: 0.8 };
           data.cell.styles.lineColor = [30, 30, 30];
@@ -239,7 +296,7 @@ export async function downloadQuotationPDF(
       didAddPage: () => {
         drawPageBase();
       },
-    });
+    } as any);
 
     // ─── SUMMARY SECTION ─────────────────────────────────────────────────────
     let finalY = (doc as any).lastAutoTable.finalY + 10;
@@ -254,18 +311,25 @@ export async function downloadQuotationPDF(
       finalY = 50;
     }
 
-    // Grand total – left (big display)
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    setBlack();
-    doc.text("TOTAL AMOUNT", marginL, finalY + 14);
+    // ── Total Amount — gray highlighted rectangle ─────────────────────────────
+    const totalBoxW = 190;
+    const totalBoxH = 58;
+    doc.setFillColor(248, 248, 248);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(marginL, finalY - 8, totalBoxW, totalBoxH, 4, 4, "FD");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
-    setBlack();
-    doc.text(formatCurrency(data.grand_total), marginL, finalY + 46);
+    doc.setFontSize(9);
+    setGray();
+    doc.text("TOTAL AMOUNT", marginL + 12, finalY + 8);
 
-    // Summary table – right side
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24);
+    setBlack();
+    doc.text(formatCurrency(data.grand_total), marginL + 12, finalY + 36);
+
+    // ── Summary table — right side ────────────────────────────────────────────
     const summaryRows: [string, any][] = [
       ["SUBTOTAL:", data.sub_total],
       [`DISCOUNT (${data.discount_percent || 0}%):`, data.discount_amount],
@@ -290,7 +354,6 @@ export async function downloadQuotationPDF(
       sumY += 17;
     });
 
-    // Grand total row
     hLine(sumY + 2, sumLabelX, sumValueX, false);
     sumY += 14;
     doc.setFont("helvetica", "bold");
@@ -305,7 +368,6 @@ export async function downloadQuotationPDF(
     const footerTop = pageHeight - 145;
     hLine(footerTop, marginL, marginR, true);
 
-    // Payment Info
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setBlack();
@@ -323,7 +385,6 @@ export async function downloadQuotationPDF(
       doc.text(line, marginL, footerTop + 34 + i * 14);
     });
 
-    // Terms
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setBlack();
@@ -338,51 +399,53 @@ export async function downloadQuotationPDF(
     );
     doc.text(termsText, pageWidth / 2 - 40, footerTop + 34);
 
-    // Authorized Signature
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setBlack();
-    doc.text("Authorized Signature", marginR, footerTop + 18, { align: "right" });
+    doc.text("Authorized Signature", marginR, footerTop + 18, {
+      align: "right",
+    });
 
     doc.setFont("helvetica", "italic");
     doc.setFontSize(15);
     setGray();
-    doc.text("Your Company", marginR, footerTop + 50, { align: "right" });
+    doc.text(businessSnapshot.businessName || "Your Company", marginR, footerTop + 50, {
+      align: "right",
+    });
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setBlack();
-    doc.text("AUTHORIZED SIGNATORY", marginR, footerTop + 65, { align: "right" });
+    doc.text("AUTHORIZED SIGNATORY", marginR, footerTop + 65, {
+      align: "right",
+    });
 
-    // Bottom strip
     hLine(pageHeight - 42, marginL, marginR, true);
 
+    // ── Bottom strip — business email, phone, location ────────────────────────
+    const footerLocation = businessLocation || "Pune, Maharashtra";
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     setGray();
     doc.text(
-      "Questions? Email us at sales@yourcompany.com  |  Call: 9999999999  |  Pune, Maharashtra",
+      `Questions? Email us at ${footerEmail}  |  Call: ${footerPhone}  |  ${footerLocation}`,
       pageWidth / 2,
       pageHeight - 28,
       { align: "center" },
     );
 
-    // ─── FOOTER ON EVERY PAGE ─────────────────────────────────────────────────
+    // ─── PAGE NUMBERS ─────────────────────────────────────────────────────────
     const totalPages = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       setGray();
-      doc.text(
-        `Page ${i} of ${totalPages}`,
-        marginR,
-        pageHeight - 14,
-        { align: "right" },
-      );
+      doc.text(`Page ${i} of ${totalPages}`, marginR, pageHeight - 14, {
+        align: "right",
+      });
     }
 
-    // ─── SAVE ─────────────────────────────────────────────────────────────────
     doc.save(`quotation-${data.quotation_number}.pdf`);
   } catch (error: any) {
     notification.error({

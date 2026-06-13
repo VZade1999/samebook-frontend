@@ -19,6 +19,7 @@ import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 
 import { createCustomer } from "../redux/customerActions";
+import { indianStates } from "@/utils/masterData/stata";
 
 const { Option } = Select;
 
@@ -61,6 +62,26 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+
+      // =========================================
+      // BUSINESS CUSTOMER VALIDATION
+      // =========================================
+
+      if (values.customer_type === "BUSINESS") {
+        const contacts = values.contacts || [];
+
+        // Check if at least one contact has required fields
+        const hasValidContact = contacts.some(
+          (contact: any) =>
+            contact.first_name && contact.last_name && contact.phone,
+        );
+
+        if (!hasValidContact) {
+          return alert(
+            "Business customers must have at least one contact with first name, last name, and phone number",
+          );
+        }
+      }
 
       // =========================================
       // PRIMARY CONTACT VALIDATION
@@ -180,7 +201,17 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
 
             <Row gutter={16}>
               <Col xs={24} md={12}>
-                <Form.Item label="Company Name" name="company_name">
+                <Form.Item
+                  label="Company Name"
+                  name="company_name"
+                  rules={[
+                    {
+                      required: true,
+                      message:
+                        "Company Name is required for business customers",
+                    },
+                  ]}
+                >
                   <Input placeholder="Company name" />
                 </Form.Item>
               </Col>
@@ -245,6 +276,7 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
                         rules={[
                           {
                             required: true,
+                            message: "First name is required",
                           },
                         ]}
                       >
@@ -257,6 +289,12 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
                         {...restField}
                         label="Last Name"
                         name={[name, "last_name"]}
+                        rules={[
+                          {
+                            required: true,
+                            message: "Last name is required",
+                          },
+                        ]}
                       >
                         <Input />
                       </Form.Item>
@@ -284,8 +322,19 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
                         {...restField}
                         label="Phone"
                         name={[name, "phone"]}
+                        rules={[
+                          {
+                            required: true,
+                            message: "Phone number is required",
+                          },
+                          {
+                            pattern: /^[6-9]\d{9}$/,
+                            message:
+                              "Please enter a valid Indian phone number (10 digits starting with 6-9)",
+                          },
+                        ]}
                       >
-                        <Input />
+                        <Input placeholder="Enter 10-digit phone number" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -426,11 +475,6 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
                     {...restField}
                     label="Address Line 1"
                     name={[name, "address_line_1"]}
-                    rules={[
-                      {
-                        required: true,
-                      },
-                    ]}
                   >
                     <Input />
                   </Form.Item>
@@ -456,11 +500,31 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
 
                     <Col xs={24} md={6}>
                       <Form.Item
-                        {...restField}
-                        label="State"
+                        label="State (Place of Supply)"
                         name={[name, "state"]}
+                        rules={[
+                          {
+                            required: true,
+                            message: "State is required",
+                          },
+                        ]}
                       >
-                        <Input />
+                        <Select
+                          showSearch
+                          placeholder="Select State"
+                          optionFilterProp="children"
+                          filterOption={(input, option) =>
+                            (option?.children as unknown as string)
+                              ?.toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                        >
+                          {indianStates.map((state) => (
+                            <Option key={state} value={state}>
+                              {state}
+                            </Option>
+                          ))}
+                        </Select>
                       </Form.Item>
                     </Col>
 
@@ -495,7 +559,7 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
                   </Form.Item>
                 </Card>
               ))}
-             
+
               <Button
                 type="dashed"
                 block
@@ -530,7 +594,6 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
               >
                 Add Address
               </Button>
-             
             </>
           )}
         </Form.List>

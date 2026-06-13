@@ -176,27 +176,62 @@ const CustomerListPage = () => {
     },
 
     {
+      title: "Contacts",
+
+      dataIndex: "contacts",
+
+      key: "contacts",
+
+      width: 250,
+
+      render: (contacts: any[]) => {
+        if (!contacts || contacts.length === 0) return "-";
+        return (
+          <div>
+            {contacts.map((contact, index) => (
+              <div key={index}>
+                <Text>{contact.first_name} {contact.last_name}</Text>
+              </div>
+            ))}
+          </div>
+        );
+      },
+    },
+
+    {
       title: "Email",
 
-      dataIndex: "email",
+      dataIndex: "contacts",
 
       key: "email",
 
       width: 250,
 
-      render: (value: string) => value || "-",
+      render: (contacts: any[]) => {
+        if (!contacts || contacts.length === 0) return "-";
+        const emails = contacts
+          .map((contact) => contact.email)
+          .filter((email) => email);
+        return emails.length > 0 ? emails.join(", ") : "-";
+      },
     },
 
     {
       title: "Phone",
 
-      dataIndex: "phone",
+      dataIndex: "contacts",
 
       key: "phone",
 
       width: 180,
 
-      render: (value: string) => value || "-",
+      render: (contacts: any[]) => {
+        if (!contacts || contacts.length === 0) return "-";
+        const phones = contacts
+          .map((contact) => contact.phone)
+          .filter((phone) => phone);
+        return phones.length > 0 ? phones.join(", ") : "-";
+      },
     },
 
     {
@@ -339,7 +374,7 @@ const CustomerListPage = () => {
         columns={columns}
         dataSource={list || []}
         scroll={{
-          x: 1400,
+          x: 1600,
         }}
         pagination={{
           current: page,

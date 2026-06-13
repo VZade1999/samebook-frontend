@@ -157,13 +157,36 @@ const BusinessDetails = () => {
     setLoading(!!companyState.loading);
     const details = companyState.companyDetails;
     if (details) {
+      const existingSnapshotRaw = form.getFieldValue('businessDetailsSnapshot');
+      const existingSnapshot = existingSnapshotRaw
+        ? typeof existingSnapshotRaw === 'string'
+          ? JSON.parse(existingSnapshotRaw)
+          : existingSnapshotRaw
+        : null;
+
       const detailsAddresses = details.addresses || [];
       const detailsLocations = details.locations || [];
       const defaultAddressIds = detailsAddresses.filter((address: any) => address.is_default === 1).map((address: any) => address.id);
-      const initialAddressIds = defaultAddressIds.length ? defaultAddressIds : detailsAddresses.length ? [detailsAddresses[0].id] : [];
-      const initialLocationIds: any[] = [];
-      const initialPhoneIds = details.primary_phone ? [companyPhoneOptionId] : [];
-      const initialEmailIds = details.primary_email ? [companyEmailOptionId] : [];
+      const initialAddressIds = Array.isArray(existingSnapshot?.selectedAddress)
+        ? existingSnapshot.selectedAddress
+        : defaultAddressIds.length
+        ? defaultAddressIds
+        : detailsAddresses.length
+        ? [detailsAddresses[0].id]
+        : [];
+      const initialLocationIds = Array.isArray(existingSnapshot?.selectedLocation)
+        ? existingSnapshot.selectedLocation
+        : [];
+      const initialPhoneIds = Array.isArray(existingSnapshot?.selectedPhones)
+        ? existingSnapshot.selectedPhones
+        : details.primary_phone
+        ? [companyPhoneOptionId]
+        : [];
+      const initialEmailIds = Array.isArray(existingSnapshot?.selectedEmails)
+        ? existingSnapshot.selectedEmails
+        : details.primary_email
+        ? [companyEmailOptionId]
+        : [];
 
       setCompany(details);
       setAddresses(detailsAddresses);
@@ -176,9 +199,11 @@ const BusinessDetails = () => {
 
       const phoneOptions = buildPhoneOptions(details, detailsAddresses, detailsLocations);
       const emailOptions = buildEmailOptions(details, detailsAddresses, detailsLocations);
-      const initialBusinessAddress = buildBusinessAddress(initialAddressIds, initialLocationIds, detailsAddresses, detailsLocations);
-      const initialBusinessPhone = buildContactValue(initialPhoneIds, phoneOptions);
-      const initialBusinessEmail = buildContactValue(initialEmailIds, emailOptions);
+      const initialBusinessAddress = existingSnapshot?.businessAddress ?? buildBusinessAddress(initialAddressIds, initialLocationIds, detailsAddresses, detailsLocations);
+      const initialBusinessGST = existingSnapshot?.businessGST ?? details.gst_number ?? "";
+      const initialBusinessPhone = existingSnapshot?.businessPhone ?? buildContactValue(initialPhoneIds, phoneOptions);
+      const initialBusinessEmail = existingSnapshot?.businessEmail ?? buildContactValue(initialEmailIds, emailOptions);
+      const initialBusinessMeta = Array.isArray(existingSnapshot?.businessMeta) ? existingSnapshot.businessMeta : [];
 
       try {
         storageService.setItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS, JSON.stringify(details));
@@ -192,9 +217,22 @@ const BusinessDetails = () => {
           selectedPhones: initialPhoneIds,
           selectedEmails: initialEmailIds,
           businessAddress: initialBusinessAddress,
-          businessGST: "",
+          businessGST: initialBusinessGST,
           businessPhone: initialBusinessPhone,
           businessEmail: initialBusinessEmail,
+          businessMeta: initialBusinessMeta,
+          businessDetailsSnapshot: JSON.stringify({
+            businessName: existingSnapshot?.businessName ?? details.name,
+            selectedAddress: initialAddressIds,
+            selectedLocation: initialLocationIds,
+            selectedPhones: initialPhoneIds,
+            selectedEmails: initialEmailIds,
+            businessAddress: initialBusinessAddress,
+            businessGST: initialBusinessGST,
+            businessPhone: initialBusinessPhone,
+            businessEmail: initialBusinessEmail,
+            businessMeta: initialBusinessMeta,
+          }),
         });
       }
     }
@@ -205,34 +243,110 @@ const BusinessDetails = () => {
     const selectedIds = value || [];
     setSelectedAddressIds(selectedIds);
     const combined = buildBusinessAddress(selectedIds, selectedLocationIds);
-    form.setFieldsValue({ selectedAddress: selectedIds, businessAddress: combined });
+    form.setFieldsValue({
+      selectedAddress: selectedIds,
+      businessAddress: combined,
+      businessDetailsSnapshot: JSON.stringify({
+        businessName: company?.name,
+        selectedAddress: selectedIds,
+        selectedLocation: selectedLocationIds,
+        selectedPhones: selectedPhoneIds,
+        selectedEmails: selectedEmailIds,
+        businessAddress: combined,
+        businessGST: form.getFieldValue('businessGST') || '',
+        businessPhone: form.getFieldValue('businessPhone') || '',
+        businessEmail: form.getFieldValue('businessEmail') || '',
+        businessMeta: form.getFieldValue('businessMeta') || [],
+      }),
+    });
   };
 
   const handleLocationChange = (value: any[]) => {
     const selectedIds = value || [];
     setSelectedLocationIds(selectedIds);
     const combined = buildBusinessAddress(selectedAddressIds, selectedIds);
-    form.setFieldsValue({ selectedLocation: selectedIds, businessAddress: combined });
+    form.setFieldsValue({
+      selectedLocation: selectedIds,
+      businessAddress: combined,
+      businessDetailsSnapshot: JSON.stringify({
+        businessName: company?.name,
+        selectedAddress: selectedAddressIds,
+        selectedLocation: selectedIds,
+        selectedPhones: selectedPhoneIds,
+        selectedEmails: selectedEmailIds,
+        businessAddress: combined,
+        businessGST: form.getFieldValue('businessGST') || '',
+        businessPhone: form.getFieldValue('businessPhone') || '',
+        businessEmail: form.getFieldValue('businessEmail') || '',
+        businessMeta: form.getFieldValue('businessMeta') || [],
+      }),
+    });
   };
 
   const handlePhoneChange = (value: any[]) => {
     const selectedIds = value || [];
     setSelectedPhoneIds(selectedIds);
     const phoneOptions = buildPhoneOptions(company, addresses, locations);
-    form.setFieldsValue({ selectedPhones: selectedIds, businessPhone: buildContactValue(selectedIds, phoneOptions) });
+    const phoneValue = buildContactValue(selectedIds, phoneOptions);
+    form.setFieldsValue({
+      selectedPhones: selectedIds,
+      businessPhone: phoneValue,
+      businessDetailsSnapshot: JSON.stringify({
+        businessName: company?.name,
+        selectedAddress: selectedAddressIds,
+        selectedLocation: selectedLocationIds,
+        selectedPhones: selectedIds,
+        selectedEmails: selectedEmailIds,
+        businessAddress: form.getFieldValue('businessAddress') || '',
+        businessGST: form.getFieldValue('businessGST') || '',
+        businessPhone: phoneValue,
+        businessEmail: form.getFieldValue('businessEmail') || '',
+        businessMeta: form.getFieldValue('businessMeta') || [],
+      }),
+    });
   };
 
   const handleEmailChange = (value: any[]) => {
     const selectedIds = value || [];
     setSelectedEmailIds(selectedIds);
     const emailOptions = buildEmailOptions(company, addresses, locations);
-    form.setFieldsValue({ selectedEmails: selectedIds, businessEmail: buildContactValue(selectedIds, emailOptions) });
+    const emailValue = buildContactValue(selectedIds, emailOptions);
+    form.setFieldsValue({
+      selectedEmails: selectedIds,
+      businessEmail: emailValue,
+      businessDetailsSnapshot: JSON.stringify({
+        businessName: company?.name,
+        selectedAddress: selectedAddressIds,
+        selectedLocation: selectedLocationIds,
+        selectedPhones: selectedPhoneIds,
+        selectedEmails: selectedIds,
+        businessAddress: form.getFieldValue('businessAddress') || '',
+        businessGST: form.getFieldValue('businessGST') || '',
+        businessPhone: form.getFieldValue('businessPhone') || '',
+        businessEmail: emailValue,
+        businessMeta: form.getFieldValue('businessMeta') || [],
+      }),
+    });
   };
 
   const handleMetadataChange = (value: any[]) => {
     const selectedIds = value || [];
     setSelectedMetadataIds(selectedIds);
-    form.setFieldsValue({ businessMeta: selectedIds });
+    form.setFieldsValue({
+      businessMeta: selectedIds,
+      businessDetailsSnapshot: JSON.stringify({
+        businessName: company?.name,
+        selectedAddress: selectedAddressIds,
+        selectedLocation: selectedLocationIds,
+        selectedPhones: selectedPhoneIds,
+        selectedEmails: selectedEmailIds,
+        businessAddress: form.getFieldValue('businessAddress') || '',
+        businessGST: form.getFieldValue('businessGST') || '',
+        businessPhone: form.getFieldValue('businessPhone') || '',
+        businessEmail: form.getFieldValue('businessEmail') || '',
+        businessMeta: selectedIds,
+      }),
+    });
   };
 
   const phoneOptions = buildPhoneOptions(company, addresses, locations);
@@ -244,10 +358,9 @@ const BusinessDetails = () => {
         <Spin />
       ) : (
         <>
-          <Form.Item label="Business Name" name="businessName">
-            <Input placeholder="Business name" disabled />
+          <Form.Item name="businessDetailsSnapshot" hidden>
+            <Input type="hidden" />
           </Form.Item>
-
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item label="Select Address" name="selectedAddress">

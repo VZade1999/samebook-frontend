@@ -264,6 +264,7 @@ const QuotationPage = () => {
       contact_person_phone: values.customerPhone,
       billing_address_snapshot: JSON.parse(values.billingAddressSnapshot),
       shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
+      business_details_snapshot: values.businessDetailsSnapshot ? JSON.parse(values.businessDetailsSnapshot) : undefined,
     };
 
     if (editingQuotation) {
@@ -282,6 +283,7 @@ const QuotationPage = () => {
         contact_person_phone: values.customerPhone,
         billing_address_snapshot: JSON.parse(values.billingAddressSnapshot),
         shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
+        business_details_snapshot: values.businessDetailsSnapshot ? JSON.parse(values.businessDetailsSnapshot) : undefined,
         validity_date: values.validity ? computeValidityDate(values.validity) : undefined,
         notes: values.notes,
         sub_total: subTotal,
@@ -369,6 +371,8 @@ const QuotationPage = () => {
       billingAddressSnapshot: JSON.stringify(billingSnapshot),
 
       shippingAddressSnapshot: JSON.stringify(shippingSnapshot),
+
+      businessDetailsSnapshot: JSON.stringify(record.business_details_snapshot || {}),
 
       billingAddress: [
         billingSnapshot?.address_line_1,

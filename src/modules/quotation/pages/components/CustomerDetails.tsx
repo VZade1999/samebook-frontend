@@ -276,7 +276,7 @@ const CustomerDetails = () => {
         {/* First Row */}
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <Form.Item label="Customer Name" name="customerName">
+            <Form.Item label="Display Name" name="customerName">
               <Input placeholder="Enter customer name" />
             </Form.Item>
           </Col>
