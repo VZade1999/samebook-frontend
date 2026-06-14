@@ -8,6 +8,7 @@ import CompanyPage from "@/modules/companies/pages";
 import ProductPage from "@/modules/products/pages";
 import AiAgent from "@/modules/ai-agent/index";
 import QuotationPage from "@/modules/quotation/pages";
+import UsersPage from "@/modules/users/pages";
 // import UsersList from "../modules/users/pages/UsersList";
 
 // import QuotationList from "../modules/quotation/pages/InvoiceList";
@@ -68,6 +69,16 @@ const PrivateRoutes = () => {
           element={
             // <ProtectedRoute permission="quotation.view">
             <QuotationPage />
+            // </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/users"
+          element={
+            
+            // <ProtectedRoute permission="user.manage">
+              <UsersPage />
             // </ProtectedRoute>
           }
         />

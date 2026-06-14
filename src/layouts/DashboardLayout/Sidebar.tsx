@@ -7,6 +7,7 @@ import {
   FileTextOutlined,
   ShoppingOutlined,
   RobotOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,12 @@ const Sidebar = () => {
       icon: <DashboardOutlined />,
       label: "Dashboard",
       visible: can("customer.view"),
+    },
+     {
+      key: "/app/users",
+      icon: <TeamOutlined />,
+      label: "User Management",
+      visible: can("invoice.view"),
     },
       {
       key: "/app/companies",
@@ -61,6 +68,7 @@ const Sidebar = () => {
       label: "Quotation",
       visible: can("invoice.view"),
     },
+     
   ];
 
   return (
