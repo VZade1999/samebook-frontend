@@ -376,11 +376,26 @@ export async function downloadQuotationPDF(
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     setGray();
-    const paymentLines = [
-      `Account: ${data.customer_name || "-"}`,
-      `GST No: ${data.customer_gst_number || "N/A"}`,
-      `Email: ${data.contact_person_email || "-"}`,
-    ];
+    const paymentSnapshotRaw = data.payment_details_snapshot;
+    const paymentSnapshot = paymentSnapshotRaw
+      ? typeof paymentSnapshotRaw === "string"
+        ? (JSON.parse(paymentSnapshotRaw) as any)
+        : paymentSnapshotRaw
+      : {};
+
+    const paymentLines: string[] = [];
+
+    if (paymentSnapshot && Object.keys(paymentSnapshot).length > 0) {
+      if (paymentSnapshot.bank_name) paymentLines.push(`${paymentSnapshot.bank_name}`);
+      if (paymentSnapshot.account_holder_name) paymentLines.push(`Account Holder: ${paymentSnapshot.account_holder_name}`);
+      if (paymentSnapshot.account_number) paymentLines.push(`Account #: ${paymentSnapshot.account_number}`);
+      if (paymentSnapshot.ifsc_code) paymentLines.push(`IFSC: ${paymentSnapshot.ifsc_code}`);
+      if (paymentSnapshot.branch_name) paymentLines.push(`Branch: ${paymentSnapshot.branch_name}`);
+    } else {
+      paymentLines.push(`Account: ${data.customer_name || "-"}`);
+    }
+
+
     paymentLines.forEach((line, i) => {
       doc.text(line, marginL, footerTop + 34 + i * 14);
     });

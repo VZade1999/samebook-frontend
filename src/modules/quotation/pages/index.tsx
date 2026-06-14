@@ -48,6 +48,8 @@ import BusinessDetails from "./components/BusinessDetails";
 import CustomerDetails from "./components/CustomerDetails";
 import QuotationItems from "./components/QuotationItems";
 import QuotationSummary from "./components/QuotationSummary";
+import PaymentDetails from "./components/PaymentDetails";
+
 
 import { StorageService } from "@/storage";
 import { getCustomers } from "@/modules/customers/redux/customerActions";
@@ -181,6 +183,10 @@ const QuotationPage = () => {
     const businessSnapshot = businessSnapshotRaw
       ? parseJsonField(businessSnapshotRaw) || {}
       : {};
+    const paymentSnapshotRaw = selectedQuotation.payment_details_snapshot;
+    const paymentSnapshot = paymentSnapshotRaw
+      ? parseJsonField(paymentSnapshotRaw) || {}
+      : {};
 
     form.setFieldsValue({
       customerId: selectedQuotation.customer_id,
@@ -196,6 +202,15 @@ const QuotationPage = () => {
       billingAddressSnapshot: JSON.stringify(billingSnapshot),
       shippingAddressSnapshot: JSON.stringify(shippingSnapshot),
       businessDetailsSnapshot: JSON.stringify(businessSnapshot),
+      paymentBankId: paymentSnapshot.bank_id,
+      paymentBankName: paymentSnapshot.bank_name,
+      paymentAccountHolder: paymentSnapshot.account_holder_name,
+      paymentAccountNumber: paymentSnapshot.account_number,
+      paymentIFSC: paymentSnapshot.ifsc_code,
+      paymentBranchName: paymentSnapshot.branch_name,
+      paymentBranchAddress: paymentSnapshot.branch_address,
+      paymentAccountType: paymentSnapshot.account_type,
+      paymentIsDefault: paymentSnapshot.is_default,
       businessName: businessSnapshot.businessName ?? selectedQuotation.company_name ?? "",
       selectedAddress: Array.isArray(businessSnapshot.selectedAddress)
         ? businessSnapshot.selectedAddress
@@ -373,6 +388,17 @@ const QuotationPage = () => {
       billing_address_snapshot: JSON.parse(values.billingAddressSnapshot),
       shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
       business_details_snapshot: values.businessDetailsSnapshot ? JSON.parse(values.businessDetailsSnapshot) : undefined,
+      payment_details_snapshot: values.paymentBankId ? JSON.stringify({
+        bank_id: values.paymentBankId,
+        bank_name: values.paymentBankName,
+        account_holder_name: values.paymentAccountHolder,
+        account_number: values.paymentAccountNumber,
+        ifsc_code: values.paymentIFSC,
+        branch_name: values.paymentBranchName,
+        branch_address: values.paymentBranchAddress,
+        account_type: values.paymentAccountType,
+        is_default: values.paymentIsDefault,
+      }) : undefined,
     };
 
     if (editingQuotation) {
@@ -392,6 +418,17 @@ const QuotationPage = () => {
         billing_address_snapshot: JSON.parse(values.billingAddressSnapshot),
         shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
         business_details_snapshot: values.businessDetailsSnapshot ? JSON.parse(values.businessDetailsSnapshot) : undefined,
+        payment_details_snapshot: values.paymentBankId ? JSON.stringify({
+          bank_id: values.paymentBankId,
+          bank_name: values.paymentBankName,
+          account_holder_name: values.paymentAccountHolder,
+          account_number: values.paymentAccountNumber,
+          ifsc_code: values.paymentIFSC,
+          branch_name: values.paymentBranchName,
+          branch_address: values.paymentBranchAddress,
+          account_type: values.paymentAccountType,
+          is_default: values.paymentIsDefault,
+        }) : undefined,
         validity_date: values.validity_date
           ? values.validity_date.toISOString()
           : undefined,
@@ -462,6 +499,13 @@ const QuotationPage = () => {
         : businessSnapshotRaw
       : {};
 
+    const paymentSnapshotRaw = record.payment_details_snapshot;
+    const paymentSnapshot = paymentSnapshotRaw
+      ? typeof paymentSnapshotRaw === "string"
+        ? JSON.parse(paymentSnapshotRaw)
+        : paymentSnapshotRaw
+      : {};
+
     form.setFieldsValue({
       customerId: record.customer_id,
       customerName: record.customer_name,
@@ -476,6 +520,15 @@ const QuotationPage = () => {
       billingAddressSnapshot: JSON.stringify(billingSnapshot),
       shippingAddressSnapshot: JSON.stringify(shippingSnapshot),
       businessDetailsSnapshot: JSON.stringify(businessSnapshot),
+      paymentBankId: paymentSnapshot.bank_id,
+      paymentBankName: paymentSnapshot.bank_name,
+      paymentAccountHolder: paymentSnapshot.account_holder_name,
+      paymentAccountNumber: paymentSnapshot.account_number,
+      paymentIFSC: paymentSnapshot.ifsc_code,
+      paymentBranchName: paymentSnapshot.branch_name,
+      paymentBranchAddress: paymentSnapshot.branch_address,
+      paymentAccountType: paymentSnapshot.account_type,
+      paymentIsDefault: paymentSnapshot.is_default,
       businessName: businessSnapshot.businessName ?? record.company_name ?? "",
       selectedAddress: Array.isArray(businessSnapshot.selectedAddress)
         ? businessSnapshot.selectedAddress
@@ -621,6 +674,36 @@ const QuotationPage = () => {
           )}
         </div>
       ),
+    },
+    {
+      title: "Payment",
+      dataIndex: "payment_details_snapshot",
+      key: "payment_details_snapshot",
+      width: 240,
+      render: (_: any, record: any) => {
+        const payment = parseJsonField(record.payment_details_snapshot) || {};
+        if (!payment.bank_name && !payment.account_number) {
+          return "-";
+        }
+
+        return (
+          <div>
+            {payment.bank_name && (
+              <div style={{ fontWeight: 500 }}>{payment.bank_name}</div>
+            )}
+            {payment.account_holder_name && (
+              <div style={{ fontSize: 12, color: "#8c8c8c" }}>
+                {payment.account_holder_name}
+              </div>
+            )}
+            {payment.account_number && (
+              <div style={{ fontSize: 12, color: "#8c8c8c" }}>
+                {payment.account_number}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: "Grand Total",
@@ -823,6 +906,16 @@ const QuotationPage = () => {
     }
   })();
 
+  const paymentSnapshot = (() => {
+    try {
+      return typeof selectedQuotation?.payment_details_snapshot === "string"
+        ? JSON.parse(selectedQuotation.payment_details_snapshot)
+        : selectedQuotation?.payment_details_snapshot || {};
+    } catch (error) {
+      return selectedQuotation?.payment_details_snapshot || {};
+    }
+  })();
+
   const businessDetailsText = [
     businessSnapshot.businessName,
     typeof businessSnapshot.businessAddress === "string"
@@ -877,6 +970,7 @@ const QuotationPage = () => {
 
             <QuotationItems />
             <QuotationSummary />
+            <PaymentDetails />
 
             <Form.Item style={{ marginTop: 24 }}>
               <Space wrap>
@@ -1057,6 +1151,17 @@ const QuotationPage = () => {
                   </Descriptions.Item>
                   <Descriptions.Item label="Business Details">
                     {businessDetailsText || "No business details available"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Payment Details">
+                    {paymentSnapshot?.bank_name ? (
+                      <div>
+                        <div><strong>{paymentSnapshot.bank_name}</strong></div>
+                        {paymentSnapshot.account_holder_name && <div>Account Holder: {paymentSnapshot.account_holder_name}</div>}
+                        {paymentSnapshot.account_number && <div>Account #: {paymentSnapshot.account_number}</div>}
+                        {paymentSnapshot.ifsc_code && <div>IFSC: {paymentSnapshot.ifsc_code}</div>}
+                        {paymentSnapshot.branch_name && <div>Branch: {paymentSnapshot.branch_name}</div>}
+                      </div>
+                    ) : "No payment details available"}
                   </Descriptions.Item>
                   <Descriptions.Item label="Created At">
                     {selectedQuotation.created_at
