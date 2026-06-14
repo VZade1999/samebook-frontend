@@ -30,6 +30,7 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
         website: company.website,
         primary_email: company.primary_email,
         primary_phone: company.primary_phone,
+        default_terms_conditions: company.default_terms_conditions,
         addresses: company.addresses || [],
         locations: company.locations || [],
         metadata: company.metadata || [],
@@ -141,6 +142,22 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
           <Col xs={24} md={12}>
             <Form.Item label="Primary Phone" name="primary_phone">
               <Input placeholder="Enter primary phone" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Divider>Default Terms & Conditions</Divider>
+        <Row gutter={16}>
+          <Col xs={24}>
+            <Form.Item 
+              label="Default Terms & Conditions" 
+              name="default_terms_conditions"
+              tooltip="These will be auto-filled in all new quotations created for this company"
+            >
+              <Input.TextArea 
+                rows={6} 
+                placeholder="Enter default terms and conditions that will be used for quotations (e.g., Payment due within 30 days, Delivery warranty, etc.)"
+              />
             </Form.Item>
           </Col>
         </Row>

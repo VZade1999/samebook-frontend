@@ -143,6 +143,22 @@ const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ open, onClose }) => {
           </Col>
         </Row>
 
+        <Divider>Default Terms & Conditions</Divider>
+        <Row gutter={16}>
+          <Col xs={24}>
+            <Form.Item 
+              label="Default Terms & Conditions" 
+              name="default_terms_conditions"
+              tooltip="These will be auto-filled in all new quotations created for this company"
+            >
+              <Input.TextArea 
+                rows={6} 
+                placeholder="Enter default terms and conditions that will be used for quotations (e.g., Payment due within 30 days, Delivery warranty, etc.)"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <Divider>Addresses</Divider>
         <Form.List name="addresses">
           {(fields, { add, remove }) => (

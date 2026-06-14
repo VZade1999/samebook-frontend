@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import dayjs from "dayjs";
 import {
   Button,
@@ -61,10 +61,21 @@ const { TabPane } = Tabs;
 const QuotationPage = () => {
   const [form] = Form.useForm();
   const dispatch = useDispatch();
-  const storageService = new StorageService();
-  const companDetails = storageService.getItem(
-    StorageService.STORAGE_KEYS.COMPANY_DETAILS,
-  );
+  const storageService = useMemo(() => new StorageService(), []);
+  const [companyDetails, setCompanyDetails] = useState<any>(null);
+
+  useEffect(() => {
+    const storedCompany = storageService.getItem(
+      StorageService.STORAGE_KEYS.COMPANY_DETAILS,
+    );
+    if (storedCompany) {
+      try {
+        setCompanyDetails(JSON.parse(storedCompany));
+      } catch (error) {
+        console.error("Failed to parse stored company details", error);
+      }
+    }
+  }, [storageService]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -355,8 +366,23 @@ const QuotationPage = () => {
     const transportCharges = Number(values.transport || 0);
     const grandTotal = Number(values.grandTotal || taxableAmount + gstTotal + transportCharges);
 
+    const storedCompanyDetails = storageService.getItem(
+      StorageService.STORAGE_KEYS.COMPANY_DETAILS,
+    );
+    const currentCompanyId =
+      companyDetails?.id ||
+      (storedCompanyDetails
+        ? (() => {
+            try {
+              return JSON.parse(storedCompanyDetails)?.id;
+            } catch {
+              return undefined;
+            }
+          })()
+        : undefined);
+
     const payload: any = {
-      company_id: companDetails ? JSON.parse(companDetails).id : null,
+      company_id: currentCompanyId,
       customer_id: Number(customerId) || undefined,
       user_id: Number(userId) || undefined,
       quotation_date: new Date().toISOString(),
@@ -470,7 +496,7 @@ const QuotationPage = () => {
   };
 
   const handleEdit = (record: any) => {
-    console.log("record.customer_name :", record.customer_name);
+
     setEditingQuotation(record);
     dispatch(
       getCustomers({
@@ -933,7 +959,7 @@ const QuotationPage = () => {
     .filter(Boolean)
     .join(" | ");
 
-  console.log(selectedQuotation, 'selectedQuotation')
+
   return (
     <div style={{ padding: 10 }}>
       {showForm ? (
@@ -1012,6 +1038,12 @@ const QuotationPage = () => {
                 setShowForm(true);
                 setEditingQuotation(null);
                 form.resetFields();
+                // Auto-populate default terms from company
+                if (companyDetails?.default_terms_conditions) {
+                  form.setFieldsValue({
+                    notes: companyDetails.default_terms_conditions,
+                  });
+                }
               }}
             >
               Add Quotation
