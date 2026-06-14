@@ -1,6 +1,7 @@
 import { Layout, Dropdown, Avatar, Space } from "antd";
 import React from "react";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import ThemeToggle from "@/components/ThemeToggle";
 
 import { useDispatch } from "react-redux";
 
@@ -35,6 +36,9 @@ const HeaderBar = () => {
     <Header className="dashboard-header">
       <span>{companyName?.name}</span>
       <div />
+      <div style={{ marginRight: 12 }}>
+        <ThemeToggle />
+      </div>
       <Dropdown menu={{ items }} placement="bottomRight">
         <Space className="profile-section">
           <Avatar icon={<UserOutlined />} />

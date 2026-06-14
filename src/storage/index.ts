@@ -15,6 +15,20 @@ export class StorageService {
     return sessionStorage.getItem(key);
   };
 
+  setLocalItem = (key:any, value:any) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {}
+  };
+
+  getLocalItem = (key:any) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  };
+
   static STORAGE_KEYS = {
     TOKEN: "token",
     PERMISSIONS: "permissions",

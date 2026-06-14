@@ -3,15 +3,15 @@ import ReactDOM from "react-dom/client";
 import App from "./app/App";
 import { Provider } from "react-redux";
 import store from "./app/store";
-import { ConfigProvider } from "antd";
-import DebtorThemeConfig from "./style/AntDesignThemeConfig";
 import "./index.css";
+import ThemeProvider from "./theme/ThemeProvider";
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <ConfigProvider theme={{ ...DebtorThemeConfig }}>
+    <ThemeProvider>
       <Provider store={store}>
         <App />
       </Provider>
-    </ConfigProvider>{" "}
+    </ThemeProvider>
   </React.StrictMode>
 );

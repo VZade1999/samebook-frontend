@@ -127,4 +127,34 @@
   html {
     @apply font-sans;
     }
+  html, body, #root {
+    height: 100%;
+  }
+}
+
+/* Global overrides to ensure third-party components follow theme variables */
+:root, .dark {
+  --__bg: var(--background);
+  --__fg: var(--foreground);
+  --__card: var(--card);
+  --__card-fg: var(--card-foreground);
+}
+
+body, #root, .ant-layout, .dashboard-layout, .dashboard-content {
+  background: var(--__bg) !important;
+  color: var(--__fg) !important;
+}
+
+.ant-card, .auth-card, .dashboard-header, .brand, .ant-layout-sider, .ant-menu, .ant-menu-item, .ant-card-head, .ant-card-body {
+  background: var(--__card) !important;
+  color: var(--__card-fg) !important;
+  border-color: var(--border) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: var(--muted) !important;
+}
+
+.ant-btn, .ant-btn-primary, .ant-input, .ant-select-selector, .ant-picker {
+  color: inherit !important;
 }
