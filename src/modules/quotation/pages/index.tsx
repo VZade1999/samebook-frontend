@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import dayjs from "dayjs";
 import {
   Button,
   Card,
@@ -141,14 +142,7 @@ const QuotationPage = () => {
     return Number.isFinite(amount) ? `₹${amount.toFixed(2)}` : `₹0.00`;
   };
 
-  const computeValidityDate = (days: string | number) => {
-    const value = Number(days) || 0;
-    const date = new Date();
-    date.setDate(date.getDate() + value);
-    return date.toISOString();
-  };
-
-  const getValidityOption = (validityDate: string | undefined) => {
+  const getValidityDate = (validityDate: string | undefined) => {
     if (!validityDate) {
       return undefined;
     }
@@ -158,10 +152,7 @@ const QuotationPage = () => {
       return undefined;
     }
 
-    const diffDays = Math.ceil(
-      (date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return diffDays > 0 ? diffDays.toString() : undefined;
+    return dayjs(date);
   };
 
   const parseJsonField = (raw: any) => {
@@ -272,7 +263,7 @@ const QuotationPage = () => {
       placeOfOrder: billingSnapshot?.state || shippingSnapshot?.state,
       transport: selectedQuotation.transport_charges,
       grandTotal: selectedQuotation.grand_total,
-      validity: getValidityOption(selectedQuotation.validity_date),
+      validity_date: getValidityDate(selectedQuotation.validity_date),
       notes: selectedQuotation.notes,
     });
   }, [editingQuotation, selectedQuotation, form]);
@@ -354,7 +345,9 @@ const QuotationPage = () => {
       customer_id: Number(customerId) || undefined,
       user_id: Number(userId) || undefined,
       quotation_date: new Date().toISOString(),
-      validity_date: values.validity ? computeValidityDate(values.validity) : undefined,
+      validity_date: values.validity_date
+        ? values.validity_date.toISOString()
+        : undefined,
       notes: values.notes,
       sub_total: subTotal,
       discount_percent: discountPercent,
@@ -399,7 +392,9 @@ const QuotationPage = () => {
         billing_address_snapshot: JSON.parse(values.billingAddressSnapshot),
         shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
         business_details_snapshot: values.businessDetailsSnapshot ? JSON.parse(values.businessDetailsSnapshot) : undefined,
-        validity_date: values.validity ? computeValidityDate(values.validity) : undefined,
+        validity_date: values.validity_date
+          ? values.validity_date.toISOString()
+          : undefined,
         notes: values.notes,
         sub_total: subTotal,
         discount_percent: discountPercent,
@@ -564,7 +559,7 @@ const QuotationPage = () => {
 
       grandTotal: record.grand_total,
 
-      validity: getValidityOption(record.validity_date),
+      validity_date: getValidityDate(record.validity_date),
 
       notes: record.notes,
     });

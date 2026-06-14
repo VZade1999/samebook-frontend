@@ -33,6 +33,7 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
         addresses: company.addresses || [],
         locations: company.locations || [],
         metadata: company.metadata || [],
+        bank_accounts: company.bank_accounts || [],
       });
     }
   }, [company, form]);
@@ -364,6 +365,99 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
               <Form.Item>
                 <Button type="dashed" block icon={<PlusOutlined />} onClick={() => add()}>
                   Add location
+                </Button>
+              </Form.Item>
+            </>
+          )}
+        </Form.List>
+
+        <Divider>Bank Accounts</Divider>
+        <Form.List name="bank_accounts">
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map((field) => (
+                <Space
+                  key={field.key}
+                  direction="vertical"
+                  style={{ width: "100%", marginBottom: 16, padding: 16, border: "1px solid #f0f0f0", borderRadius: 6 }}
+                >
+                  <Form.Item name={[field.name, "id"]} hidden>
+                    <Input type="hidden" />
+                  </Form.Item>
+                  <Row gutter={16} align="bottom">
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Bank Name" name={[field.name, "bank_name"]}>
+                        <Input placeholder="Enter bank name" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Account Holder" name={[field.name, "account_holder_name"]}>
+                        <Input placeholder="Account holder name" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <Button
+                        type="link"
+                        danger
+                        icon={<MinusCircleOutlined />}
+                        onClick={() => remove(field.name)}
+                      >
+                        Remove account
+                      </Button>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Account Number" name={[field.name, "account_number"]}>
+                        <Input placeholder="Enter account number" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <Form.Item label="IFSC / Routing" name={[field.name, "ifsc_code"]}>
+                        <Input placeholder="IFSC or routing code" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Account Type" name={[field.name, "account_type"]}>
+                        <Input placeholder="e.g. savings" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Form.Item label="Branch Name" name={[field.name, "branch_name"]}>
+                        <Input placeholder="Branch name" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item label="Branch Address" name={[field.name, "branch_address"]}>
+                        <Input placeholder="Branch address" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Form.Item
+                        name={[field.name, "is_default"]}
+                        valuePropName="checked"
+                      >
+                        <Checkbox>Default account</Checkbox>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item label="Notes" name={[field.name, "notes"]}>
+                    <Input.TextArea rows={2} placeholder="Optional notes" />
+                  </Form.Item>
+                </Space>
+              ))}
+
+              <Form.Item>
+                <Button type="dashed" block icon={<PlusOutlined />} onClick={() => add()}>
+                  Add bank account
                 </Button>
               </Form.Item>
             </>

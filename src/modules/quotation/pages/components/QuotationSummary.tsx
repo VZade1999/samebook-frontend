@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import {
   Card,
   Col,
+  DatePicker,
   Divider,
   Form,
   Input,
   InputNumber,
   Row,
-  Select,
   Typography,
 } from "antd";
 
@@ -217,24 +217,8 @@ const QuotationSummary = () => {
       <Card title="Terms & Conditions" className="section-card">
         <Row gutter={20}>
           <Col xs={24} md={12}>
-            <Form.Item label="Quotation Validity" name="validity">
-              <Select
-                placeholder="Select validity"
-                options={[
-                  {
-                    label: "7 Days",
-                    value: "7",
-                  },
-                  {
-                    label: "15 Days",
-                    value: "15",
-                  },
-                  {
-                    label: "30 Days",
-                    value: "30",
-                  },
-                ]}
-              />
+            <Form.Item label="Quotation Validity" name="validity_date">
+              <DatePicker style={{ width: "100%" }} placeholder="Select expiry date" />
             </Form.Item>
           </Col>
 

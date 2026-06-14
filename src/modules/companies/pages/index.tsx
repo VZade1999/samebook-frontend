@@ -23,6 +23,7 @@ interface Company {
   created_at?: string;
   addresses?: any[];
   locations?: any[];
+  bank_accounts?: any[];
   metadata?: any[];
 }
 
@@ -318,6 +319,29 @@ const CompanyPage: React.FC = () => {
               <Empty description="No locations" />
             )}
 
+            <Divider />
+            <Typography.Title level={4}>Bank Accounts</Typography.Title>
+            {detailsCompany.bank_accounts && detailsCompany.bank_accounts.length > 0 ? (
+              detailsCompany.bank_accounts.slice().reverse().map((b: any, idx: number) => (
+                <div key={`bank-${idx}`} style={{ padding: 12, border: '1px solid #f0f0f0', borderRadius: 6, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div><strong>{b.bank_name || 'Bank Account'}</strong></div>
+                    {b.is_default ? <Tag color="blue">Default</Tag> : null}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    {b.account_holder_name ? <div>Account Holder: {b.account_holder_name}</div> : null}
+                    {b.account_number ? <div>Account Number: {b.account_number}</div> : null}
+                    {b.ifsc_code ? <div>IFSC/Routing: {b.ifsc_code}</div> : null}
+                    {b.account_type ? <div>Type: {b.account_type}</div> : null}
+                    {b.branch_name ? <div>Branch: {b.branch_name}</div> : null}
+                    {b.branch_address ? <div>Address: {b.branch_address}</div> : null}
+                  </div>
+                  {b.notes ? <div style={{ marginTop: 8 }}>{b.notes}</div> : null}
+                </div>
+              ))
+            ) : (
+              <Empty description="No bank accounts" />
+            )}
             <Divider />
             <Typography.Title level={4}>Metadata</Typography.Title>
             {detailsCompany.metadata && detailsCompany.metadata.length > 0 ? (
