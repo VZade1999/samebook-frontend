@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { Modal, Form, Input, Button, Row, Col, Space, Checkbox, Divider, InputNumber } from "antd";
+import React, { useEffect, useState } from "react";
+import { Modal, Form, Input, Button, Row, Col, Space, Checkbox, Divider, InputNumber, notification } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { updateCompany } from "../../redux/companyActions";
@@ -17,6 +17,55 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
 }) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const readFileAsDataURL = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Unable to read file'));
+        }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.type !== 'image/png') {
+      notification.error({
+        message: 'Invalid file type',
+        description: 'Please upload a PNG logo.',
+      });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      notification.error({
+        message: 'File too large',
+        description: 'Logo must be 2MB or smaller.',
+      });
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setLogoPreview(dataUrl);
+      form.setFieldsValue({ logo: dataUrl });
+    } catch {
+      notification.error({
+        message: 'Upload failed',
+        description: 'Unable to read the selected logo.',
+      });
+    }
+  };
 
   useEffect(() => {
     if (company) {
@@ -31,11 +80,14 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
         primary_email: company.primary_email,
         primary_phone: company.primary_phone,
         default_terms_conditions: company.default_terms_conditions,
+        logo: company.logo || null,
         addresses: company.addresses || [],
         locations: company.locations || [],
         metadata: company.metadata || [],
         bank_accounts: company.bank_accounts || [],
       });
+
+      setLogoPreview(company.logo || null);
     }
   }, [company, form]);
 
@@ -44,6 +96,7 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
       const values = await form.validateFields();
       dispatch(updateCompany({ id: company?.id, ...values }));
       form.resetFields();
+      setLogoPreview(null);
       onClose();
     } catch {
       // validation handled by Ant Design
@@ -52,6 +105,7 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
 
   const handleClose = () => {
     form.resetFields();
+    setLogoPreview(null);
     onClose();
   };
 
@@ -96,6 +150,37 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
               ]}
             >
               <Input placeholder="Enter company prefix" maxLength={10} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <Form.Item label="Company Logo (PNG)">
+              <input type="file" accept="image/png" onChange={handleLogoChange} />
+            </Form.Item>
+            {logoPreview ? (
+              <div style={{ marginTop: 8 }}>
+                <img
+                  src={logoPreview}
+                  alt="Logo preview"
+                  style={{ maxWidth: 200, maxHeight: 120, borderRadius: 4 }}
+                />
+                <div>
+                  <Button
+                    type="link"
+                    danger
+                    onClick={() => {
+                      setLogoPreview(null);
+                      form.setFieldsValue({ logo: null });
+                    }}
+                  >
+                    Remove logo
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            <Form.Item name="logo" hidden>
+              <Input />
             </Form.Item>
           </Col>
         </Row>

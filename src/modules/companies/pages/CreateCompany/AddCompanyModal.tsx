@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { Modal, Form, Input, Button, Row, Col, Space, Checkbox, Divider, InputNumber } from "antd";
+import React, { useRef, useState } from "react";
+import { Modal, Form, Input, Button, Row, Col, Space, Checkbox, Divider, InputNumber, notification } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { createCompany } from "../../redux/companyActions";
@@ -13,7 +13,56 @@ interface AddCompanyModalProps {
 const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const lastSuggestedPrefix = useRef('');
+
+  const readFileAsDataURL = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Unable to read file'));
+        }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.type !== 'image/png') {
+      notification.error({
+        message: 'Invalid file type',
+        description: 'Please upload a PNG logo.',
+      });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      notification.error({
+        message: 'File too large',
+        description: 'Logo must be 2MB or smaller.',
+      });
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setLogoPreview(dataUrl);
+      form.setFieldsValue({ logo: dataUrl });
+    } catch {
+      notification.error({
+        message: 'Upload failed',
+        description: 'Unable to read the selected logo.',
+      });
+    }
+  };
 
   const handleFormChange = (changedValues: any) => {
     if (changedValues.name !== undefined) {
@@ -44,6 +93,7 @@ const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ open, onClose }) => {
 
   const handleClose = () => {
     form.resetFields();
+    setLogoPreview(null);
     onClose();
   };
 
@@ -93,6 +143,23 @@ const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ open, onClose }) => {
               ]}
             >
               <Input placeholder="Enter company prefix" maxLength={10} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <Form.Item label="Company Logo (PNG)">
+              <input type="file" accept="image/png" onChange={handleLogoChange} />
+            </Form.Item>
+            {logoPreview ? (
+              <img
+                src={logoPreview}
+                alt="Logo preview"
+                style={{ maxWidth: 200, maxHeight: 120, marginTop: 8, borderRadius: 4 }}
+              />
+            ) : null}
+            <Form.Item name="logo" hidden>
+              <Input />
             </Form.Item>
           </Col>
         </Row>

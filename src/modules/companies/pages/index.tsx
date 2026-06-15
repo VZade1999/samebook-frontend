@@ -20,6 +20,7 @@ interface Company {
   primary_email?: string;
   primary_phone?: string;
   status?: string;
+  logo?: string;
   created_at?: string;
   addresses?: any[];
   locations?: any[];
@@ -281,6 +282,15 @@ const CompanyPage: React.FC = () => {
       <Drawer title={detailsCompany?.name || 'Company Details'} placement="right" onClose={closeDetails} open={detailsVisible} width={720}>
         {detailsCompany ? (
           <div>
+            {detailsCompany.logo ? (
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <img
+                  src={detailsCompany.logo}
+                  alt="Company logo"
+                  style={{ maxWidth: 200, maxHeight: 120, borderRadius: 6 }}
+                />
+              </div>
+            ) : null}
             <Typography.Title level={4}>Addresses</Typography.Title>
             {detailsCompany.addresses && detailsCompany.addresses.length > 0 ? (
               detailsCompany.addresses.slice().reverse().map((a: any, idx: number) => (
