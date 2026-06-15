@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { notification } from "antd";
+import { StorageService } from "@/storage";
 
 const formatCurrency = (value: any) => {
   return `Rs.${Number(value || 0).toFixed(2)}`;
@@ -15,10 +16,40 @@ const formatDate = (date: string) => {
   });
 };
 
+// Convert a Buffer-like object ({ type: "Buffer", data: number[] }) to a base64 data URL
+const bufferToImageDataUrl = (logo: any): string | null => {
+  if (!logo?.data || !Array.isArray(logo.data) || logo.data.length === 0) {
+    return null;
+  }
+  try {
+    const bytes = new Uint8Array(logo.data);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+
+    const isPng =
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47;
+    const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
+
+    const mime = isPng ? "image/png" : isJpeg ? "image/jpeg" : "image/png";
+    return `data:${mime};base64,${base64}`;
+  } catch (e) {
+    console.error("Failed to convert logo buffer to data URL", e);
+    return null;
+  }
+};
+
 export async function downloadQuotationPDF(
   quotation: any,
   fetchQuotationDetails?: (id: number) => Promise<any>,
 ): Promise<void> {
+  const storageService = new StorageService();
+
   try {
     const data =
       quotation.items?.length > 0
@@ -41,6 +72,26 @@ export async function downloadQuotationPDF(
       typeof data.business_details_snapshot === "string"
         ? JSON.parse(data.business_details_snapshot)
         : data.business_details_snapshot || {};
+
+    // ─── Company Details (logo, name) from storage ────────────────────────────
+    let companyDetails: any = null;
+    try {
+      const companyDetailsRaw = storageService.getItem(
+        StorageService.STORAGE_KEYS.COMPANY_DETAILS,
+      );
+      if (companyDetailsRaw) {
+        companyDetails = JSON.parse(companyDetailsRaw);
+      }
+    } catch (error) {
+      console.error("Failed to parse stored company details", error);
+    }
+
+    const companyName =
+      companyDetails?.name || businessSnapshot.businessName || "YOUR COMPANY";
+
+    const companyLogoDataUrl = bufferToImageDataUrl(
+      companyDetails?.logo || businessSnapshot.logo,
+    );
 
     const billingAddressLines = [
       billingAddress.address_line_1,
@@ -83,7 +134,6 @@ export async function downloadQuotationPDF(
     ].filter(Boolean) as string[];
 
     // ─── Footer business info ─────────────────────────────────────────────────
-    // Extract state & country from businessAddress (last address line split)
     const businessAddrParts =
       typeof businessSnapshot.businessAddress === "string"
         ? businessSnapshot.businessAddress
@@ -91,7 +141,6 @@ export async function downloadQuotationPDF(
             .map((s: string) => s.trim())
             .filter(Boolean)
         : [];
-    // Use last address part as location (usually "City State Pincode")
     const businessLocation = businessAddrParts[businessAddrParts.length - 1] || "";
 
     const footerEmail = businessSnapshot.businessEmail || "sales@yourcompany.com";
@@ -126,17 +175,29 @@ export async function downloadQuotationPDF(
     drawPageBase();
 
     // ─── HEADER ──────────────────────────────────────────────────────────────
-    doc.setFillColor(30, 30, 30);
-    doc.rect(marginL, 38, 18, 18, "F");
+    const LOGO_SIZE = 46;
+    const LOGO_Y = 42;
+    let textStartX = marginL + 26;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    setBlack();
-    doc.text("YOUR COMPANY", marginL + 26, 49);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    setGray();
-    doc.text("Your slogan or tagline here", marginL + 26, 60);
+    if (companyLogoDataUrl) {
+      try {
+        const imgProps = (doc as any).getImageProperties(companyLogoDataUrl);
+        const aspect = imgProps.width / imgProps.height;
+        const logoH = LOGO_SIZE;
+        const logoW = logoH * aspect;
+        doc.addImage(companyLogoDataUrl, imgProps.fileType, marginL, LOGO_Y, logoW, logoH);
+        textStartX = marginL + logoW + 12;
+      } catch (e) {
+        console.error("Failed to add company logo to PDF", e);
+        doc.setFillColor(30, 30, 30);
+        doc.rect(marginL, 38, 18, 18, "F");
+        textStartX = marginL + 26;
+      }
+    } else {
+      doc.setFillColor(30, 30, 30);
+      doc.rect(marginL, 38, 18, 18, "F");
+      textStartX = marginL + 26;
+    }
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(30);
@@ -252,6 +313,17 @@ export async function downloadQuotationPDF(
         formatCurrency(item.total),
       ]) || [];
 
+    // Shared column definitions so head & body align perfectly
+    const tableColumnStyles = {
+      0: { cellWidth: 26, halign: "left" as const },
+      1: { cellWidth: "auto" as const, halign: "left" as const },
+      2: { cellWidth: 60, halign: "center" as const },
+      3: { cellWidth: 45, halign: "center" as const },
+      4: { cellWidth: 75, halign: "right" as const },
+      5: { cellWidth: 75, halign: "right" as const },
+      6: { cellWidth: 75, halign: "right" as const },
+    };
+
     autoTable(doc, {
       startY: metaY + 18,
       margin: { left: marginL, right: 45 },
@@ -260,6 +332,7 @@ export async function downloadQuotationPDF(
       ],
       body: rows,
       theme: "plain",
+      tableWidth: marginR - marginL,
       headStyles: {
         fillColor: false,
         textColor: [30, 30, 30],
@@ -276,14 +349,7 @@ export async function downloadQuotationPDF(
       alternateRowStyles: {
         fillColor: false,
       },
-      columnStyles: {
-        0: { cellWidth: 26 },
-        2: { halign: "center" },
-        3: { halign: "center" },
-        4: { halign: "right" },
-        5: { halign: "right" },
-        6: { halign: "right" },
-      },
+      columnStyles: tableColumnStyles,
       didParseCell: (data: any) => {
         if (data.row.section === "head") {
           data.cell.styles.lineWidth = { bottom: 0.8 };
@@ -395,7 +461,6 @@ export async function downloadQuotationPDF(
       paymentLines.push(`Account: ${data.customer_name || "-"}`);
     }
 
-
     paymentLines.forEach((line, i) => {
       doc.text(line, marginL, footerTop + 34 + i * 14);
     });
@@ -409,7 +474,7 @@ export async function downloadQuotationPDF(
     doc.setFontSize(9);
     setGray();
     const termsText = doc.splitTextToSize(
-      data.notes || "Payment due within 30 days of quotation date.",
+      data.notes || companyDetails?.default_terms_conditions || "Payment due within 30 days of quotation date.",
       160,
     );
     doc.text(termsText, pageWidth / 2 - 40, footerTop + 34);
@@ -424,7 +489,7 @@ export async function downloadQuotationPDF(
     doc.setFont("helvetica", "italic");
     doc.setFontSize(15);
     setGray();
-    doc.text(businessSnapshot.businessName || "Your Company", marginR, footerTop + 50, {
+    doc.text(companyName || "Your Company", marginR, footerTop + 50, {
       align: "right",
     });
 
