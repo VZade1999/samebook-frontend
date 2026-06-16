@@ -35,7 +35,7 @@ const PrivateRoutes = () => {
         <Route
           path="/customers"
           element={
-            <ProtectedRoute permission="customer.view">
+            <ProtectedRoute permission="customers.view">
               <CustomerPage />
             </ProtectedRoute>
           }
@@ -44,7 +44,7 @@ const PrivateRoutes = () => {
         <Route
           path="/products"
           element={
-            <ProtectedRoute permission="product.view">
+            <ProtectedRoute permission="products.view">
               <ProductPage />
             </ProtectedRoute>
           }
@@ -53,7 +53,7 @@ const PrivateRoutes = () => {
         <Route
           path="/companies"
           element={
-            <ProtectedRoute permission="customer.view">
+            <ProtectedRoute permission="companies.view">
               <CompanyPage />
             </ProtectedRoute>
           }
@@ -62,7 +62,7 @@ const PrivateRoutes = () => {
          <Route
           path="/ai-agent"
           element={
-            <ProtectedRoute permission="customer.view">
+            <ProtectedRoute permission="ai_agent.view">
               <AiAgent />
             </ProtectedRoute>
           }
@@ -71,9 +71,9 @@ const PrivateRoutes = () => {
         <Route
           path="/quotation"
           element={
-            // <ProtectedRoute permission="quotation.view">
+            <ProtectedRoute permission="quotations.view">
             <QuotationPage />
-            // </ProtectedRoute>
+           </ProtectedRoute>
           }
         />
 
@@ -81,27 +81,27 @@ const PrivateRoutes = () => {
           path="/users"
           element={
             
-            // <ProtectedRoute permission="user.manage">
+            <ProtectedRoute permission="users.view">
               <UsersPage />
-            // </ProtectedRoute>
+            </ProtectedRoute>
           }
         />
          <Route
           path="/roles"
           element={
             
-            // <ProtectedRoute permission="user.manage">
+            <ProtectedRoute permission="roles.view">
               <RolesPage />
-            // </ProtectedRoute>
+             </ProtectedRoute>
           }
         />
          <Route
           path="/permissions"
           element={
             
-            // <ProtectedRoute permission="user.manage">
+            <ProtectedRoute permission="permissions.view">
               <PermissionsPage />
-            // </ProtectedRoute>
+           </ProtectedRoute>
           }
         />
 

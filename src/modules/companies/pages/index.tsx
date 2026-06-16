@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Input, Pagination, Card, Space, Empty, Button, Popconfirm, Drawer, Divider, Typography, Tag } from "antd";
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeFilled } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import type { TableColumnsType } from "antd";
 import { deleteCompany, getCompanies } from "../redux/companyActions";
@@ -190,14 +190,15 @@ const CompanyPage: React.FC = () => {
       width: 140,
       render: (_, record) => (
         <Space size="small">
-          {can("customer.update") ? (
+           <Button type="link" onClick={() => openDetails(record)}><EyeFilled style={{ color: "#1677ff" }}/></Button>
+          {can("companies.edit") ? (
             <Button
               type="text"
               icon={<EditOutlined style={{ color: "#1677ff" }} />}
               onClick={() => handleEdit(record)}
             />
           ) : null}
-          {can("customer.delete") ? (
+          {can("companies.delete") ? (
             <Popconfirm
               title="Delete Company"
               description="Are you sure you want to delete this company?"
@@ -209,6 +210,8 @@ const CompanyPage: React.FC = () => {
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Popconfirm>
           ) : null}
+
+               
         </Space>
       ),
     },
@@ -219,9 +222,10 @@ const CompanyPage: React.FC = () => {
       <Card
         title="Companies"
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+          can("companies.create") && (<Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
             Add Company
-          </Button>
+          </Button>)
+          
         }
       >
         <Space direction="vertical" style={{ width: "100%" }} size="large">

@@ -821,7 +821,7 @@ const QuotationPage = () => {
       width: 180,
       render: (_: any, record: any) => (
         <Space size="small">
-          {can("quotation.download") && (
+          {can("quotations.export") && (
             <Button
               type="text"
               icon={<DownloadOutlined style={{ color: "#1890ff" }} />}
@@ -834,14 +834,14 @@ const QuotationPage = () => {
             icon={<EyeOutlined style={{ color: "#1890ff" }} />}
             onClick={() => handleView(record)}
           />
-          {can("quotation.update") && (
+          {can("quotations.edit") && (
             <Button
               type="text"
               icon={<EditOutlined style={{ color: "#1677ff" }} />}
               onClick={() => handleEdit(record)}
             />
           )}
-          {can("quotation.delete") && (
+          {can("quotations.delete") && (
             <Popconfirm
               title="Delete Quotation"
               description="Are you sure you want to delete this quotation?"
@@ -1000,7 +1000,7 @@ const QuotationPage = () => {
 
             <Form.Item style={{ marginTop: 24 }}>
               <Space wrap>
-                {(editingQuotation ? can("quotation.update") : can("quotation.create")) && (
+                {(editingQuotation ? can("quotations.edit") : can("quotations.create")) && (
                   <Button
                     type="primary"
                     htmlType="submit"
@@ -1030,7 +1030,7 @@ const QuotationPage = () => {
       <Card
         title="Quotations"
         extra={
-          can("quotation.create") && (
+          can("quotations.create") && (
             <Button
               type="primary"
               icon={<PlusOutlined />}

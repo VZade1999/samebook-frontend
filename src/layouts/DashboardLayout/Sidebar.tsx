@@ -25,62 +25,63 @@ const Sidebar = () => {
       key: "/app/dashboard",
       icon: <DashboardOutlined />,
       label: "Dashboard",
-      visible: can("customer.view"),
+      visible: can("dashboard.view"),
     },
     {
-
-      icon: <TeamOutlined />,
-      label: "User Management",
-      children: [
-        {
-          key: "/app/users",
-          label: "Users",
-        },
-
-        {
-          key: "/app/roles",
-          label: "Roles",
-        },
-
-        {
-          key: "/app/permissions",
-          label: "Permissions",
-        },
-      ],
-      visible: can("invoice.view"),
+  icon: <TeamOutlined />,
+  label: "User Management",
+  key: "user-management", // Good practice to have a key for the parent too
+  visible: can("users.view") || can("roles.view") || can("permissions.view"), 
+  children: [
+    {
+      key: "/app/users",
+      label: "Users",
+      visible: can("users.view"), // Controlled individually
     },
+    {
+      key: "/app/roles",
+      label: "Roles",
+      visible: can("roles.view"), // Controlled individually
+    },
+    {
+      key: "/app/permissions",
+      label: "Permissions",
+      visible: can("permissions.view"), // Controlled individually
+    },
+  ],
+},
     {
       key: "/app/companies",
       icon: <UserOutlined />,
       label: "Companies",
-      visible: can("customer.view"),
+      visible: can("companies.view"),
     },
 
     {
       key: "/app/customers",
       icon: <UserOutlined />,
       label: "Customers",
-      visible: can("customer.view"),
+      visible: can("customers.view"),
     },
     {
       key: "/app/products",
       icon: <ShoppingOutlined />,
       label: "Products",
-      visible: can("product.view"),
+      visible: can("products.view"),
     },
 
     {
       key: "/app/ai-agent",
       icon: <RobotOutlined />,
       label: "Ai Agent",
-      visible: can("customer.view"),
+      visible: can("ai_agent.view"),
     },
 
     {
       key: "/app/quotation",
       icon: <FileTextOutlined />,
       label: "Quotation",
-      visible: can("invoice.view"),
+      visible: can("quotations.view"),
     },
   ];
 

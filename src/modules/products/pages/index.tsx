@@ -177,14 +177,14 @@ const ProductListPage: React.FC = () => {
       width: 160,
       render: (_, record) => (
         <Space size="small">
-          {can("product.update") ? (
+          {can("products.edit") ? (
             <Button
               type="text"
               icon={<EditOutlined style={{ color: "#1677ff" }} />}
               onClick={() => handleEdit(record)}
             />
           ) : null}
-          {can("product.delete") ? (
+          {can("products.delete") ? (
             <Popconfirm
               title="Delete Product"
               description="Are you sure?"
@@ -205,14 +205,14 @@ const ProductListPage: React.FC = () => {
     <div style={{ padding: 10 }}>
       <Card
         title="Products"
-        extra={
-          <Button
+        extra={can("products.create") && ( <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setIsModalOpen(true)}
           >
             Add Product
-          </Button>
+          </Button>)
+         
         }
       >
         <Space orientation="vertical" style={{ width: "100%" }} size="large">

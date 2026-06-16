@@ -1,28 +1,24 @@
 
-import React, { useEffect, useState } from 'react';
-
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Checkbox,
   Button,
   Spin,
   message,
-  Typography,
-  Divider,
+  Card,
+  Row,
+  Col,
 } from 'antd';
 
 import { useDispatch, useSelector } from 'react-redux';
 
-import {
-  getPermissions,
-} from '../redux/permissionsActions';
+import { getPermissions } from '../redux/permissionsActions';
 
 import {
   getRolePermissions,
   assignRolePermissions,
 } from '../redux/rolesActions';
-
-const { Title } = Typography;
 
 interface Props {
   visible: boolean;
@@ -43,18 +39,13 @@ const ManageRolePermissionsModal: React.FC<Props> = ({
     useState<number[]>([]);
 
   const permissions = useSelector(
-    (state: any) => state.permissions.list,
-  );
-
-  const rolePermissions = useSelector(
-    (state: any) =>
-      state.roles.selectedRolePermissions,
+    (state: any) => state.permissions.list || [],
   );
 
   useEffect(() => {
-    if (!visible || !role) return;
-
-    loadData();
+    if (visible && role) {
+      loadData();
+    }
   }, [visible, role]);
 
   const loadData = async () => {
@@ -72,13 +63,13 @@ const ManageRolePermissionsModal: React.FC<Props> = ({
         getRolePermissions(role.id) as any,
       );
 
-      const assigned =
+      const assignedIds =
         response.payload?.permissions?.map(
-          (item: any) => item.id,
+          (permission: any) => permission.id,
         ) || [];
 
-      setSelectedPermissions(assigned);
-    } catch {
+      setSelectedPermissions(assignedIds);
+    } catch (error) {
       message.error(
         'Failed to load permissions',
       );
@@ -94,8 +85,7 @@ const ManageRolePermissionsModal: React.FC<Props> = ({
       const response = await dispatch(
         assignRolePermissions({
           id: role.id,
-          permission_ids:
-            selectedPermissions,
+          permission_ids: selectedPermissions,
         }) as any,
       );
 
@@ -109,7 +99,7 @@ const ManageRolePermissionsModal: React.FC<Props> = ({
 
         onClose();
       }
-    } catch {
+    } catch (error) {
       message.error(
         'Failed to update permissions',
       );
@@ -118,26 +108,27 @@ const ManageRolePermissionsModal: React.FC<Props> = ({
     }
   };
 
-  const groupedPermissions =
-    permissions.reduce(
+  const groupedPermissions = useMemo(() => {
+    return permissions.reduce(
       (
         acc: Record<string, any[]>,
         permission: any,
       ) => {
-        const module =
-          permission.name?.split('.')[0] ||
+        const moduleName =
+          permission.module_name ||
           'General';
 
-        if (!acc[module]) {
-          acc[module] = [];
+        if (!acc[moduleName]) {
+          acc[moduleName] = [];
         }
 
-        acc[module].push(permission);
+        acc[moduleName].push(permission);
 
         return acc;
       },
       {},
     );
+  }, [permissions]);
 
   return (
     <Modal
@@ -146,7 +137,7 @@ const ManageRolePermissionsModal: React.FC<Props> = ({
       }`}
       open={visible}
       onCancel={onClose}
-      width={800}
+      width={1000}
       footer={[
         <Button
           key="cancel"
@@ -161,71 +152,92 @@ const ManageRolePermissionsModal: React.FC<Props> = ({
           loading={loading}
           onClick={handleSave}
         >
-          Save
+          Save Permissions
         </Button>,
       ]}
     >
       <Spin spinning={loading}>
-        {Object.keys(
-          groupedPermissions,
-        ).map((module) => (
-          <div key={module}>
-            <Title
-              level={5}
-              style={{
-                marginTop: 16,
-              }}
-            >
-              {module.toUpperCase()}
-            </Title>
-
-            <Checkbox.Group
-              style={{
-                width: '100%',
-              }}
-              value={
-                selectedPermissions
-              }
-              onChange={(values) =>
-                setSelectedPermissions(
-                  values as number[],
-                )
-              }
-            >
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns:
-                    'repeat(2,1fr)',
-                  gap: 8,
-                }}
+        <Row gutter={[16, 16]}>
+          {Object.entries(
+            groupedPermissions,
+          ).map(
+            ([
+              moduleName,
+              modulePermissions,
+            ]) => (
+              <Col
+                xs={24}
+                md={12}
+                key={moduleName}
               >
-                {groupedPermissions[
-                  module
-                ].map(
-                  (
-                    permission: any,
-                  ) => (
-                    <Checkbox
-                      key={
-                        permission.id
-                      }
-                      value={
-                        permission.id
-                      }
-                    >
-                      {
-                        permission.name
-                      }
-                    </Checkbox>
-                  ),
-                )}
-              </div>
-            </Checkbox.Group>
-
-            <Divider />
-          </div>
-        ))}
+                <Card
+                  title={moduleName}
+                  size="small"
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection:
+                        'column',
+                      gap: 8,
+                    }}
+                  >
+                    {(
+                      modulePermissions as any[]
+                    ).map(
+                      (
+                        permission: any,
+                      ) => (
+                        <Checkbox
+                          key={
+                            permission.id
+                          }
+                          checked={selectedPermissions.includes(
+                            permission.id,
+                          )}
+                          onChange={(
+                            e,
+                          ) => {
+                            if (
+                              e.target
+                                .checked
+                            ) {
+                              setSelectedPermissions(
+                                (
+                                  prev,
+                                ) => [
+                                  ...prev,
+                                  permission.id,
+                                ],
+                              );
+                            } else {
+                              setSelectedPermissions(
+                                (
+                                  prev,
+                                ) =>
+                                  prev.filter(
+                                    (
+                                      id,
+                                    ) =>
+                                      id !==
+                                      permission.id,
+                                  ),
+                              );
+                            }
+                          }}
+                        >
+                          {
+                            permission.name
+                          }
+                        </Checkbox>
+                      ),
+                    )}
+                  </div>
+                </Card>
+              </Col>
+            ),
+          )}
+        </Row>
       </Spin>
     </Modal>
   );
