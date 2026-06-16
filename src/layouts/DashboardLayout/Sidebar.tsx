@@ -1,5 +1,5 @@
-import { Layout, Menu } from "antd";
-import React from "react";
+import React, { useState } from "react";
+import { Menu } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
@@ -7,107 +7,101 @@ import {
   ShoppingOutlined,
   RobotOutlined,
   TeamOutlined,
+  BankOutlined,
+  KeyOutlined,
+  DownOutlined,
+  SafetyOutlined,
+  UsergroupDeleteOutlined,
 } from "@ant-design/icons";
-
-import { useNavigate } from "react-router-dom";
-
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAccess } from "../../permissions/useAccess";
-import { StorageService } from "@/storage";
 
-const { Sider } = Layout;
+interface SidebarProps {
+  collapsed?: boolean;
+  onClose?: () => void;
+}
 
-const Sidebar = () => {
+const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { can } = useAccess();
 
+  const handleNav = (key: string) => {
+    navigate(key);
+    onClose?.();
+  };
+
   const menuItems = [
-    {
+    can("dashboard.view") && {
       key: "/app/dashboard",
       icon: <DashboardOutlined />,
       label: "Dashboard",
-      visible: can("dashboard.view"),
     },
-    {
-  icon: <TeamOutlined />,
-  label: "User Management",
-  key: "user-management", // Good practice to have a key for the parent too
-  visible: can("users.view") || can("roles.view") || can("permissions.view"), 
-  children: [
-    {
-      key: "/app/users",
-      label: "Users",
-      visible: can("users.view"), // Controlled individually
+    (can("users.view") || can("roles.view") || can("permissions.view")) && {
+      key: "user-management",
+      icon: <TeamOutlined />,
+      label: "User Management",
+      children: [
+        can("users.view") && { key: "/app/users", icon: <UserOutlined />, label: "Users" },
+        can("roles.view") && { key: "/app/roles", icon: <UsergroupDeleteOutlined />, label: "Roles" },
+        can("permissions.view") && { key: "/app/permissions", icon: <SafetyOutlined />, label: "Permissions" },
+      ].filter(Boolean),
     },
-    {
-      key: "/app/roles",
-      label: "Roles",
-      visible: can("roles.view"), // Controlled individually
-    },
-    {
-      key: "/app/permissions",
-      label: "Permissions",
-      visible: can("permissions.view"), // Controlled individually
-    },
-  ],
-},
-    {
+    can("companies.view") && {
       key: "/app/companies",
-      icon: <UserOutlined />,
+      icon: <BankOutlined />,
       label: "Companies",
-      visible: can("companies.view"),
     },
-
-    {
+    can("customers.view") && {
       key: "/app/customers",
       icon: <UserOutlined />,
       label: "Customers",
-      visible: can("customers.view"),
     },
-    {
+    can("products.view") && {
       key: "/app/products",
       icon: <ShoppingOutlined />,
       label: "Products",
-      visible: can("products.view"),
     },
-
-    {
+    can("ai_agent.view") && {
       key: "/app/ai-agent",
       icon: <RobotOutlined />,
-      label: "Ai Agent",
-      visible: can("ai_agent.view"),
+      label: "AI Agent",
     },
-
-    {
+    can("quotations.view") && {
       key: "/app/quotation",
       icon: <FileTextOutlined />,
       label: "Quotation",
-      visible: can("quotations.view"),
     },
-  ];
+  ].filter(Boolean) as any[];
 
   return (
-    <Sider width={240} theme="light" breakpoint="lg" collapsedWidth={0}>
+    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
+      {/* Brand */}
       <div className="brand">
         <div className="logo-icon">
-          <span className="logo-box red"></span>
-          <span className="logo-box green"></span>
-          <span className="logo-box blue"></span>
-          <span className="logo-box yellow"></span>
+          <span className="logo-box red" />
+          <span className="logo-box green" />
+          <span className="logo-box blue" />
+          <span className="logo-box yellow" />
         </div>
-        <div className="logo">
-          Same<span>Book</span>
-        </div>
+        {!collapsed && (
+          <div className="logo">
+            Same<span>Book</span>
+          </div>
+        )}
       </div>
 
+      {/* Navigation */}
       <Menu
         mode="inline"
-        defaultSelectedKeys={[window.location.pathname]}
-        onClick={({ key }) => navigate(key)}
-        items={menuItems
-          .filter((item) => item.visible)
-          .map(({ visible, ...item }) => item)}
+        selectedKeys={[location.pathname]}
+        defaultOpenKeys={["user-management"]}
+        onClick={({ key }) => handleNav(key)}
+        items={menuItems}
+        inlineCollapsed={collapsed}
+        className="sidebar-menu"
       />
-    </Sider>
+    </aside>
   );
 };
 

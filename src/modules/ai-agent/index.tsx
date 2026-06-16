@@ -1,11 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Input, Button, Card, Spin, Avatar } from "antd";
-import {
-  SendOutlined,
-  RobotOutlined,
-  UserOutlined,
-  ClearOutlined,
-} from "@ant-design/icons";
+import { Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { sendAiMessage, resetAiChat } from "./redux/aiAgentActions";
 
@@ -23,25 +17,18 @@ const AiAgentChat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi! I'm your AI assistant. Ask me anything about your customers — I can search, create, update, or delete them for you.",
+      content:
+        "Hi! I'm your AI assistant. Ask me anything about your customers — I can search, create, update, or delete them for you.",
       timestamp: new Date(),
     },
   ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<any>(null);
-
-  // =========================
-  // AUTO SCROLL
-  // =========================
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, aiState.loading]);
-
-  // =========================
-  // HANDLE AI REPLY
-  // =========================
 
   useEffect(() => {
     if (aiState.lastReply?.reply) {
@@ -56,10 +43,6 @@ const AiAgentChat: React.FC = () => {
     }
   }, [aiState.lastReply]);
 
-  // =========================
-  // HANDLE ERROR
-  // =========================
-
   useEffect(() => {
     if (aiState.error) {
       setMessages((prev) => [
@@ -73,15 +56,10 @@ const AiAgentChat: React.FC = () => {
     }
   }, [aiState.error]);
 
-  // =========================
-  // SEND MESSAGE
-  // =========================
-
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed || aiState.loading) return;
 
-    // Add user message to UI
     const userMessage: Message = {
       role: "user",
       content: trimmed,
@@ -92,31 +70,18 @@ const AiAgentChat: React.FC = () => {
     setMessages(updatedMessages);
     setInput("");
 
-    // Build history for API (exclude the welcome message)
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+
     const history = updatedMessages
-      .slice(1)                          // skip welcome message
-      .slice(0, -1)                      // skip the message we just added
-      .map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      .slice(1)
+      .slice(0, -1)
+      .map((msg) => ({ role: msg.role, content: msg.content }));
 
-    // Dispatch to saga
-    dispatch(
-      sendAiMessage({
-        message: trimmed,
-        session_id: "user-session",
-        history,
-      })
-    );
-
-    // Refocus input
+    dispatch(sendAiMessage({ message: trimmed, session_id: "user-session", history }));
     setTimeout(() => inputRef.current?.focus(), 100);
   };
-
-  // =========================
-  // CLEAR CHAT
-  // =========================
 
   const handleClear = () => {
     setMessages([
@@ -130,174 +95,361 @@ const AiAgentChat: React.FC = () => {
     setInput("");
   };
 
-  // =========================
-  // ENTER KEY
-  // =========================
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  // =========================
-  // FORMAT TIME
-  // =========================
+  const autoResize = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 110) + "px";
+  };
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <div style={{ padding: 10 }}>
-      <Card
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <RobotOutlined style={{ color: "#1677ff", fontSize: 18 }} />
-            <span>AI Assistant</span>
+    <div style={styles.root}>
+      {/* ── Header ── */}
+      <div style={styles.header}>
+        <div style={styles.headerLeft}>
+          <div style={styles.aiAvatar}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2" />
+              <circle cx="12" cy="5" r="2" />
+              <path d="M12 7v4" />
+              <line x1="8" y1="16" x2="8" y2="16" />
+              <line x1="16" y1="16" x2="16" y2="16" />
+            </svg>
           </div>
-        }
-        extra={
-          <Button
-            icon={<ClearOutlined />}
-            size="small"
-            onClick={handleClear}
-          >
-            Clear
-          </Button>
-        }
-        styles={{ body: { padding: 0 } }}
-      >
-        {/* ── Message List ── */}
-        <div
-          style={{
-            height: 480,
-            overflowY: "auto",
-            padding: "16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            backgroundColor: "#f9fafb",
-          }}
-        >
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-                alignItems: "flex-end",
-                gap: 8,
-              }}
-            >
-              {/* AI Avatar */}
-              {msg.role === "assistant" && (
-                <Avatar
-                  icon={<RobotOutlined />}
-                  style={{ backgroundColor: "#1677ff", flexShrink: 0 }}
-                />
-              )}
+          <div>
+            <div style={styles.headerName}>AI Assistant</div>
+            <div style={styles.headerStatus}>
+              <span style={styles.onlineDot} />
+              Online
+            </div>
+          </div>
+        </div>
+        <button style={styles.clearBtn} onClick={handleClear}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+          </svg>
+          Clear
+        </button>
+      </div>
 
-              {/* Bubble */}
-              <div style={{ maxWidth: "70%" }}>
+      {/* ── Messages ── */}
+      <div style={styles.messages}>
+        {messages.map((msg, i) => {
+          const isUser = msg.role === "user";
+          return (
+            <div key={i} style={{ ...styles.msgRow, ...(isUser ? styles.msgRowUser : {}) }}>
+              {!isUser && (
+                <div style={{ ...styles.msgAvatar, background: "#1677ff" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2" />
+                    <circle cx="12" cy="5" r="2" />
+                    <path d="M12 7v4" />
+                  </svg>
+                </div>
+              )}
+              <div style={{ ...styles.bubbleWrap, ...(isUser ? styles.bubbleWrapUser : {}) }}>
                 <div
                   style={{
-                    padding: "10px 14px",
-                    borderRadius:
-                      msg.role === "user"
-                        ? "18px 18px 4px 18px"
-                        : "18px 18px 18px 4px",
-                    backgroundColor:
-                      msg.role === "user" ? "#1677ff" : "#ffffff",
-                    color: msg.role === "user" ? "#fff" : "#000",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.6,
-                    fontSize: 14,
+                    ...styles.bubble,
+                    ...(isUser ? styles.bubbleUser : styles.bubbleAi),
                   }}
                 >
                   {msg.content}
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "#999",
-                    marginTop: 4,
-                    textAlign: msg.role === "user" ? "right" : "left",
-                    paddingLeft: msg.role === "assistant" ? 4 : 0,
-                    paddingRight: msg.role === "user" ? 4 : 0,
-                  }}
-                >
+                <div style={{ ...styles.msgTime, ...(isUser ? { textAlign: "right" } : {}) }}>
                   {formatTime(msg.timestamp)}
                 </div>
               </div>
-
-              {/* User Avatar */}
-              {msg.role === "user" && (
-                <Avatar
-                  icon={<UserOutlined />}
-                  style={{ backgroundColor: "#52c41a", flexShrink: 0 }}
-                />
+              {isUser && (
+                <div style={{ ...styles.msgAvatar, background: "#22c55e" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
               )}
             </div>
-          ))}
+          );
+        })}
 
-          {/* Loading bubble */}
-          {aiState.loading && (
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-              <Avatar
-                icon={<RobotOutlined />}
-                style={{ backgroundColor: "#1677ff", flexShrink: 0 }}
-              />
-              <div
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "18px 18px 18px 4px",
-                  backgroundColor: "#ffffff",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                }}
-              >
-                <Spin size="small" />
-              </div>
+        {aiState.loading && (
+          <div style={styles.msgRow}>
+            <div style={{ ...styles.msgAvatar, background: "#1677ff" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2" />
+                <circle cx="12" cy="5" r="2" />
+                <path d="M12 7v4" />
+              </svg>
             </div>
-          )}
+            <div style={styles.typingBubble}>
+              <span style={{ ...styles.dot, animationDelay: "0s" }} />
+              <span style={{ ...styles.dot, animationDelay: "0.2s" }} />
+              <span style={{ ...styles.dot, animationDelay: "0.4s" }} />
+            </div>
+          </div>
+        )}
 
-          <div ref={messagesEndRef} />
-        </div>
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* ── Input Box ── */}
-        <div
+      {/* ── Input ── */}
+      <div style={styles.inputArea}>
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            autoResize(e.target);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask me about your customers…"
+          disabled={aiState.loading}
+          rows={1}
+          style={styles.textarea}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim() || aiState.loading}
           style={{
-            padding: "12px 16px",
-            borderTop: "1px solid #f0f0f0",
-            display: "flex",
-            gap: 8,
-            backgroundColor: "#fff",
+            ...styles.sendBtn,
+            ...((!input.trim() || aiState.loading) ? styles.sendBtnDisabled : {}),
           }}
         >
-          <Input.TextArea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask me about your customers... (Enter to send)"
-            autoSize={{ minRows: 1, maxRows: 4 }}
-            disabled={aiState.loading}
-            style={{ borderRadius: 20, resize: "none", paddingTop: 8 }}
-          />
-          <Button
-            type="primary"
-            shape="circle"
-            icon={<SendOutlined />}
-            onClick={handleSend}
-            loading={aiState.loading}
-            disabled={!input.trim()}
-            style={{ width: 40, height: 40, flexShrink: 0 }}
-          />
-        </div>
-      </Card>
+          {aiState.loading ? (
+            <Spin size="small" />
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          )}
+        </button>
+      </div>
+      <div style={styles.hint}>Enter to send · Shift+Enter for new line</div>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-5px); }
+        }
+        textarea:focus { outline: none; border-color: #1677ff !important; }
+        textarea::placeholder { color: #9ca3af; }
+        textarea::-webkit-scrollbar { width: 0; }
+      `}</style>
     </div>
   );
+};
+
+const styles: Record<string, React.CSSProperties> = {
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100dvh",
+    maxHeight: 680,
+    background: "#ffffff",
+    borderRadius: 20,
+    overflow: "hidden",
+    border: "1px solid rgba(0,0,0,0.08)",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "14px 16px",
+    borderBottom: "1px solid rgba(0,0,0,0.06)",
+    background: "#fff",
+    flexShrink: 0,
+  },
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  aiAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    background: "#1677ff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#fff",
+    flexShrink: 0,
+  },
+  headerName: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: "#111",
+    lineHeight: "1.2",
+  },
+  headerStatus: {
+    fontSize: 12,
+    color: "#6b7280",
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  onlineDot: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    background: "#22c55e",
+    display: "inline-block",
+  },
+  clearBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+    background: "none",
+    border: "1px solid rgba(0,0,0,0.1)",
+    borderRadius: 8,
+    padding: "6px 10px",
+    fontSize: 12,
+    color: "#6b7280",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  messages: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "16px 14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+    background: "#f8f9fa",
+    scrollBehavior: "smooth",
+  },
+  msgRow: {
+    display: "flex",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  msgRowUser: {
+    flexDirection: "row-reverse",
+  },
+  msgAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: "50%",
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bubbleWrap: {
+    maxWidth: "78%",
+    display: "flex",
+    flexDirection: "column",
+  },
+  bubbleWrapUser: {
+    alignItems: "flex-end",
+  },
+  bubble: {
+    padding: "10px 14px",
+    fontSize: 14,
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+  },
+  bubbleAi: {
+    background: "#fff",
+    color: "#111",
+    border: "1px solid rgba(0,0,0,0.07)",
+    borderRadius: "16px 16px 16px 4px",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+  },
+  bubbleUser: {
+    background: "#1677ff",
+    color: "#fff",
+    borderRadius: "16px 16px 4px 16px",
+  },
+  msgTime: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 4,
+    paddingLeft: 2,
+  },
+  typingBubble: {
+    background: "#fff",
+    border: "1px solid rgba(0,0,0,0.07)",
+    borderRadius: "16px 16px 16px 4px",
+    padding: "12px 16px",
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    background: "#1677ff",
+    display: "inline-block",
+    animation: "bounce 1.2s infinite",
+  },
+  inputArea: {
+    padding: "12px 14px",
+    borderTop: "1px solid rgba(0,0,0,0.06)",
+    background: "#fff",
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  textarea: {
+    flex: 1,
+    minHeight: 42,
+    maxHeight: 110,
+    resize: "none",
+    border: "1px solid rgba(0,0,0,0.12)",
+    borderRadius: 22,
+    padding: "10px 16px",
+    fontSize: 14,
+    fontFamily: "inherit",
+    lineHeight: 1.5,
+    background: "#f8f9fa",
+    color: "#111",
+    overflowY: "auto",
+    transition: "border-color 0.15s",
+  },
+  sendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: "50%",
+    border: "none",
+    background: "#1677ff",
+    color: "#fff",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    transition: "background 0.15s, transform 0.1s",
+  },
+  sendBtnDisabled: {
+    background: "#e5e7eb",
+    color: "#9ca3af",
+    cursor: "default",
+  },
+  hint: {
+    fontSize: 11,
+    color: "#9ca3af",
+    textAlign: "center" as const,
+    padding: "4px 0 8px",
+    background: "#fff",
+  },
 };
 
 export default AiAgentChat;

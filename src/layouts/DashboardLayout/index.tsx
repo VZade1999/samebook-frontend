@@ -1,35 +1,50 @@
-import React from "react";
-
-import { Layout } from "antd";
-
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-
 import HeaderBar from "./Header";
-
 import "./styles.scss";
-
-const { Content } = Layout;
 
 interface Props {
   children: React.ReactNode;
 }
 
 const DashboardLayout = ({ children }: Props) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(false);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const closeSidebar = () => setSidebarOpen(false);
+  const toggleSidebar = () => setSidebarOpen((v) => !v);
+
   return (
-    <Layout className="dashboard-layout">
+    <div className="dashboard-layout">
+      {/* Mobile overlay */}
+      {isMobile && sidebarOpen && (
+        <div className="sidebar-overlay" onClick={closeSidebar} />
+      )}
+
       {/* Sidebar */}
-      <Sidebar />
+      <div className={`sidebar-wrapper${isMobile ? (sidebarOpen ? " sidebar-wrapper--open" : " sidebar-wrapper--hidden") : ""}`}>
+        <Sidebar onClose={closeSidebar} />
+      </div>
 
-      <Layout>
-        {/* Header */}
-        <HeaderBar />
-
-        {/* Main Content */}
-        <Content className="dashboard-content">
+      {/* Main */}
+      <div className="dashboard-main">
+        <HeaderBar onMenuClick={toggleSidebar} />
+        <main className="dashboard-content">
           <div className="dashboard-container">{children}</div>
-        </Content>
-      </Layout>
-    </Layout>
+        </main>
+      </div>
+    </div>
   );
 };
 
