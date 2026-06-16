@@ -131,23 +131,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           >
             <Input.Password placeholder="Enter new password (optional)" />
           </Form.Item>
-
-          <Form.Item
-            name="role_ids"
-            label="Assign Roles"
-            rules={[
-              { required: true, message: 'Please select at least one role' },
-            ]}
-          >
-            <Select
-              mode="multiple"
-              placeholder="Select roles"
-              options={roles.map((role: any) => ({
-                label: role.name,
-                value: role.id,
-              }))}
-            />
-          </Form.Item>
         </Form>
       </Spin>
     </Modal>

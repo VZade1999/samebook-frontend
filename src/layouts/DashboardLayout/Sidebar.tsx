@@ -1,4 +1,3 @@
-
 import { Layout, Menu } from "antd";
 import React from "react";
 import {
@@ -18,7 +17,6 @@ import { StorageService } from "@/storage";
 const { Sider } = Layout;
 
 const Sidebar = () => {
-  
   const navigate = useNavigate();
   const { can } = useAccess();
 
@@ -29,13 +27,29 @@ const Sidebar = () => {
       label: "Dashboard",
       visible: can("customer.view"),
     },
-     {
-      key: "/app/users",
+    {
+
       icon: <TeamOutlined />,
       label: "User Management",
+      children: [
+        {
+          key: "/app/users",
+          label: "Users",
+        },
+
+        {
+          key: "/app/roles",
+          label: "Roles",
+        },
+
+        {
+          key: "/app/permissions",
+          label: "Permissions",
+        },
+      ],
       visible: can("invoice.view"),
     },
-      {
+    {
       key: "/app/companies",
       icon: <UserOutlined />,
       label: "Companies",
@@ -54,7 +68,7 @@ const Sidebar = () => {
       label: "Products",
       visible: can("product.view"),
     },
-  
+
     {
       key: "/app/ai-agent",
       icon: <RobotOutlined />,
@@ -68,7 +82,6 @@ const Sidebar = () => {
       label: "Quotation",
       visible: can("invoice.view"),
     },
-     
   ];
 
   return (

@@ -7,7 +7,8 @@ import { quotationReducer } from "@/modules/quotation/redux/quotationReducer";
 import { companyReducer } from "@/modules/companies/redux/companyReducer";
 import aiAgentReducer from "@/modules/ai-agent/redux/aiAgentReducer";
 import usersReducer from "@/modules/users/redux/usersSlice";
-
+import rolesReducer from "@/modules/user-management/redux/rolesSlice";
+import permissionsReducer from "@/modules/user-management/redux/permissionsSlice";
 const rootReducer = combineReducers({
   authn: authReducer,
   customers: customerReducer,
@@ -16,6 +17,8 @@ const rootReducer = combineReducers({
   companies: companyReducer,
   aiAgent: aiAgentReducer,
   users: usersReducer,
+  roles: rolesReducer,
+  permissions: permissionsReducer,
 });
 
 export default rootReducer;

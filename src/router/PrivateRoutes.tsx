@@ -10,6 +10,10 @@ import AiAgent from "@/modules/ai-agent/index";
 import QuotationPage from "@/modules/quotation/pages";
 import UsersPage from "@/modules/users/pages";
 // import UsersList from "../modules/users/pages/UsersList";
+import RolesPage from "../modules/user-management/pages/RolesPage";
+import PermissionsPage from "../modules/user-management/pages/PermissionsPage";
+// import RolesList from "../modules/user-management/pages/RolesList";
+// import PermissionsList from "../modules/user-management/pages/PermissionsList";
 
 // import QuotationList from "../modules/quotation/pages/InvoiceList";
 
@@ -79,6 +83,24 @@ const PrivateRoutes = () => {
             
             // <ProtectedRoute permission="user.manage">
               <UsersPage />
+            // </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/roles"
+          element={
+            
+            // <ProtectedRoute permission="user.manage">
+              <RolesPage />
+            // </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/permissions"
+          element={
+            
+            // <ProtectedRoute permission="user.manage">
+              <PermissionsPage />
             // </ProtectedRoute>
           }
         />

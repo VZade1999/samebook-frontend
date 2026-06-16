@@ -125,20 +125,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             <Input.Password placeholder="Enter password" />
           </Form.Item>
 
-          <Form.Item
-            name="role_ids"
-            label="Assign Role"
-            rules={[{ required: true, message: 'Please select at least one role' }]}
-          >
-            <Select
-              mode="multiple"
-              placeholder="Select roles"
-              options={roles.map((role: any) => ({
-                label: role.name,
-                value: role.id,
-              }))}
-            />
-          </Form.Item>
         </Form>
       </Spin>
     </Modal>
