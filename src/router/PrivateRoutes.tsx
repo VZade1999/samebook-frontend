@@ -18,6 +18,8 @@ import PermissionsPage from "../modules/user-management/pages/PermissionsPage";
 // import QuotationList from "../modules/quotation/pages/InvoiceList";
 
 import ProtectedRoute from "../permissions/ProtectedRoute";
+import InvoiceList from "@/modules/invoice/pages/InvoiceListPage";
+import InvoiceDetails from "@/modules/invoice/pages/InvoiceDetails";
 
 const PrivateRoutes = () => {
   const storageService = new StorageService();
@@ -59,7 +61,7 @@ const PrivateRoutes = () => {
           }
         />
 
-         <Route
+        <Route
           path="/ai-agent"
           element={
             <ProtectedRoute permission="ai_agent.view">
@@ -72,36 +74,49 @@ const PrivateRoutes = () => {
           path="/quotation"
           element={
             <ProtectedRoute permission="quotations.view">
-            <QuotationPage />
-           </ProtectedRoute>
+              <QuotationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoice"
+          element={
+            <ProtectedRoute permission="quotations.view">
+              <InvoiceList />
+            </ProtectedRoute>
           }
         />
 
         <Route
+          path="/invoice-details/:id"
+          element={
+            <ProtectedRoute permission="quotations.view">
+              <InvoiceDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/users"
           element={
-            
             <ProtectedRoute permission="users.view">
               <UsersPage />
             </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/roles"
           element={
-            
             <ProtectedRoute permission="roles.view">
               <RolesPage />
-             </ProtectedRoute>
+            </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/permissions"
           element={
-            
             <ProtectedRoute permission="permissions.view">
               <PermissionsPage />
-           </ProtectedRoute>
+            </ProtectedRoute>
           }
         />
 

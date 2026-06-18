@@ -9,6 +9,7 @@ import aiAgentReducer from "@/modules/ai-agent/redux/aiAgentReducer";
 import usersReducer from "@/modules/users/redux/usersSlice";
 import rolesReducer from "@/modules/user-management/redux/rolesSlice";
 import permissionsReducer from "@/modules/user-management/redux/permissionsSlice";
+import { invoiceReducer } from "@/modules/invoice/redux/invoiceReducer";
 const rootReducer = combineReducers({
   authn: authReducer,
   customers: customerReducer,
@@ -19,6 +20,7 @@ const rootReducer = combineReducers({
   users: usersReducer,
   roles: rolesReducer,
   permissions: permissionsReducer,
+  invoice: invoiceReducer,
 });
 
 export default rootReducer;

@@ -72,6 +72,11 @@ const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
       icon: <FileTextOutlined />,
       label: "Quotation",
     },
+    can("quotations.view") && {
+      key: "/app/invoice",
+      icon: <FileTextOutlined />,
+      label: "Invoice",
+    },
   ].filter(Boolean) as any[];
 
   return (
