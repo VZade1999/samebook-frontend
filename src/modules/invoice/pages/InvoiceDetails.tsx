@@ -551,7 +551,7 @@ const InvoiceDetails = () => {
       dataIndex: "payment_date",
       render: (v: string) => formatDate(v),
     },
-    { title: "Method", dataIndex: "payment_method" },
+    { title: "Method", dataIndex: "payment_mode" },
     { title: "Reference", dataIndex: "transaction_reference" },
     {
       title: "Amount",

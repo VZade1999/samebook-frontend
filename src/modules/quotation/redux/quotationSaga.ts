@@ -25,6 +25,9 @@ import {
   ASYNC_DELETE_QUOTATION,
   ASYNC_DELETE_QUOTATION_SUCCESS,
   ASYNC_DELETE_QUOTATION_FAILED,
+  ASYNC_APPROVE_QUOTATION,
+  ASYNC_APPROVE_QUOTATION_SUCCESS,
+  ASYNC_APPROVE_QUOTATION_FAILED,
 } from './quotationActions';
 import { notification } from 'antd';
 
@@ -131,6 +134,37 @@ function* sendQuotationSaga(action: any): any {
   }
 }
 
+function* approveQuotationSaga(action: any): any {
+  try {
+    const response = yield call(quotationService.approveQuotation, action?.payload);
+    if (response.data?.success) {
+      notification.success({
+        message: 'Quotation Approved',
+        description: response.data.message,
+      });
+      yield put({ type: ASYNC_APPROVE_QUOTATION_SUCCESS });
+      yield put({ type: ASYNC_GET_QUOTATIONS });
+      if (action?.payload?.id) {
+        yield put({ type: ASYNC_GET_QUOTATION_DETAILS, payload: action.payload.id });
+      }
+    } else {
+      notification.error({
+        message: 'Approve Quotation Failed',
+        description: response.data?.message || 'Unable to approve quotation',
+      });
+      yield put({ type: ASYNC_APPROVE_QUOTATION_FAILED, error: response.data?.message });
+    }
+  } catch (error: any) {
+    notification.error({
+      message: 'Approve Quotation Failed',
+      description: error?.message || 'Unable to approve quotation',
+    });
+    yield put({ type: ASYNC_APPROVE_QUOTATION_FAILED, error: error?.message });
+  }
+}
+
+
+
 function* createQuotationSaga(action: any): any {
   try {
     const response = yield call(quotationService.createQuotation, action?.payload);
@@ -160,7 +194,8 @@ function* createQuotationSaga(action: any): any {
 function* updateQuotationSaga(action: any): any {
   try {
     const response = yield call(quotationService.updateQuotation, action?.payload);
-    if (response.data?.success) {
+
+    if (response.data?.success && response.data?.data) {
       notification.success({
         message: 'Quotation Updated',
         description: response.data.message,
@@ -171,6 +206,7 @@ function* updateQuotationSaga(action: any): any {
         yield put({ type: ASYNC_GET_QUOTATION_DETAILS, payload: action.payload.id });
       }
     } else {
+
       notification.error({
         message: 'Update Quotation Failed',
         description: response.data?.message || 'Unable to update quotation',
@@ -178,6 +214,7 @@ function* updateQuotationSaga(action: any): any {
       yield put({ type: ASYNC_UPDATE_QUOTATION_FAILED, error: response.data?.message });
     }
   } catch (error: any) {
+
     notification.error({
       message: 'Update Quotation Failed',
       description: error?.message || 'Unable to update quotation',
@@ -230,6 +267,10 @@ export function* listenGetQuotationTimeline() {
 
 export function* listenSendQuotation() {
   yield takeLatest(ASYNC_SEND_QUOTATION, sendQuotationSaga);
+}
+
+export function* listenApproveQuotation() {
+  yield takeLatest(ASYNC_APPROVE_QUOTATION, approveQuotationSaga);
 }
 
 export function* listenCreateQuotation() {

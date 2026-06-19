@@ -3,15 +3,21 @@ import dayjs from "dayjs";
 import {
   Form, notification, Pagination, Row, Col, Space, Table, Tabs, Empty,
   Popconfirm, Input, Grid, Drawer, Spin,
+  Select,
+  Tooltip,
 } from "antd";
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined,
   CloseOutlined, DownloadOutlined, UserOutlined, MailOutlined, PhoneOutlined,
   BankOutlined, EnvironmentOutlined, ClockCircleOutlined, FileTextOutlined,
   ShopOutlined, NumberOutlined, CheckCircleOutlined, SendOutlined,
+  RightOutlined,
+  CheckCircleFilled,
+  FileDoneOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  approveQuotation,
   createQuotation, deleteQuotation, getQuotationDetails, getQuotationHistory,
   getQuotationTimeline, getQuotations, sendQuotation, updateQuotation,
 } from "../redux/quotationActions";
@@ -27,6 +33,7 @@ import { getCustomers } from "@/modules/customers/redux/customerActions";
 import { useAccess } from "@/permissions/useAccess";
 
 const { useBreakpoint } = Grid;
+const { Option } = Select;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const GlobalStyles = () => (
@@ -433,14 +440,15 @@ const getValidityDate = (v: string | undefined) => {
 };
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
-  SENT:           { color: "#059669", bg: "#ECFDF5" },
+  SENT:           { color: "#4F46E5", bg: "#ECFDF5" },
   DRAFT:          { color: "#6B7280", bg: "#F3F4F6" },
   EXPIRED:        { color: "#DC2626", bg: "#FEF2F2" },
-  APPROVED:       { color: "#4F46E5", bg: "#EEF2FF" },
+  APPROVED:       { color: "#059669", bg: "#EEF2FF" },
   REJECTED:       { color: "#EA580C", bg: "#FFF7ED" },
   PAID:           { color: "#0891B2", bg: "#ECFEFF" },
   PARTIALLY_PAID: { color: "#D97706", bg: "#FFFBEB" },
   PARTIAL:        { color: "#D97706", bg: "#FFFBEB" },
+  DELETED :        { color: "#DC2626", bg: "#F3F4F6" }, 
 };
 
 const StatusPill = ({ status }: { status?: string }) => {
@@ -934,6 +942,7 @@ const QuotationPage = () => {
   const handleDelete = (record: any) => dispatch(deleteQuotation(record.id));
   const handleView = (record: any) => { setSelectedQuotationId(record.id); setDetailsVisible(true); };
   const handleSend = () => { if (!selectedQuotationId) return; dispatch(sendQuotation({ id: selectedQuotationId, user_id: authState?.user?.id })); };
+  const handleApprove = () => { if (!selectedQuotationId) return;  dispatch(approveQuotation({ id: selectedQuotationId, user_id: authState?.user?.id })); };
 
   const closeForm = () => { setEditingQuotation(null); form.resetFields(); setShowForm(false); };
   const openCreate = () => {
@@ -950,9 +959,28 @@ const QuotationPage = () => {
     {
       title: "Quotation #", dataIndex: "quotation_number", width: 160,
       render: (value: any, record: any) => (
-        <span style={{ fontWeight: 700, color: "#4F46E5", cursor: "pointer" }} onClick={() => handleView(record)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontWeight: 700, color: `${record.has_invoice ? "#16A34A" : "#4F46E5"}`, cursor: "pointer" }} onClick={() => handleView(record)}>
           {value}
         </span>
+       {record.has_invoice && (
+  <Tooltip title="Invoice generated">
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 40,
+        height: 20,
+        borderRadius: "50%",
+        background: "#DCFCE7",
+      }}
+    >
+      <FileDoneOutlined style={{ color: "#16A34A", fontSize: 20 }} />
+    </span>
+  </Tooltip>
+)}
+        </div>
       ),
     },
     {
@@ -965,7 +993,7 @@ const QuotationPage = () => {
       ),
     },
     {
-      title: "Payment", dataIndex: "payment_details_snapshot", width: 180,
+      title: "Payment", dataIndex: "payment_details_snapshot", width: 120,
       render: (_: any, record: any) => {
         const p = parseJsonField(record.payment_details_snapshot) || {};
         if (!p.bank_name && !p.account_number) return <span style={{ color: "#9CA3AF" }}>—</span>;
@@ -985,6 +1013,7 @@ const QuotationPage = () => {
       title: "Status", dataIndex: "status", width: 140,
       render: (s: string) => <StatusPill status={s} />,
     },
+
     {
       title: "Expiry", dataIndex: "validity_date", width: 110,
       render: (v: string) => {
@@ -1008,8 +1037,8 @@ const QuotationPage = () => {
             </button>
           )}
           <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => handleView(record)} title="View"><EyeOutlined /></button>
-          {can("quotations.edit") && <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => handleEdit(record)} title="Edit"><EditOutlined /></button>}
-          {can("quotations.delete") && (
+          {can("quotations.edit") && (!record.has_invoice) && <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => handleEdit(record)} title="Edit"><EditOutlined /></button>}
+          {can("quotations.delete") &&  (record.status ==="DRAFT") && (
             <Popconfirm title="Delete this quotation?" onConfirm={() => handleDelete(record)} okText="Delete" okButtonProps={{ danger: true }}>
               <button className="qt-btn qt-btn-danger qt-btn-icon" title="Delete"><DeleteOutlined /></button>
             </Popconfirm>
@@ -1089,7 +1118,7 @@ const QuotationPage = () => {
                   <Col xs={24} md={12}><CustomerDetails /></Col>
                 </Row>
                 <QuotationItems />
-                <QuotationSummary />
+                <QuotationSummary  />
                 <PaymentDetails />
               </Form>
             </div>
@@ -1235,11 +1264,23 @@ const QuotationPage = () => {
                 Download PDF
               </button>
             )}
-            {can("quotation.send") && (
-              <button className="qt-btn qt-btn-primary" onClick={handleSend} disabled={actionLoading}>
+            {can("quotations.send") && (
+              <><button className="qt-btn qt-btn-primary" onClick={handleSend} disabled={actionLoading}>
                 {actionLoading ? <span style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.35)", borderTopColor: "#fff", borderRadius: "50%", animation: "qt-spin .6s linear infinite", display: "inline-block" }} /> : <SendOutlined />}
                 Send Quotation
               </button>
+               
+              </>
+              
+            )}
+             {can("quotations.send") && (selectedQuotation?.status === "SENT") &&(
+              <>
+              <button className="qt-btn qt-btn-primary" onClick={handleApprove} disabled={actionLoading}>
+                {actionLoading ? <span style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.35)", borderTopColor: "#fff", borderRadius: "50%", animation: "qt-spin .6s linear infinite", display: "inline-block" }} /> : <RightOutlined />}
+                Approve Quotation
+              </button>
+              
+              </>
             )}
           </div>
         }

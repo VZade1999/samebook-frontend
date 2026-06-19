@@ -73,7 +73,7 @@ const PaymentModal: React.FC<Props> = ({
         </Form.Item>
 
         <Form.Item
-          name="payment_method"
+          name="payment_mode"
           label="Payment Method"
           rules={[{ required: true }]}
         >

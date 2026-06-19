@@ -22,6 +22,7 @@ import {
   listenSendQuotation,
   listenGetQuotations,
   listenUpdateQuotation,
+  listenApproveQuotation,
 } from "@/modules/quotation/redux/quotationSaga";
 import {
   listenCreateCompany,
@@ -65,5 +66,6 @@ export default function* rootSaga() {
     listenSendInvoice(),
     listenAddPayment(),
     listenGetInvoiceTimeline(), 
+    listenApproveQuotation(),
   ]);
 }

@@ -1,17 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { Card, Col, DatePicker, Form, Input, InputNumber, Row, Typography } from "antd";
+import {
+  Card,
+  Col,
+  DatePicker,
+  Form,
+  Input,
+  InputNumber,
+  Row,
+  Typography,
+} from "antd";
+import dayjs from "dayjs";
 
 const { TextArea } = Input;
 
 const tokens = {
-  navy: "#0F1F3D", navyMid: "#1A3560",
-  surface: "#F8F9FC", surfaceCard: "#FFFFFF",
-  border: "#E4E8F0", borderFocus: "#3B6FE8",
-  accent: "#3B6FE8", accentLight: "#EBF0FD",
-  text: "#0F1F3D", textMuted: "#6B7A99", textLight: "#A0ABBF",
-  green: "#10B981", greenLight: "#ECFDF5",
+  navy: "#0F1F3D",
+  navyMid: "#1A3560",
+  surface: "#F8F9FC",
+  surfaceCard: "#FFFFFF",
+  border: "#E4E8F0",
+  borderFocus: "#3B6FE8",
+  accent: "#3B6FE8",
+  accentLight: "#EBF0FD",
+  text: "#0F1F3D",
+  textMuted: "#6B7A99",
+  textLight: "#A0ABBF",
+  green: "#10B981",
+  greenLight: "#ECFDF5",
   amber: "#F59E0B",
-  radius: "12px", radiusSm: "8px",
+  radius: "12px",
+  radiusSm: "8px",
   shadow: "0 1px 3px rgba(15,31,61,0.06), 0 4px 16px rgba(15,31,61,0.06)",
 };
 
@@ -165,30 +183,85 @@ const injectStyles = () => {
 };
 injectStyles();
 
-const CardHeader = ({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 24px" }}>
-    <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+const CardHeader = ({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 14,
+      padding: "18px 24px",
+    }}
+  >
+    <div
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        background: "rgba(255,255,255,0.12)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
       {icon}
     </div>
     <div>
-      <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>{title}</div>
-      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11.5, marginTop: 2 }}>{subtitle}</div>
+      <div
+        style={{
+          color: "#fff",
+          fontWeight: 700,
+          fontSize: 15,
+          lineHeight: 1.2,
+        }}
+      >
+        {title}
+      </div>
+      <div
+        style={{
+          color: "rgba(255,255,255,0.55)",
+          fontSize: 11.5,
+          marginTop: 2,
+        }}
+      >
+        {subtitle}
+      </div>
     </div>
   </div>
 );
 
 const SectionDivider = ({ label }: { label: string }) => (
-  <div className="qs-section-divider"><span>{label}</span></div>
+  <div className="qs-section-divider">
+    <span>{label}</span>
+  </div>
 );
 
-const fmt = (v: number) => v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (v: number) =>
+  v.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 const QuotationSummary = () => {
   const form = Form.useFormInstance();
   const [totals, setTotals] = useState({
-    subTotal: 0, discount: 0, discountAmount: 0,
-    gstAmount: 0, sgstAmount: 0, cgstAmount: 0, igstAmount: 0,
-    transport: 0, grandTotal: 0,
+    subTotal: 0,
+    discount: 0,
+    discountAmount: 0,
+    gstAmount: 0,
+    sgstAmount: 0,
+    cgstAmount: 0,
+    igstAmount: 0,
+    transport: 0,
+    grandTotal: 0,
   });
 
   const subTotal = Form.useWatch("subTotal", form);
@@ -199,7 +272,10 @@ const QuotationSummary = () => {
   const transport = Form.useWatch("transport", form);
   const placeOfOrder = Form.useWatch("placeOfOrder", form);
 
-  const isMaharashtra = String(placeOfOrder || "").trim().toLowerCase() === "maharashtra";
+  const isMaharashtra =
+    String(placeOfOrder || "")
+      .trim()
+      .toLowerCase() === "maharashtra";
 
   useEffect(() => {
     const sub = Number(subTotal) || 0;
@@ -211,17 +287,30 @@ const QuotationSummary = () => {
 
     const discountAmount = (sub * discountPercent) / 100;
     const subtotalAfterDiscount = sub - discountAmount;
-    const cgstAmount = isMaharashtra ? (subtotalAfterDiscount * cgstPercent) / 100 : 0;
-    const sgstAmount = isMaharashtra ? (subtotalAfterDiscount * sgstPercent) / 100 : 0;
-    const igstAmount = isMaharashtra ? 0 : (subtotalAfterDiscount * igstPercent) / 100;
+    const cgstAmount = isMaharashtra
+      ? (subtotalAfterDiscount * cgstPercent) / 100
+      : 0;
+    const sgstAmount = isMaharashtra
+      ? (subtotalAfterDiscount * sgstPercent) / 100
+      : 0;
+    const igstAmount = isMaharashtra
+      ? 0
+      : (subtotalAfterDiscount * igstPercent) / 100;
     const totalTaxAmount = cgstAmount + sgstAmount + igstAmount;
-    const grandTotal = subtotalAfterDiscount + totalTaxAmount + transportCharges;
-    const combinedTaxPercent = isMaharashtra ? cgstPercent + sgstPercent : igstPercent;
+    const grandTotal =
+      subtotalAfterDiscount + totalTaxAmount + transportCharges;
+    const combinedTaxPercent = isMaharashtra
+      ? cgstPercent + sgstPercent
+      : igstPercent;
 
-    const safe = (v: any) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+    const safe = (v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
 
     setTotals({
-      subTotal: safe(sub), discount: safe(discountPercent),
+      subTotal: safe(sub),
+      discount: safe(discountPercent),
       discountAmount: parseFloat(safe(discountAmount).toFixed(2)),
       gstAmount: parseFloat(safe(totalTaxAmount).toFixed(2)),
       sgstAmount: parseFloat(safe(sgstAmount).toFixed(2)),
@@ -231,7 +320,12 @@ const QuotationSummary = () => {
       grandTotal: parseFloat(safe(grandTotal).toFixed(2)),
     });
 
-    form?.setFieldsValue({ subTotal: safe(sub), discount: safe(discountPercent), gst: safe(combinedTaxPercent), transport: safe(transportCharges) });
+    form?.setFieldsValue({
+      subTotal: safe(sub),
+      discount: safe(discountPercent),
+      gst: safe(combinedTaxPercent),
+      transport: safe(transportCharges),
+    });
   }, [subTotal, discount, cgst, sgst, igst, transport, placeOfOrder, form]);
 
   return (
@@ -242,7 +336,23 @@ const QuotationSummary = () => {
           bordered={false}
           title={
             <CardHeader
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>}
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="1.8"
+                >
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              }
               title="Quotation Summary"
               subtitle="Pricing, taxes & grand total"
             />
@@ -263,7 +373,20 @@ const QuotationSummary = () => {
               </Form.Item>
               {totals.discountAmount > 0 && (
                 <div className="qs-amount-hint">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M20 12V22H4V12" />
+                    <path d="M22 7H2v5h20V7z" />
+                    <path d="M12 22V7" />
+                    <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" />
+                    <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
+                  </svg>
                   Saves <strong>₹{fmt(totals.discountAmount)}</strong>
                 </div>
               )}
@@ -274,25 +397,50 @@ const QuotationSummary = () => {
               {isMaharashtra ? (
                 <>
                   <Form.Item label="CGST (%)" name="cgst">
-                    <InputNumber min={0} max={100} step={0.01} placeholder="9" />
+                    <InputNumber
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      placeholder="9"
+                    />
                   </Form.Item>
-                  <Form.Item label="SGST (%)" name="sgst" style={{ marginTop: 8 }}>
-                    <InputNumber min={0} max={100} step={0.01} placeholder="9" />
+                  <Form.Item
+                    label="SGST (%)"
+                    name="sgst"
+                    style={{ marginTop: 8 }}
+                  >
+                    <InputNumber
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      placeholder="9"
+                    />
                   </Form.Item>
                   {(totals.cgstAmount > 0 || totals.sgstAmount > 0) && (
                     <div style={{ marginTop: 5 }}>
-                      <div className="qs-amount-hint">CGST <strong>₹{fmt(totals.cgstAmount)}</strong></div>
-                      <div className="qs-amount-hint">SGST <strong>₹{fmt(totals.sgstAmount)}</strong></div>
+                      <div className="qs-amount-hint">
+                        CGST <strong>₹{fmt(totals.cgstAmount)}</strong>
+                      </div>
+                      <div className="qs-amount-hint">
+                        SGST <strong>₹{fmt(totals.sgstAmount)}</strong>
+                      </div>
                     </div>
                   )}
                 </>
               ) : (
                 <>
                   <Form.Item label="IGST (%)" name="igst">
-                    <InputNumber min={0} max={100} step={0.01} placeholder="18" />
+                    <InputNumber
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      placeholder="18"
+                    />
                   </Form.Item>
                   {totals.igstAmount > 0 && (
-                    <div className="qs-amount-hint">IGST <strong>₹{fmt(totals.igstAmount)}</strong></div>
+                    <div className="qs-amount-hint">
+                      IGST <strong>₹{fmt(totals.igstAmount)}</strong>
+                    </div>
                   )}
                 </>
               )}
@@ -310,25 +458,33 @@ const QuotationSummary = () => {
           <div className="qs-grand-total">
             <div>
               <div className="qs-grand-total-label">Grand Total</div>
-              <div className="qs-grand-total-amount">₹{fmt(totals.grandTotal)}</div>
+              <div className="qs-grand-total-amount">
+                ₹{fmt(totals.grandTotal)}
+              </div>
             </div>
             <div className="qs-grand-total-breakdown">
               {totals.discountAmount > 0 && (
                 <div className="qs-breakdown-item">
                   <span className="qs-breakdown-item-label">Discount</span>
-                  <span className="qs-breakdown-item-val">−₹{fmt(totals.discountAmount)}</span>
+                  <span className="qs-breakdown-item-val">
+                    −₹{fmt(totals.discountAmount)}
+                  </span>
                 </div>
               )}
               {totals.gstAmount > 0 && (
                 <div className="qs-breakdown-item">
                   <span className="qs-breakdown-item-label">Tax</span>
-                  <span className="qs-breakdown-item-val">+₹{fmt(totals.gstAmount)}</span>
+                  <span className="qs-breakdown-item-val">
+                    +₹{fmt(totals.gstAmount)}
+                  </span>
                 </div>
               )}
               {totals.transport > 0 && (
                 <div className="qs-breakdown-item">
                   <span className="qs-breakdown-item-label">Transport</span>
-                  <span className="qs-breakdown-item-val">+₹{fmt(totals.transport)}</span>
+                  <span className="qs-breakdown-item-val">
+                    +₹{fmt(totals.transport)}
+                  </span>
                 </div>
               )}
             </div>
@@ -342,7 +498,22 @@ const QuotationSummary = () => {
           bordered={false}
           title={
             <CardHeader
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>}
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="1.8"
+                >
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              }
               title="Terms & Conditions"
               subtitle="Validity, delivery & additional notes"
             />
@@ -350,21 +521,43 @@ const QuotationSummary = () => {
         >
           <Row gutter={[16, 0]}>
             <Col xs={24} md={12}>
-              <Form.Item label="Valid Until" name="validity_date">
-                <DatePicker style={{ width: "100%" }} placeholder="Select expiry date" />
+              <Form.Item label="Valid Until" name="validity_date"  >
+                <DatePicker
+                  style={{ width: "100%" }}
+                  placeholder="Select expiry date"
+                  disabledDate={(current) =>
+                    current && current <= dayjs().endOf("day")
+                  }
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Delivery Time" name="deliveryTime">
-                <Input placeholder="e.g. Within 5 working days" prefix={
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tokens.textLight} strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                } />
+                <Input
+                  placeholder="e.g. Within 5 working days"
+                  prefix={
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={tokens.textLight}
+                      strokeWidth="1.8"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  }
+                />
               </Form.Item>
             </Col>
           </Row>
 
           <Form.Item label="Additional Notes" name="notes">
-            <TextArea rows={4} placeholder="Payment terms, warranty, special conditions…" />
+            <TextArea
+              rows={4}
+              placeholder="Payment terms, warranty, special conditions…"
+            />
           </Form.Item>
         </Card>
       </div>

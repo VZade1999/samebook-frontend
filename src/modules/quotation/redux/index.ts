@@ -2,7 +2,7 @@ import instance from './instance';
 
 class QuotationService {
   getQuotations(payload?: any) {
-    return instance.get('/quotation/list', {
+    return instance.get('/quotation/list-for-invoice', {
       params: payload,
     });
   }
@@ -20,8 +20,15 @@ class QuotationService {
   }
 
   sendQuotation(payload: any) {
+    console.log('Sending quotation with payload:', payload);
     const { id, user_id } = payload || {};
     return instance.post(`/quotation/${id}/send`, { user_id });
+  }
+
+  approveQuotation(payload: any) {
+    console.log('Approving quotation with payload:', payload);
+    const { id, user_id } = payload || {};
+    return instance.post(`/quotation/${id}/approve`, { user_id });
   }
 
   downloadQuotation(id: number) {
