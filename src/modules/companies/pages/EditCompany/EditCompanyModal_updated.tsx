@@ -24,7 +24,7 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
         name: company.name,
         legal_name: company.legal_name,
         registration_number: company.registration_number,
-        tax_id: company.tax_id,
+        gst_no: company.gst_no,
         industry: company.industry,
         website: company.website,
         primary_email: company.primary_email,
@@ -93,7 +93,7 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Tax ID" name="tax_id">
+            <Form.Item label="GST No." name="gst_no">
               <Input placeholder="Enter tax id" />
             </Form.Item>
           </Col>

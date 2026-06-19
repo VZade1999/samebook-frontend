@@ -254,7 +254,7 @@ const BusinessDetails = () => {
       const phoneOptions = buildPhoneOptions(details, detailsAddresses, detailsLocations);
       const emailOptions = buildEmailOptions(details, detailsAddresses, detailsLocations);
       const initialBusinessAddress = existingSnapshot?.businessAddress ?? buildBusinessAddress(initialAddressIds, initialLocationIds, detailsAddresses, detailsLocations);
-      const initialBusinessGST = existingSnapshot?.businessGST ?? details.gst_number ?? "";
+      const initialBusinessGST = existingSnapshot?.gst_no ?? details.gst_no ?? "";
       const initialBusinessPhone = existingSnapshot?.businessPhone ?? buildContactValue(initialPhoneIds, phoneOptions);
       const initialBusinessEmail = existingSnapshot?.businessEmail ?? buildContactValue(initialEmailIds, emailOptions);
       const initialBusinessMeta = Array.isArray(existingSnapshot?.businessMeta) ? existingSnapshot.businessMeta : [];

@@ -22,7 +22,7 @@ interface Company {
   company_prefix?: string;
   legal_name?: string;
   registration_number?: string;
-  tax_id?: string;
+  gst_no?: string;
   website?: string;
   industry?: string;
   primary_email?: string;
@@ -101,10 +101,10 @@ const CompanyCard: React.FC<{
             <span style={{ ...styles.cardValue, color: "#666" }}>{addrStr}</span>
           </div>
         )}
-        {company.tax_id && (
+        {company.gst_no && (
           <div style={styles.cardRow}>
-            <span style={styles.cardLabel}>Tax ID</span>
-            <span style={styles.cardValue}>{company.tax_id}</span>
+            <span style={styles.cardLabel}>GST No.</span>
+            <span style={styles.cardValue}>{company.gst_no}</span>
           </div>
         )}
       </div>
@@ -198,7 +198,7 @@ const CompanyPage: React.FC = () => {
       render: (v, r) => <Button type="link" onClick={() => openDetails(r)}>{v}</Button>,
     },
     { title: "Legal Name", dataIndex: "legal_name", key: "legal_name", width: 200, render: (v) => v || "–" },
-    { title: "Tax ID", dataIndex: "tax_id", key: "tax_id", width: 160, render: (v) => v || "–" },
+    { title: "GST No.", dataIndex: "gst_no", key: "gst_no", width: 160, render: (v) => v || "–" },
     { title: "Industry", dataIndex: "industry", key: "industry", width: 160, render: (v) => v || "–" },
     { title: "Email", dataIndex: "primary_email", key: "primary_email", width: 210, render: (v) => v || "–" },
     { title: "Phone", dataIndex: "primary_phone", key: "primary_phone", width: 160, render: (v) => v || "–" },
@@ -395,7 +395,7 @@ const DrawerContent: React.FC<{ company: any }> = ({ company }) => (
       <div style={styles.infoGrid}>
         {[
           ["Legal Name", company.legal_name],
-          ["Tax ID", company.tax_id],
+          ["GST No.", company.gst_no],
           ["Industry", company.industry],
           ["Registration", company.registration_number],
           ["Website", company.website],

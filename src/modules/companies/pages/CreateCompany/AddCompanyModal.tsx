@@ -178,7 +178,7 @@ const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ open, onClose }) => {
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Tax ID" name="tax_id">
+            <Form.Item label="GST No." name="gst_no">
               <Input placeholder="Enter tax id" />
             </Form.Item>
           </Col>

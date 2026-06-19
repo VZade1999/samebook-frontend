@@ -270,7 +270,7 @@ const CustomerListPage: React.FC = () => {
     },
     {
       title: "GST Number",
-      dataIndex: "gst_number",
+      dataIndex: "gst_no",
       key: "gst_number",
       width: 200,
       render: (v: string) => v || "-",
