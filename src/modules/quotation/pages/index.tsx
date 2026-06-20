@@ -693,6 +693,9 @@ const TimelineTab: React.FC<{ timeline: any[] }> = ({ timeline }) => {
 };
 
 // ─── Mobile card ──────────────────────────────────────────────────────────────
+// canEdit/canDelete are expected to already include the same business-rule
+// checks the desktop table applies (has_invoice / status === "DRAFT"), not
+// just raw permission flags — see how this is invoked from QuotationPage.
 const MobileCard: React.FC<{
   record: any; downloadingId: number | null;
   onView: (r: any) => void; onEdit: (r: any) => void;
@@ -755,6 +758,8 @@ const QuotationPage = () => {
   const [form] = Form.useForm();
   const dispatch = useDispatch();
   const storageService = useMemo(() => new StorageService(), []);
+  // Memoized — was previously re-instantiated on every render.
+  const quotationService = useMemo(() => new QuotationService(), []);
   const [companyDetails, setCompanyDetails] = useState<any>(null);
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -766,13 +771,16 @@ const QuotationPage = () => {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  // `searchInput` is what the text box shows (updates instantly). `search`
+  // is what actually drives the fetch, updated after a short debounce so
+  // we don't fire a request on every keystroke.
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [editingQuotation, setEditingQuotation] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(null);
   const [downloadingQuotationId, setDownloadingQuotationId] = useState<number | null>(null);
-  const quotationService = new QuotationService();
 
   const quotationState = useSelector((state: any) => state.quotations);
   const authState = useSelector((state: any) => state.authn);
@@ -781,6 +789,7 @@ const QuotationPage = () => {
   const quotationData = quotationState?.quotations || {};
   const quotations = quotationData?.rows || [];
   const pagination = quotationData?.pagination || {};
+  const statusCounts = quotationData?.statusCounts || {};
   const loading = quotationState?.loading || false;
   const createLoading = quotationState?.createLoading || false;
   const actionLoading = quotationState?.actionLoading || false;
@@ -789,6 +798,14 @@ const QuotationPage = () => {
   const quotationTimeline = quotationState?.quotationTimeline || [];
 
   const prevCreateLoadingRef = useRef<boolean>(createLoading);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
   useEffect(() => {
     if (prevCreateLoadingRef.current && !createLoading && !quotationState.error) {
@@ -881,8 +898,11 @@ const QuotationPage = () => {
       contact_person_id: values.contactPersonId, billing_address_id: values.billingAddressId, shipping_address_id: values.shippingAddressId,
       customer_name: values.customerName, customer_type: values.customerType, customer_gst_number: values.customerGSTN,
       contact_person_name: values.customerName, contact_person_email: values.customerEmail, contact_person_phone: values.customerPhone,
-      billing_address_snapshot: JSON.parse(values.billingAddressSnapshot), shipping_address_snapshot: JSON.parse(values.shippingAddressSnapshot),
-      business_details_snapshot: values.businessDetailsSnapshot ? JSON.parse(values.businessDetailsSnapshot) : undefined,
+      // Use the safe parser used everywhere else in this file — a raw
+      // JSON.parse here would throw and crash submission if either
+      // snapshot field is ever empty or malformed.
+      billing_address_snapshot: parseJsonField(values.billingAddressSnapshot), shipping_address_snapshot: parseJsonField(values.shippingAddressSnapshot),
+      business_details_snapshot: values.businessDetailsSnapshot ? parseJsonField(values.businessDetailsSnapshot) : undefined,
       payment_details_snapshot: values.paymentBankId ? JSON.stringify({ bank_id: values.paymentBankId, bank_name: values.paymentBankName, account_holder_name: values.paymentAccountHolder, account_number: values.paymentAccountNumber, ifsc_code: values.paymentIFSC, branch_name: values.paymentBranchName, branch_address: values.paymentBranchAddress, account_type: values.paymentAccountType, is_default: values.paymentIsDefault }) : undefined,
       validity_date: values.validity_date ? values.validity_date.toISOString() : undefined, notes: values.notes,
       sub_total: subTotal, discount_percent: discountPercent, discount_amount: discountAmount,
@@ -891,7 +911,12 @@ const QuotationPage = () => {
     };
     if (editingQuotation) {
       dispatch(updateQuotation({ ...basePayload, id: editingQuotation.id }));
-      setEditingQuotation(null);
+      // Do NOT clear editingQuotation or reset the form here — that must
+      // only happen once the save is confirmed successful (handled by the
+      // createLoading-watching effect above). Clearing it eagerly meant a
+      // failed update silently fell through to the "create" branch on
+      // retry, risking a duplicate quotation instead of fixing the
+      // original, and dropped the user's entered data on any failure.
     } else {
       const missing: string[] = [];
       if (!basePayload.customer_id) missing.push("selected customer");
@@ -900,7 +925,6 @@ const QuotationPage = () => {
       if (missing.length) { notification.error({ message: "Missing Required Fields", description: `Please provide ${missing.join(" and ")}.` }); return; }
       dispatch(createQuotation({ ...basePayload, company_id: currentCompanyId, quotation_date: new Date().toISOString() }));
     }
-    form.resetFields();
   };
 
   const handleEdit = (record: any) => {
@@ -949,11 +973,6 @@ const QuotationPage = () => {
     setShowForm(true); setEditingQuotation(null); form.resetFields();
     if (companyDetails?.default_terms_conditions) form.setFieldsValue({ notes: companyDetails.default_terms_conditions });
   };
-
-  // Stats
-  const totalApproved = quotations.filter((q: any) => (q.status || "").toUpperCase() === "APPROVED").length;
-  const totalSent = quotations.filter((q: any) => (q.status || "").toUpperCase() === "SENT").length;
-  const totalExpired = quotations.filter((q: any) => (q.status || "").toUpperCase() === "EXPIRED").length;
 
   const columns = [
     {
@@ -1077,19 +1096,19 @@ const QuotationPage = () => {
         <div className="qt-stats">
           <div className="qt-stat-card">
             <div className="qt-stat-label">Total</div>
-            <div className="qt-stat-value accent">{quotations.length}</div>
+            <div className="qt-stat-value accent">{pagination?.total}</div>
           </div>
           <div className="qt-stat-card">
             <div className="qt-stat-label">Approved</div>
-            <div className="qt-stat-value success">{totalApproved}</div>
+            <div className="qt-stat-value success">{statusCounts.APPROVED || 0}</div>
           </div>
           <div className="qt-stat-card">
             <div className="qt-stat-label">Sent</div>
-            <div className="qt-stat-value" style={{ color: "#0891B2" }}>{totalSent}</div>
+            <div className="qt-stat-value" style={{ color: "#0891B2" }}>{statusCounts.SENT || 0}</div>
           </div>
           <div className="qt-stat-card">
-            <div className="qt-stat-label">Expired</div>
-            <div className="qt-stat-value danger">{totalExpired}</div>
+            <div className="qt-stat-label">Draft</div>
+            <div className="qt-stat-value" style={{ color: "#5b6062" }}>{statusCounts.DRAFT || 0}</div>
           </div>
         </div>
       </div>
@@ -1153,8 +1172,8 @@ const QuotationPage = () => {
                 <input
                   className="qt-search"
                   placeholder="Search quotation no. or customer…"
-                  value={search}
-                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
                 />
               </div>
               {quotations.length > 0 && (
@@ -1210,7 +1229,12 @@ const QuotationPage = () => {
                 <MobileCard
                   key={q.id} record={q} downloadingId={downloadingQuotationId}
                   onView={handleView} onEdit={handleEdit} onDelete={handleDelete} onDownload={downloadQuotationPDF}
-                  canEdit={can("quotations.edit")} canDelete={can("quotations.delete")} canExport={can("quotations.export")}
+                  // Mirror the same business rules the desktop table applies
+                  // (was previously permission-only, letting mobile users
+                  // edit invoiced quotations or delete non-draft ones).
+                  canEdit={can("quotations.edit") && !q.has_invoice}
+                  canDelete={can("quotations.delete") && q.status === "DRAFT"}
+                  canExport={can("quotations.export")}
                 />
               ))
             )}

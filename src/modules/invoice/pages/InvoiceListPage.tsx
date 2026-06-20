@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Spin } from 'antd';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Table, Spin, Pagination } from 'antd';
 import {
   EyeOutlined,
   MailOutlined,
@@ -13,6 +13,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getInvoices, sendInvoice } from '../redux/invoiceActions';
 import GenerateInvoiceModal from '../components/GenerateInvoiceModal';
 import { useNavigate } from 'react-router-dom';
+import { getQuotations } from '@/modules/quotation/redux/quotationActions';
 
 // ─── Design tokens (shared with InvoiceDetails) ───────────────────────────────
 const GlobalStyles = () => (
@@ -520,14 +521,47 @@ const InvoiceList = () => {
   const dispatch = useDispatch();
 
   const { invoices, loading } = useSelector((state: any) => state.invoice);
+
+  // `searchInput` is what the text box shows (updates instantly).
+  // `search` is what actually drives the fetch, updated after a short
+  // debounce so we don't fire an API call on every keystroke.
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [status, setStatus] = useState('');
 
-  useEffect(() => { loadInvoices(); }, []);
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
-  const loadInvoices = () => {
-    dispatch(getInvoices({ search, status }));
-  };
+  // Single source of truth for fetching invoices — reused by the effect
+  // below and the Refresh button, so they can never drift apart.
+  const fetchInvoices = useCallback(() => {
+    dispatch(
+      getInvoices({
+        page,
+        limit: pageSize,
+        search: search || undefined,
+        status: status || undefined,
+      }),
+    );
+  }, [dispatch, page, pageSize, search, status]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  // Loads quotations once on mount (e.g. for the Generate Invoice modal's
+  // quotation picker). Deliberately NOT tied to the invoice table's own
+  // search/page/status — those filters apply to invoices, not quotations.
+  useEffect(() => {
+    dispatch(getQuotations({ page: 1, limit: 100 }));
+  }, [dispatch]);
 
   const handleSend = (e: React.MouseEvent, invoiceId: number) => {
     e.stopPropagation();
@@ -535,8 +569,13 @@ const InvoiceList = () => {
   };
 
   const rows: any[] = invoices?.rows || [];
+  // Adjust `count` below if your invoice reducer names the total field
+  // differently (e.g. `total`, `totalCount`).
+  const totalCount: number = invoices?.count ?? rows.length;
 
-  // Derived stats from loaded data
+  // Derived stats reflect only the currently loaded page, not all
+  // invoices. If you have a stats endpoint or full counts from the API,
+  // swap these out for that.
   const totalInvoices = rows.length;
   const totalPaid = rows.filter(r => r.status === 'PAID').length;
   const totalOverdue = rows.filter(r => r.status === 'OVERDUE').length;
@@ -660,9 +699,8 @@ const InvoiceList = () => {
               <input
                 className="invl-search"
                 placeholder="Search by invoice no, customer…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && loadInvoices()}
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
               />
             </div>
 
@@ -671,7 +709,7 @@ const InvoiceList = () => {
               <select
                 className="invl-select"
                 value={status}
-                onChange={e => setStatus(e.target.value)}
+                onChange={e => { setStatus(e.target.value); setPage(1); }}
               >
                 <option value="">All Statuses</option>
                 <option value="DRAFT">Draft</option>
@@ -683,7 +721,7 @@ const InvoiceList = () => {
               </select>
             </div>
 
-            <button className="invl-icon-btn" onClick={loadInvoices}>
+            <button className="invl-icon-btn" onClick={fetchInvoices}>
               <ReloadOutlined />
               Refresh
             </button>
@@ -719,7 +757,7 @@ const InvoiceList = () => {
                 All Invoices
               </div>
               {rows.length > 0 && (
-                <span className="invl-count-badge">{rows.length} invoice{rows.length !== 1 ? 's' : ''}</span>
+                <span className="invl-count-badge">{totalCount} invoice{totalCount !== 1 ? 's' : ''}</span>
               )}
             </div>
 
@@ -742,9 +780,12 @@ const InvoiceList = () => {
                   ),
                 }}
                 pagination={{
-                  pageSize: 15,
+                  current: page,
+                  pageSize,
+                  total: totalCount,
                   showSizeChanger: false,
                   showTotal: (total) => `${total} invoice${total !== 1 ? 's' : ''}`,
+                  onChange: (newPage) => setPage(newPage),
                   style: { padding: '12px 16px' },
                 }}
               />
@@ -761,57 +802,72 @@ const InvoiceList = () => {
                   <div className="invl-empty-sub">Try adjusting your search or filters</div>
                 </div>
               ) : (
-                rows.map((record: any) => (
-                  <div
-                    key={record.id}
-                    className="invl-mobile-card"
-                    onClick={() => navigate(`/app/invoice-details/${record.id}`)}
-                  >
-                    <div className="invl-mobile-card-top">
-                      <div>
-                        <div className="invl-mobile-invoice-no">{record.invoice_number}</div>
-                        <div className="invl-mobile-customer">{record.customer_name}</div>
+                <>
+                  {rows.map((record: any) => (
+                    <div
+                      key={record.id}
+                      className="invl-mobile-card"
+                      onClick={() => navigate(`/app/invoice-details/${record.id}`)}
+                    >
+                      <div className="invl-mobile-card-top">
+                        <div>
+                          <div className="invl-mobile-invoice-no">{record.invoice_number}</div>
+                          <div className="invl-mobile-customer">{record.customer_name}</div>
+                        </div>
+                        <StatusPill status={record.status} />
                       </div>
-                      <StatusPill status={record.status} />
-                    </div>
 
-                    <div className="invl-mobile-amounts">
-                      <div className="invl-mobile-amount-block">
-                        <div className="invl-mobile-amount-label">Total</div>
-                        <div className="invl-mobile-amount-val">{formatCurrency(record.grand_total)}</div>
-                      </div>
-                      <div className="invl-mobile-amount-block">
-                        <div className="invl-mobile-amount-label">Paid</div>
-                        <div className="invl-mobile-amount-val" style={{ color: 'var(--inv-success)' }}>
-                          {formatCurrency(record.paid_amount)}
+                      <div className="invl-mobile-amounts">
+                        <div className="invl-mobile-amount-block">
+                          <div className="invl-mobile-amount-label">Total</div>
+                          <div className="invl-mobile-amount-val">{formatCurrency(record.grand_total)}</div>
+                        </div>
+                        <div className="invl-mobile-amount-block">
+                          <div className="invl-mobile-amount-label">Paid</div>
+                          <div className="invl-mobile-amount-val" style={{ color: 'var(--inv-success)' }}>
+                            {formatCurrency(record.paid_amount)}
+                          </div>
+                        </div>
+                        <div className="invl-mobile-amount-block">
+                          <div className="invl-mobile-amount-label">Balance</div>
+                          <div
+                            className="invl-mobile-amount-val"
+                            style={{ color: Number(record.balance_amount) > 0 ? 'var(--inv-danger)' : 'var(--inv-success)' }}
+                          >
+                            {formatCurrency(record.balance_amount)}
+                          </div>
                         </div>
                       </div>
-                      <div className="invl-mobile-amount-block">
-                        <div className="invl-mobile-amount-label">Balance</div>
-                        <div
-                          className="invl-mobile-amount-val"
-                          style={{ color: Number(record.balance_amount) > 0 ? 'var(--inv-danger)' : 'var(--inv-success)' }}
-                        >
-                          {formatCurrency(record.balance_amount)}
+
+                      <div className="invl-mobile-footer">
+                        <div className="invl-mobile-dates">
+                          Due: {formatDate(record.due_date)}
+                        </div>
+                        <div className="invl-mobile-btns" onClick={e => e.stopPropagation()}>
+                          <button className="invl-action-btn" onClick={() => navigate(`/app/invoice-details/${record.id}`)}>
+                            <EyeOutlined /> View
+                          </button>
+                          <button className="invl-action-btn mail" onClick={(e) => handleSend(e, record.id)}>
+                            <MailOutlined /> Send
+                          </button>
                         </div>
                       </div>
                     </div>
+                  ))}
 
-                    <div className="invl-mobile-footer">
-                      <div className="invl-mobile-dates">
-                        Due: {formatDate(record.due_date)}
-                      </div>
-                      <div className="invl-mobile-btns" onClick={e => e.stopPropagation()}>
-                        <button className="invl-action-btn" onClick={() => navigate(`/app/invoice-details/${record.id}`)}>
-                          <EyeOutlined /> View
-                        </button>
-                        <button className="invl-action-btn mail" onClick={(e) => handleSend(e, record.id)}>
-                          <MailOutlined /> Send
-                        </button>
-                      </div>
+                  {totalCount > pageSize && (
+                    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
+                      <Pagination
+                        size="small"
+                        current={page}
+                        pageSize={pageSize}
+                        total={totalCount}
+                        showSizeChanger={false}
+                        onChange={(newPage) => setPage(newPage)}
+                      />
                     </div>
-                  </div>
-                ))
+                  )}
+                </>
               )}
             </div>
           </div>

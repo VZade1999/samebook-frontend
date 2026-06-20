@@ -1,8 +1,14 @@
 import instance from './instance';
 
 class QuotationService {
-  getQuotations(payload?: any) {
+  getQuotationListForInvoice(payload?: any) {
     return instance.get('/quotation/list-for-invoice', {
+      params: payload,
+    });
+  }
+
+    getQuotations(payload?: any) {
+    return instance.get('/quotation/list', {
       params: payload,
     });
   }

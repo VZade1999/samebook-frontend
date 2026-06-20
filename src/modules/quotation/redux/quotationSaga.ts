@@ -28,6 +28,9 @@ import {
   ASYNC_APPROVE_QUOTATION,
   ASYNC_APPROVE_QUOTATION_SUCCESS,
   ASYNC_APPROVE_QUOTATION_FAILED,
+  ASYNC_GET_QUOTATION_LIST_FOR_INVOICE,
+  ASYNC_GET_QUOTATION_LIST_FOR_INVOICE_SUCCESS,
+  ASYNC_GET_QUOTATION_LIST_FOR_INVOICE_FAILED,
 } from './quotationActions';
 import { notification } from 'antd';
 
@@ -46,6 +49,22 @@ function* getQuotationsSaga(action: any): any {
     }
   } catch (error: any) {
     yield put({ type: ASYNC_GET_QUOTATIONS_FAILED, error: error?.message });
+  }
+}
+
+function* getQuotationListForInvoiceSaga(action: any): any {
+  try {
+    const response = yield call(quotationService.getQuotationListForInvoice, action?.payload);
+    if (response.data.success) {
+      yield put({
+        type: ASYNC_GET_QUOTATION_LIST_FOR_INVOICE_SUCCESS,
+        data: response.data.data,
+      });
+    } else {
+      yield put({ type: ASYNC_GET_QUOTATION_LIST_FOR_INVOICE_FAILED, error: response.data?.message });
+    }
+  } catch (error: any) {
+    yield put({ type: ASYNC_GET_QUOTATION_LIST_FOR_INVOICE_FAILED, error: error?.message });
   }
 }
 
@@ -251,6 +270,10 @@ function* deleteQuotationSaga(action: any): any {
 
 export function* listenGetQuotations() {
   yield takeLatest(ASYNC_GET_QUOTATIONS, getQuotationsSaga);
+}
+
+export function* listenGetQuotationListForInvoice() {
+  yield takeLatest(ASYNC_GET_QUOTATION_LIST_FOR_INVOICE, getQuotationListForInvoiceSaga);
 }
 
 export function* listenGetQuotationDetails() {

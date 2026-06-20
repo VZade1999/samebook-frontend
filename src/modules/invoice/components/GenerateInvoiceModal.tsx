@@ -305,7 +305,7 @@ const GenerateInvoiceModal: React.FC<Props> = ({ visible, onClose }) => {
   const loadApprovedQuotations = async () => {
     setQuotationsLoading(true);
     try {
-      const response = await quotationService.getQuotations({ status: 'APPROVED' });
+      const response = await quotationService.getQuotationListForInvoice({ status: 'APPROVED' });
       setQuotations(response?.data?.data?.rows || []);
     } catch {
       message.error('Failed to load quotations');

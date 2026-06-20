@@ -67,5 +67,6 @@ export default function* rootSaga() {
     listenAddPayment(),
     listenGetInvoiceTimeline(), 
     listenApproveQuotation(),
+    listenGetQuotationHistory(),
   ]);
 }
