@@ -10,15 +10,18 @@ import {
   CrownOutlined,
 } from "@ant-design/icons";
 import ThemeToggle from "@/components/ThemeToggle";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../modules/auth/redux/authActions";
 import { StorageService } from "@/storage";
+import { RootState } from "@/app/store";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderBarProps {
   onMenuClick?: () => void;
 }
 
 const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const storageService = new StorageService();
 
@@ -31,6 +34,10 @@ const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
       key: "profile",
       icon: <UserOutlined />,
       label: "My Profile",
+      onClick: () => {
+        // Navigate to profile page
+        navigate("/app/profile");
+      }
     },
     { type: "divider" as const },
     {
@@ -45,6 +52,10 @@ const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
   const companyName = JSON.parse(
     storageService.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS) ?? "{}"
   );
+
+  const userDetails = JSON.parse(
+    storageService.getItem(StorageService.STORAGE_KEYS.USER_DETAILS) ?? "{}"
+  );  
 
   return (
     <header className="dashboard-header">
@@ -80,8 +91,8 @@ const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
               style={{ background: "#e69138", flexShrink: 0 }}
             />
             <span className="profile-label">
-              <span className="profile-name">Admin</span>
-              <span className="profile-role">Administrator</span>
+              <span className="profile-name">{userDetails.firstName} {userDetails.lastName}</span>
+              <span className="profile-role">{userDetails.role?.[0]}</span>
             </span>
             <CrownOutlined className="profile-chevron" />
           </button>

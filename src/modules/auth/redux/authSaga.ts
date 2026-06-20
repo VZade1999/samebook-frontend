@@ -25,6 +25,14 @@ function* loginSaga(action) {
       const token = response.data.data.accessToken;
       const permissions = response.data.data.user.permissions;
       const companyDetails = response.data.data.user.company;
+      const userDetails = {
+        id: response.data.data.user.id,
+        firstName: response.data.data.user.first_name,
+        lastName: response.data.data.user.last_name,
+        email: response.data.data.user.email,
+        role: response.data.data.user.roles,
+        phone: response.data.data.user.phone,
+      }
       storageService.setItem(StorageService.STORAGE_KEYS.TOKEN, token);
       storageService.setItem(
         StorageService.STORAGE_KEYS.PERMISSIONS,
@@ -33,6 +41,10 @@ function* loginSaga(action) {
       storageService.setItem(
         StorageService.STORAGE_KEYS.COMPANY_DETAILS,
         JSON.stringify(companyDetails)
+      );
+      storageService.setItem(
+        StorageService.STORAGE_KEYS.USER_DETAILS,
+        JSON.stringify(userDetails)
       );
     } else {
       yield put({ type: ASYNC_LOGIN_FAILED });

@@ -32,6 +32,7 @@ export class StorageService {
   static STORAGE_KEYS = {
     TOKEN: "token",
     PERMISSIONS: "permissions",
-    COMPANY_DETAILS: "company_details"
+    COMPANY_DETAILS: "company_details",
+    USER_DETAILS: "user_details"
   };
 }

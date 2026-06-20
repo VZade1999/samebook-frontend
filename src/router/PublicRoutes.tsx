@@ -17,7 +17,7 @@ const PublicRoutes = () => {
     <AuthLayout>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />}></Route>
+        {/* <Route path="/register" element={<RegisterPage />}></Route> */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthLayout>

@@ -20,6 +20,7 @@ import PermissionsPage from "../modules/user-management/pages/PermissionsPage";
 import ProtectedRoute from "../permissions/ProtectedRoute";
 import InvoiceList from "@/modules/invoice/pages/InvoiceListPage";
 import InvoiceDetails from "@/modules/invoice/pages/InvoiceDetails";
+import Profile from "@/modules/auth/profile/page";
 
 const PrivateRoutes = () => {
   const storageService = new StorageService();
@@ -33,6 +34,13 @@ const PrivateRoutes = () => {
     <DashboardLayout>
       <Routes>
         <Route path="/dashboard" element={<DashboardPage />} />
+
+        <Route
+          path="/profile"
+          element={
+              <Profile />
+          }
+        />
 
         <Route
           path="/customers"
