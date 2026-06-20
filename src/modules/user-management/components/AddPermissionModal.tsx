@@ -11,7 +11,7 @@ import {
 import { useDispatch } from 'react-redux';
 
 import {
-  createPermission,
+  createPermission
 } from '../redux/permissionsActions';
 
 interface Props {

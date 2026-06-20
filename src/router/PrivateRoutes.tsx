@@ -89,7 +89,7 @@ const PrivateRoutes = () => {
         <Route
           path="/invoice"
           element={
-            <ProtectedRoute permission="quotations.view">
+            <ProtectedRoute permission="invoices.view">
               <InvoiceList />
             </ProtectedRoute>
           }
