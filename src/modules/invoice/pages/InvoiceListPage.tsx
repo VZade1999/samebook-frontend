@@ -14,8 +14,9 @@ import { getInvoices, sendInvoice } from '../redux/invoiceActions';
 import GenerateInvoiceModal from '../components/GenerateInvoiceModal';
 import { useNavigate } from 'react-router-dom';
 import { getQuotations } from '@/modules/quotation/redux/quotationActions';
+import { useAccess } from '@/permissions/useAccess';
 
-// ─── Design tokens (shared with InvoiceDetails) ───────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
 const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -45,7 +46,7 @@ const GlobalStyles = () => (
 
     /* ── Page header ── */
     .invl-header {
-      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%);
+      background: #1E1B4B;
       padding: 28px 28px 52px;
       position: relative;
       overflow: hidden;
@@ -236,12 +237,22 @@ const GlobalStyles = () => (
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
     }
+    .invl-stats-breakdown {
+      padding: 0 24px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
     .invl-stat-card {
       background: var(--inv-surface);
       border: 1px solid var(--inv-border);
       border-radius: var(--inv-radius);
       box-shadow: var(--inv-shadow);
       padding: 14px 16px;
+    }
+    .invl-stat-card.with-border-left {
+      border-left-width: 3px;
     }
     .invl-stat-label {
       font-size: 11px;
@@ -261,6 +272,33 @@ const GlobalStyles = () => (
     .invl-stat-value.accent { color: var(--inv-accent); }
     .invl-stat-value.success { color: var(--inv-success); }
     .invl-stat-value.danger { color: var(--inv-danger); }
+    .invl-stat-value.warning { color: #D97706; }
+    .invl-stat-sub-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--inv-border);
+      flex-wrap: wrap;
+    }
+    .invl-stat-sub-item { flex: 1; min-width: 0; }
+    .invl-stat-sub-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: var(--inv-muted);
+      margin-bottom: 2px;
+    }
+    .invl-stat-sub-value {
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--inv-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     /* ── Main card ── */
     .invl-body { padding: 0 24px 40px; }
@@ -466,19 +504,21 @@ const GlobalStyles = () => (
     /* ── Responsive breakpoints ── */
     @media (max-width: 1024px) {
       .invl-stats { grid-template-columns: repeat(2, 1fr); }
+      .invl-stats-breakdown { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
       .invl-header { padding: 20px 16px 44px; }
       .invl-toolbar { padding: 0 16px; }
       .invl-toolbar-inner { gap: 8px; }
       .invl-stats { padding: 0 16px; grid-template-columns: repeat(2, 1fr); }
+      .invl-stats-breakdown { padding: 0 16px; grid-template-columns: 1fr; }
       .invl-body { padding: 0 16px 40px; }
-      /* Hide desktop table, show mobile cards */
       .invl-table-wrap { display: none !important; }
       .invl-mobile-list { display: block !important; }
     }
     @media (max-width: 480px) {
       .invl-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .invl-stats-breakdown { gap: 8px; }
       .invl-search-wrap { min-width: 0; }
       .invl-select-wrap { min-width: 0; }
       .invl-generate-btn span { display: none; }
@@ -486,14 +526,14 @@ const GlobalStyles = () => (
   `}</style>
 );
 
-// ─── Status config ────────────────────────────────────────────────────────────
+// ─── Status config — keys match API enum values exactly ───────────────────────
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  DRAFT:          { color: '#D97706', bg: '#FFFBEB', label: 'Draft' },
-  GENERATED:      { color: '#4F46E5', bg: '#EEF2FF', label: 'Generated' },
-  SENT:           { color: '#0891B2', bg: '#ECFEFF', label: 'Sent' },
-  PARTIALLY_PAID: { color: '#7C3AED', bg: '#F5F3FF', label: 'Partially Paid' },
-  PAID:           { color: '#059669', bg: '#ECFDF5', label: 'Paid' },
-  OVERDUE:        { color: '#DC2626', bg: '#FEF2F2', label: 'Overdue' },
+  DRAFT:        { color: '#D97706', bg: '#FFFBEB', label: 'Draft' },
+  GENERATED:    { color: '#4F46E5', bg: '#EEF2FF', label: 'Generated' },
+  SENT:         { color: '#0891B2', bg: '#ECFEFF', label: 'Sent' },
+  PARTIAL_PAID: { color: '#7C3AED', bg: '#F5F3FF', label: 'Partially Paid' }, // API returns PARTIAL_PAID
+  PAID:         { color: '#059669', bg: '#ECFDF5', label: 'Paid' },
+  OVERDUE:      { color: '#DC2626', bg: '#FEF2F2', label: 'Overdue' },
 };
 
 const StatusPill = ({ status }: { status: string }) => {
@@ -519,18 +559,17 @@ const InvoiceList = () => {
   const navigate = useNavigate();
   const [openGenerateModal, setOpenGenerateModal] = useState(false);
   const dispatch = useDispatch();
+  const {can} = useAccess();
 
   const { invoices, loading } = useSelector((state: any) => state.invoice);
 
-  // `searchInput` is what the text box shows (updates instantly).
-  // `search` is what actually drives the fetch, updated after a short
-  // debounce so we don't fire an API call on every keystroke.
   const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [status, setStatus] = useState('');
+  const [search, setSearch]           = useState('');
+  const [page, setPage]               = useState(1);
+  const [pageSize]                    = useState(10);
+  const [status, setStatus]           = useState('');
 
+  // Debounce search input — fire API call 400 ms after the user stops typing
   useEffect(() => {
     const handle = setTimeout(() => {
       setSearch(searchInput);
@@ -539,8 +578,6 @@ const InvoiceList = () => {
     return () => clearTimeout(handle);
   }, [searchInput]);
 
-  // Single source of truth for fetching invoices — reused by the effect
-  // below and the Refresh button, so they can never drift apart.
   const fetchInvoices = useCallback(() => {
     dispatch(
       getInvoices({
@@ -556,9 +593,7 @@ const InvoiceList = () => {
     fetchInvoices();
   }, [fetchInvoices]);
 
-  // Loads quotations once on mount (e.g. for the Generate Invoice modal's
-  // quotation picker). Deliberately NOT tied to the invoice table's own
-  // search/page/status — those filters apply to invoices, not quotations.
+  // Load quotations once for the Generate Invoice modal
   useEffect(() => {
     dispatch(getQuotations({ page: 1, limit: 100 }));
   }, [dispatch]);
@@ -568,19 +603,25 @@ const InvoiceList = () => {
     dispatch(sendInvoice(invoiceId));
   };
 
-  const rows: any[] = invoices?.rows || [];
-  // Adjust `count` below if your invoice reducer names the total field
-  // differently (e.g. `total`, `totalCount`).
-  const totalCount: number = invoices?.count ?? rows.length;
+  // ─── Derived values from API response ──────────────────────────────────────
+  // API shape: { data: { rows, pagination: { total, page, limit, pages }, paymentDetails } }
+  const rows: any[]  = invoices?.rows || [];
+  const totalCount   = invoices?.pagination?.total ?? rows.length;
 
-  // Derived stats reflect only the currently loaded page, not all
-  // invoices. If you have a stats endpoint or full counts from the API,
-  // swap these out for that.
-  const totalInvoices = rows.length;
-  const totalPaid = rows.filter(r => r.status === 'PAID').length;
-  const totalOverdue = rows.filter(r => r.status === 'OVERDUE').length;
-  const totalOutstanding = rows.reduce((s: number, r: any) => s + Number(r.balance_amount || 0), 0);
+  // paymentDetails — aggregate counts/amounts across ALL pages
+  const pd = invoices?.paymentDetails || {};
 
+  const totalInvoices    = totalCount;
+  const totalOutstanding = (pd.GENERATED?.balanceAmount ?? 0) + (pd.PARTIAL_PAID?.balanceAmount ?? 0);
+  const totalRevenue     = pd.PAID?.grandTotal ?? 0;
+  const totalPaidCount   = pd.PAID?.count ?? 0;
+
+  // Per-status breakdown cards
+  const generated   = pd.GENERATED   || { count: 0, grandTotal: 0, paidAmount: 0, balanceAmount: 0 };
+  const partialPaid = pd.PARTIAL_PAID || { count: 0, grandTotal: 0, paidAmount: 0, balanceAmount: 0 };
+  const paid        = pd.PAID         || { count: 0, grandTotal: 0, paidAmount: 0, balanceAmount: 0 };
+
+  // ─── Table columns ─────────────────────────────────────────────────────────
   const columns = [
     {
       title: 'Invoice No',
@@ -715,7 +756,7 @@ const InvoiceList = () => {
                 <option value="DRAFT">Draft</option>
                 <option value="GENERATED">Generated</option>
                 <option value="SENT">Sent</option>
-                <option value="PARTIALLY_PAID">Partially Paid</option>
+                <option value="PARTIAL_PAID">Partially Paid</option>  {/* FIX: was PARTIALLY_PAID */}
                 <option value="PAID">Paid</option>
                 <option value="OVERDUE">Overdue</option>
               </select>
@@ -728,25 +769,98 @@ const InvoiceList = () => {
           </div>
         </div>
 
-        {/* ── Stats ───────────────────────────────────────────────────────── */}
+        {can('invoices.insides')&&<>
+        {/* ── Summary stats row ───────────────────────────────────────────── */}
         <div className="invl-stats">
           <div className="invl-stat-card">
             <div className="invl-stat-label">Total Invoices</div>
             <div className="invl-stat-value accent">{totalInvoices}</div>
           </div>
           <div className="invl-stat-card">
-            <div className="invl-stat-label">Paid</div>
-            <div className="invl-stat-value success">{totalPaid}</div>
+            <div className="invl-stat-label">Revenue Collected</div>
+            <div className="invl-stat-value success" style={{ fontSize: 16 }}>{formatCurrency(totalRevenue)}</div>
           </div>
           <div className="invl-stat-card">
-            <div className="invl-stat-label">Overdue</div>
-            <div className="invl-stat-value danger">{totalOverdue}</div>
+            <div className="invl-stat-label">Outstanding Balance</div>
+            <div className="invl-stat-value danger" style={{ fontSize: 16 }}>{formatCurrency(totalOutstanding)}</div>
           </div>
           <div className="invl-stat-card">
-            <div className="invl-stat-label">Outstanding</div>
-            <div className="invl-stat-value" style={{ fontSize: 16 }}>{formatCurrency(totalOutstanding)}</div>
+            <div className="invl-stat-label">Fully Paid</div>
+            <div className="invl-stat-value success">{totalPaidCount}</div>
           </div>
         </div>
+
+        {/* ── Payment status breakdown ─────────────────────────────────────── */}
+        {<div className="invl-stats-breakdown">
+          {/* Generated */}
+          <div className="invl-stat-card with-border-left" style={{ borderLeftColor: '#4F46E5' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div className="invl-stat-label" style={{ marginBottom: 0 }}>Generated</div>
+              <span className="invl-status" style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: 10 }}>
+                <span className="invl-status-dot" style={{ background: '#4F46E5' }} />
+                {generated.count} invoice{generated.count !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="invl-stat-value accent" style={{ fontSize: 18 }}>{formatCurrency(generated.grandTotal)}</div>
+            <div className="invl-stat-sub-row">
+              <div className="invl-stat-sub-item">
+                <div className="invl-stat-sub-label">Paid</div>
+                <div className="invl-stat-sub-value" style={{ color: 'var(--inv-success)' }}>{formatCurrency(generated.paidAmount)}</div>
+              </div>
+              <div className="invl-stat-sub-item">
+                <div className="invl-stat-sub-label">Balance</div>
+                <div className="invl-stat-sub-value" style={{ color: 'var(--inv-danger)' }}>{formatCurrency(generated.balanceAmount)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Partially Paid */}
+          <div className="invl-stat-card with-border-left" style={{ borderLeftColor: '#7C3AED' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div className="invl-stat-label" style={{ marginBottom: 0 }}>Partially Paid</div>
+              <span className="invl-status" style={{ background: '#F5F3FF', color: '#7C3AED', fontSize: 10 }}>
+                <span className="invl-status-dot" style={{ background: '#7C3AED' }} />
+                {partialPaid.count} invoice{partialPaid.count !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="invl-stat-value warning" style={{ fontSize: 18 }}>{formatCurrency(partialPaid.grandTotal)}</div>
+            <div className="invl-stat-sub-row">
+              <div className="invl-stat-sub-item">
+                <div className="invl-stat-sub-label">Paid</div>
+                <div className="invl-stat-sub-value" style={{ color: 'var(--inv-success)' }}>{formatCurrency(partialPaid.paidAmount)}</div>
+              </div>
+              <div className="invl-stat-sub-item">
+                <div className="invl-stat-sub-label">Balance</div>
+                <div className="invl-stat-sub-value" style={{ color: 'var(--inv-danger)' }}>{formatCurrency(partialPaid.balanceAmount)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Paid */}
+          <div className="invl-stat-card with-border-left" style={{ borderLeftColor: '#059669' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div className="invl-stat-label" style={{ marginBottom: 0 }}>Paid</div>
+              <span className="invl-status" style={{ background: '#ECFDF5', color: '#059669', fontSize: 10 }}>
+                <span className="invl-status-dot" style={{ background: '#059669' }} />
+                {paid.count} invoice{paid.count !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="invl-stat-value success" style={{ fontSize: 18 }}>{formatCurrency(paid.grandTotal)}</div>
+            <div className="invl-stat-sub-row">
+              <div className="invl-stat-sub-item">
+                <div className="invl-stat-sub-label">Collected</div>
+                <div className="invl-stat-sub-value" style={{ color: 'var(--inv-success)' }}>{formatCurrency(paid.paidAmount)}</div>
+              </div>
+              <div className="invl-stat-sub-item">
+                <div className="invl-stat-sub-label">Balance</div>
+                <div className="invl-stat-sub-value">{formatCurrency(paid.balanceAmount)}</div>
+              </div>
+            </div>
+          </div>
+        </div>}
+        </>}
+
+        
 
         {/* ── Table (desktop) ──────────────────────────────────────────────── */}
         <div className="invl-body">
@@ -756,7 +870,7 @@ const InvoiceList = () => {
                 <div className="invl-card-icon"><FileTextOutlined /></div>
                 All Invoices
               </div>
-              {rows.length > 0 && (
+              {totalCount > 0 && (
                 <span className="invl-count-badge">{totalCount} invoice{totalCount !== 1 ? 's' : ''}</span>
               )}
             </div>
@@ -791,7 +905,7 @@ const InvoiceList = () => {
               />
             </div>
 
-            {/* ── Mobile card list ──────────────────────────────────────────── */}
+            {/* ── Mobile card list ──────────────────────────────────────── */}
             <div className="invl-mobile-list" style={{ padding: '12px' }}>
               {loading ? (
                 <div style={{ textAlign: 'center', padding: 32 }}><Spin /></div>
@@ -844,10 +958,16 @@ const InvoiceList = () => {
                           Due: {formatDate(record.due_date)}
                         </div>
                         <div className="invl-mobile-btns" onClick={e => e.stopPropagation()}>
-                          <button className="invl-action-btn" onClick={() => navigate(`/app/invoice-details/${record.id}`)}>
+                          <button
+                            className="invl-action-btn"
+                            onClick={() => navigate(`/app/invoice-details/${record.id}`)}
+                          >
                             <EyeOutlined /> View
                           </button>
-                          <button className="invl-action-btn mail" onClick={(e) => handleSend(e, record.id)}>
+                          <button
+                            className="invl-action-btn mail"
+                            onClick={(e) => handleSend(e, record.id)}
+                          >
                             <MailOutlined /> Send
                           </button>
                         </div>

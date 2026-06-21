@@ -36,7 +36,7 @@ const { useBreakpoint } = Grid;
 const { Option } = Select;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const GlobalStyles = () => (
+export const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -67,7 +67,7 @@ const GlobalStyles = () => (
 
     /* ── Page header ── */
     .qt-header {
-      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 55%, #4338CA 100%);
+      background: #1E1B4B;
       padding: 28px 28px 52px;
       position: relative;
       overflow: hidden;
@@ -424,16 +424,16 @@ const fmt = (value: any) => {
   return Number.isFinite(n) ? `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹0.00";
 };
 
-const joinAddr = (snap: any) =>
+export const joinAddr = (snap: any) =>
   [snap?.address_line_1, snap?.address_line_2, snap?.city, snap?.state, snap?.country, snap?.postal_code]
     .filter(Boolean).join(", ");
 
-const parseJsonField = (raw: any) => {
+export const parseJsonField = (raw: any) => {
   if (typeof raw === "string") { try { return JSON.parse(raw); } catch { return undefined; } }
   return raw;
 };
 
-const getValidityDate = (v: string | undefined) => {
+export const getValidityDate = (v: string | undefined) => {
   if (!v) return undefined;
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? undefined : dayjs(d);
@@ -761,12 +761,14 @@ const QuotationPage = () => {
   // Memoized — was previously re-instantiated on every render.
   const quotationService = useMemo(() => new QuotationService(), []);
   const [companyDetails, setCompanyDetails] = useState<any>(null);
+  const [userDetails, setUserDetails] = useState<any>(null);
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
   useEffect(() => {
     const stored = storageService.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS);
-    if (stored) { try { setCompanyDetails(JSON.parse(stored)); } catch { } }
+    const userDetails = storageService.getItem(StorageService.STORAGE_KEYS.USER_DETAILS);
+    if (stored && userDetails) { try { setCompanyDetails(JSON.parse(stored)); setUserDetails(JSON.parse(userDetails)) } catch { } }
   }, [storageService]);
 
   const [page, setPage] = useState(1);
@@ -875,7 +877,7 @@ const QuotationPage = () => {
 
   const handleFinish = (values: any) => {
     const customerId = values.customerId;
-    const userId = authState?.user?.id;
+    const userId = userDetails.id;
     const itemsRaw = values.items || [];
     if (!itemsRaw.length) { notification.error({ message: "No items added", description: "Please add at least one item." }); return; }
     const items = itemsRaw.map((item: any) => ({
@@ -918,6 +920,7 @@ const QuotationPage = () => {
       // retry, risking a duplicate quotation instead of fixing the
       // original, and dropped the user's entered data on any failure.
     } else {
+      console.log(basePayload,"basePayload")
       const missing: string[] = [];
       if (!basePayload.customer_id) missing.push("selected customer");
       if (!currentCompanyId) missing.push("company details");

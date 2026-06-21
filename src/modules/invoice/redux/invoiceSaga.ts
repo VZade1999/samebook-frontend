@@ -102,7 +102,7 @@ function* generateInvoiceSaga(action: any): any {
       action.payload,
     );
 
-    if (response.data?.success) {
+    if (response.data?.success && response.data.data) {
       notification.success({
         message: 'Invoice Generated',
         description: response.data.message,
@@ -129,6 +129,7 @@ function* generateInvoiceSaga(action: any): any {
       });
     }
   } catch (error: any) {
+    console.log("error", error)
     notification.error({
       message: 'Generate Invoice Failed',
       description:
@@ -208,7 +209,7 @@ function* addPaymentSaga(action: any): any {
       action.payload,
     );
 
-    if (response.data?.success) {
+    if (response.data?.success && response.data.data) {
       notification.success({
         message: 'Payment Added',
         description: response.data.message,

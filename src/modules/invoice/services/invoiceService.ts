@@ -12,7 +12,12 @@ class InvoiceService {
   }
 
   generateInvoice(payload: any) {
-    return instance.post(`/invoice/generate/${payload.quotation_id}`);
+    return instance.post(`/invoice/generate/${payload.quotation_id}`,{
+        quotationId: payload.quottionId,
+        invoice_date: payload.invoice_date,
+        payment_due_date: payload.payment_due_date
+      
+    });
   }
 
   sendInvoice(id: number) {

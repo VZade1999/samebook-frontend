@@ -33,6 +33,12 @@ const InvoiceTimeline: React.FC<Props> = ({
                     item.created_at,
                   ).toLocaleString()}
                 </Text>
+                <br />
+                <Text type="success">
+                 Change By {
+                    item?.changed_by?.first_name
+                  } {item?.changed_by?.last_name}
+                </Text>
               </>
             ),
           }),

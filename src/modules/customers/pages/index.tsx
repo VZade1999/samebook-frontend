@@ -1,490 +1,1014 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Table, Spin, Pagination, Popconfirm } from 'antd';
 import {
-  Button, Input, Popconfirm, Space, Table, Tag, Typography, Grid, Empty, Pagination,
-} from "antd";
-import {
-  DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined,
-  MailOutlined, PhoneOutlined, BankOutlined, UserOutlined,
-} from "@ant-design/icons";
-import { useDispatch, useSelector } from "react-redux";
-import debounce from "lodash/debounce";
-import EditCustomerModal from "../components/EditCustomerModal";
-import AddCustomerModal from "../components/AddCustomerModal";
-import { deleteCustomer, getCustomers } from "../redux/customerActions";
-import CustomerDetailsDrawer from "../components/CustomerDetailsDrawer";
+  PlusOutlined,
+  SearchOutlined,
+  FilterOutlined,
+  ReloadOutlined,
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  BankOutlined,
+  TeamOutlined,
+  ShopOutlined,
+} from '@ant-design/icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { deleteCustomer, getCustomers } from '../redux/customerActions';
+import EditCustomerModal from '../components/EditCustomerModal';
+import AddCustomerModal from '../components/AddCustomerModal';
+import CustomerDetailsDrawer from '../components/CustomerDetailsDrawer';
 
-const { Search } = Input;
-const { Text } = Typography;
-const { useBreakpoint } = Grid;
+// ─── Global styles ─────────────────────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Contact {
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  phone?: string;
-}
+    :root {
+      --cus-bg: #F4F5F9;
+      --cus-surface: #FFFFFF;
+      --cus-border: #E5E7EB;
+      --cus-accent: #4F46E5;
+      --cus-accent-light: #EEF2FF;
+      --cus-success: #059669;
+      --cus-danger: #DC2626;
+      --cus-warning: #D97706;
+      --cus-text: #111827;
+      --cus-muted: #6B7280;
+      --cus-radius: 12px;
+      --cus-radius-sm: 8px;
+      --cus-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --cus-shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+    }
 
-interface Customer {
-  id: number;
-  display_name?: string;
-  company_name?: string;
-  customer_type?: string;
-  contacts?: Contact[];
-  gst_number?: string;
-  industry?: string;
-  created_at?: string;
-}
+    .cusl-root {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--cus-bg);
+      min-height: 100vh;
+      color: var(--cus-text);
+    }
 
-// ─── Mobile Customer Card ─────────────────────────────────────────────────────
-const CustomerCard: React.FC<{
-  customer: Customer;
-  onView: (c: Customer) => void;
-  onEdit: (c: Customer) => void;
-  onDelete: (c: Customer) => void;
-}> = ({ customer, onView, onEdit, onDelete }) => {
-  const contacts = customer.contacts || [];
-  const emails = contacts.map((c) => c.email).filter(Boolean);
-  const phones = contacts.map((c) => c.phone).filter(Boolean);
-  const contactNames = contacts
-    .map((c) => [c.first_name, c.last_name].filter(Boolean).join(" "))
-    .filter(Boolean);
+    /* ── Page header ── */
+    .cusl-header {
+      background: #1E1B4B;
+      padding: 28px 28px 52px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cusl-header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 28px;
+      background: var(--cus-bg);
+      border-radius: 24px 24px 0 0;
+    }
+    .cusl-header-noise {
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+    .cusl-header-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .cusl-page-title {
+      font-size: clamp(22px, 4vw, 30px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cusl-page-title-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .cusl-page-subtitle {
+      color: rgba(255,255,255,0.6);
+      font-size: 13px;
+      margin-top: 6px;
+      padding-left: 48px;
+    }
+    .cusl-add-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: #fff;
+      color: var(--cus-accent);
+      border: none;
+      border-radius: var(--cus-radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--cus-shadow-md);
+      transition: all .15s;
+      white-space: nowrap;
+      font-family: 'Inter', sans-serif;
+    }
+    .cusl-add-btn:hover {
+      background: var(--cus-accent-light);
+      transform: translateY(-1px);
+    }
 
-  const isBusinessType = customer.customer_type === "BUSINESS";
+    /* ── Toolbar ── */
+    .cusl-toolbar {
+      padding: 0 24px;
+      margin-top: -18px;
+      position: relative;
+      z-index: 2;
+      margin-bottom: 16px;
+    }
+    .cusl-toolbar-inner {
+      background: var(--cus-surface);
+      border: 1px solid var(--cus-border);
+      border-radius: var(--cus-radius);
+      box-shadow: var(--cus-shadow);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cusl-search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+    .cusl-search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--cus-muted);
+      font-size: 14px;
+      pointer-events: none;
+    }
+    .cusl-search {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      border: 1px solid var(--cus-border);
+      border-radius: var(--cus-radius-sm);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--cus-text);
+      background: #FAFAFA;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .cusl-search:focus {
+      border-color: var(--cus-accent);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+      background: #fff;
+    }
+    .cusl-search::placeholder { color: var(--cus-muted); }
 
-  return (
-    <div style={styles.card}>
-      {/* Header */}
-      <div style={styles.cardHeader}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <button style={styles.cardNameBtn} onClick={() => onView(customer)}>
-            {customer.display_name || "N/A"}
-          </button>
-          {customer.company_name && (
-            <div style={styles.cardCompany}>{customer.company_name}</div>
-          )}
-        </div>
-        {customer.customer_type && (
-          <Tag
-            color={isBusinessType ? "blue" : "green"}
-            style={{ marginLeft: 8, flexShrink: 0, borderRadius: 6 }}
-          >
-            {customer.customer_type}
-          </Tag>
-        )}
-      </div>
+    .cusl-select-wrap {
+      position: relative;
+      min-width: 150px;
+    }
+    .cusl-select-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--cus-muted);
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .cusl-select {
+      width: 100%;
+      padding: 8px 12px 8px 32px;
+      border: 1px solid var(--cus-border);
+      border-radius: var(--cus-radius-sm);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--cus-text);
+      background: #FAFAFA;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .cusl-select:focus {
+      border-color: var(--cus-accent);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+    }
+    .cusl-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 1px solid var(--cus-border);
+      border-radius: var(--cus-radius-sm);
+      background: #FAFAFA;
+      color: var(--cus-text);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .cusl-icon-btn:hover {
+      background: var(--cus-accent-light);
+      border-color: var(--cus-accent);
+      color: var(--cus-accent);
+    }
 
-      {/* Info rows */}
-      <div style={styles.cardBody}>
-        {contactNames.length > 0 && (
-          <div style={styles.cardRow}>
-            <UserOutlined style={styles.cardIcon} />
-            <span style={styles.cardValue}>{contactNames.join(", ")}</span>
-          </div>
-        )}
-        {emails.length > 0 && (
-          <div style={styles.cardRow}>
-            <MailOutlined style={styles.cardIcon} />
-            <span style={styles.cardValue}>{emails.join(", ")}</span>
-          </div>
-        )}
-        {phones.length > 0 && (
-          <div style={styles.cardRow}>
-            <PhoneOutlined style={styles.cardIcon} />
-            <span style={styles.cardValue}>{phones.join(", ")}</span>
-          </div>
-        )}
-        {customer.gst_number && (
-          <div style={styles.cardRow}>
-            <BankOutlined style={styles.cardIcon} />
-            <span style={styles.cardValue}>{customer.gst_number}</span>
-          </div>
-        )}
-        {customer.industry && (
-          <div style={styles.cardRow}>
-            <span style={styles.cardLabel}>Industry</span>
-            <span style={styles.cardValue}>{customer.industry}</span>
-          </div>
-        )}
-        {customer.created_at && (
-          <div style={styles.cardRow}>
-            <span style={styles.cardLabel}>Added</span>
-            <span style={{ ...styles.cardValue, color: "#aaa" }}>
-              {new Date(customer.created_at).toLocaleDateString()}
-            </span>
-          </div>
-        )}
-      </div>
+    /* ── Stats ── */
+    .cusl-stats {
+      padding: 0 24px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .cusl-stat-card {
+      background: var(--cus-surface);
+      border: 1px solid var(--cus-border);
+      border-radius: var(--cus-radius);
+      box-shadow: var(--cus-shadow);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cusl-stat-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .cusl-stat-icon.total  { background: #EEF2FF; color: #4F46E5; }
+    .cusl-stat-icon.biz    { background: #DBEAFE; color: #1D4ED8; }
+    .cusl-stat-icon.ind    { background: #ECFDF5; color: #059669; }
+    .cusl-stat-icon.active { background: #FEF9C3; color: #CA8A04; }
+    .cusl-stat-text {}
+    .cusl-stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--cus-muted);
+      margin-bottom: 3px;
+    }
+    .cusl-stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--cus-text);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
 
-      {/* Actions */}
-      <div style={styles.cardActions}>
-        <Button
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={() => onView(customer)}
-          style={styles.actionBtn}
-        >
-          View
-        </Button>
-        <Button
-          size="small"
-          icon={<EditOutlined />}
-          onClick={() => onEdit(customer)}
-          style={styles.actionBtn}
-        >
-          Edit
-        </Button>
-        <Popconfirm
-          title="Delete Customer"
-          description="Are you sure you want to delete this customer?"
-          okText="Yes"
-          cancelText="No"
-          okButtonProps={{ danger: true }}
-          onConfirm={() => onDelete(customer)}
-        >
-          <Button size="small" danger icon={<DeleteOutlined />} style={styles.actionBtn}>
-            Delete
-          </Button>
-        </Popconfirm>
-      </div>
-    </div>
-  );
+    /* ── Main card ── */
+    .cusl-body { padding: 0 24px 40px; }
+    .cusl-card {
+      background: var(--cus-surface);
+      border: 1px solid var(--cus-border);
+      border-radius: var(--cus-radius);
+      box-shadow: var(--cus-shadow);
+      overflow: hidden;
+    }
+    .cusl-card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--cus-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cusl-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--cus-text);
+    }
+    .cusl-card-icon {
+      width: 28px; height: 28px;
+      background: var(--cus-accent-light);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--cus-accent);
+      font-size: 13px;
+    }
+    .cusl-count-badge {
+      background: var(--cus-accent-light);
+      color: var(--cus-accent);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    /* ── Type badge ── */
+    .cusl-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .cusl-type-badge.business { background: #DBEAFE; color: #1D4ED8; }
+    .cusl-type-badge.individual { background: #ECFDF5; color: #059669; }
+
+    /* ── Avatar ── */
+    .cusl-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .cusl-avatar.business   { background: #DBEAFE; color: #1D4ED8; }
+    .cusl-avatar.individual { background: #ECFDF5; color: #059669; }
+
+    /* ── Table overrides ── */
+    .cusl-table-wrap .ant-table {
+      font-size: 13px !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+    .cusl-table-wrap .ant-table-thead > tr > th {
+      background: #F9FAFB !important;
+      color: var(--cus-muted) !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      border-bottom: 1px solid var(--cus-border) !important;
+      padding: 10px 16px !important;
+    }
+    .cusl-table-wrap .ant-table-tbody > tr > td {
+      border-bottom: 1px solid #F3F4F6 !important;
+      padding: 12px 16px !important;
+      vertical-align: middle !important;
+    }
+    .cusl-table-wrap .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+    .cusl-table-wrap .ant-table-tbody > tr:hover > td { background: #FAFBFF !important; }
+    .cusl-table-wrap .ant-table-tbody > tr { cursor: pointer; }
+
+    /* ── Row actions ── */
+    .cusl-actions-cell { display: flex; align-items: center; gap: 6px; }
+    .cusl-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      border: 1px solid var(--cus-border);
+      background: #FAFAFA;
+      color: var(--cus-text);
+      transition: all .12s;
+      white-space: nowrap;
+    }
+    .cusl-action-btn:hover { background: var(--cus-accent-light); border-color: var(--cus-accent); color: var(--cus-accent); }
+    .cusl-action-btn.edit:hover { background: #FFFBEB; border-color: #D97706; color: #D97706; }
+    .cusl-action-btn.del:hover { background: #FEF2F2; border-color: var(--cus-danger); color: var(--cus-danger); }
+
+    /* ── Contact chip ── */
+    .cusl-contact-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .cusl-contact-name { font-weight: 500; font-size: 13px; color: var(--cus-text); }
+    .cusl-contact-meta { font-size: 11px; color: var(--cus-muted); }
+
+    /* ── Address chip ── */
+    .cusl-address-chip { font-size: 12px; color: var(--cus-muted); line-height: 1.5; }
+
+    /* ── GST badge ── */
+    .cusl-gst {
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      background: #F3F4F6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--cus-text);
+      letter-spacing: 0.3px;
+    }
+
+    /* ── Mobile cards ── */
+    .cusl-mobile-list { display: none; }
+    .cusl-mobile-card {
+      background: var(--cus-surface);
+      border: 1px solid var(--cus-border);
+      border-radius: var(--cus-radius);
+      padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: var(--cus-shadow);
+      cursor: pointer;
+      transition: box-shadow .15s;
+    }
+    .cusl-mobile-card:hover { box-shadow: var(--cus-shadow-md); }
+    .cusl-mobile-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+    .cusl-mobile-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--cus-accent);
+    }
+    .cusl-mobile-company { font-size: 12px; color: var(--cus-muted); margin-top: 2px; }
+    .cusl-mobile-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 0;
+      border-top: 1px solid #F3F4F6;
+      border-bottom: 1px solid #F3F4F6;
+      margin-bottom: 10px;
+    }
+    .cusl-mobile-row { display: flex; align-items: flex-start; gap: 8px; }
+    .cusl-mobile-row-icon { color: var(--cus-muted); font-size: 12px; margin-top: 1px; flex-shrink: 0; }
+    .cusl-mobile-row-text { font-size: 13px; color: #374151; word-break: break-all; }
+    .cusl-mobile-row-label { font-size: 11px; color: var(--cus-muted); min-width: 52px; flex-shrink: 0; margin-top: 1px; }
+    .cusl-mobile-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .cusl-mobile-date { font-size: 11px; color: var(--cus-muted); }
+    .cusl-mobile-btns { display: flex; gap: 6px; }
+
+    /* ── Empty state ── */
+    .cusl-empty { text-align: center; padding: 48px 24px; color: var(--cus-muted); }
+    .cusl-empty-icon { font-size: 32px; opacity: 0.25; margin-bottom: 12px; }
+    .cusl-empty-text { font-size: 14px; font-weight: 500; }
+    .cusl-empty-sub { font-size: 12px; margin-top: 4px; }
+
+    /* ── FAB ── */
+    .cusl-fab {
+      position: fixed; bottom: 24px; right: 20px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--cus-accent); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(79,70,229,.45);
+      z-index: 1000; transition: transform .15s;
+    }
+    .cusl-fab:hover { transform: scale(1.08); }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .cusl-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .cusl-header { padding: 20px 16px 44px; }
+      .cusl-toolbar { padding: 0 16px; }
+      .cusl-stats { padding: 0 16px; grid-template-columns: repeat(2, 1fr); }
+      .cusl-body { padding: 0 16px 40px; }
+      .cusl-table-wrap { display: none !important; }
+      .cusl-mobile-list { display: block !important; }
+    }
+    @media (max-width: 480px) {
+      .cusl-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .cusl-add-btn span { display: none; }
+      .cusl-search-wrap { min-width: 0; }
+      .cusl-select-wrap { min-width: 0; }
+    }
+  `}</style>
+);
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+const formatDate = (v: string) =>
+  v ? new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+const formatAddress = (addr: any) => {
+  if (!addr) return '—';
+  const parts = [addr.address_line_1, addr.city, addr.state, addr.postal_code].filter(Boolean);
+  return parts.join(', ') || '—';
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
+const TypeBadge = ({ type }: { type: string }) => (
+  <span className={`cusl-type-badge ${type === 'BUSINESS' ? 'business' : 'individual'}`}>
+    {type === 'BUSINESS' ? <BankOutlined style={{ fontSize: 10 }} /> : <UserOutlined style={{ fontSize: 10 }} />}
+    {type === 'BUSINESS' ? 'Business' : 'Individual'}
+  </span>
+);
+
+const Avatar = ({ name, type }: { name: string; type: string }) => (
+  <div className={`cusl-avatar ${type === 'BUSINESS' ? 'business' : 'individual'}`}>
+    {getInitials(name || '?')}
+  </div>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const CustomerListPage: React.FC = () => {
   const dispatch = useDispatch();
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
 
-  const { list, loading, pagination } = useSelector((state: any) => state.customers);
+  const { list, loading, pagination, stats } = useSelector((state: any) => state.customers);
 
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
-  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [searchInput, setSearchInput]           = useState('');
+  const [search, setSearch]                     = useState('');
+  const [page, setPage]                         = useState(1);
+  const [pageSize]                              = useState(10);
+  const [typeFilter, setTypeFilter]             = useState('');
+  const [industryFilter, setIndustryFilter]     = useState('');
+
+  const [addOpen, setAddOpen]                   = useState(false);
+  const [editOpen, setEditOpen]                 = useState(false);
+  const [detailsOpen, setDetailsOpen]           = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [customerDetailsOpen, setCustomerDetailsOpen] = useState(false);
 
-  const fetchCustomers = (customSearch?: string) => {
-    dispatch(getCustomers({ page, limit, search: customSearch ?? search }));
-  };
+  // Debounce search
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
+  const fetchCustomers = useCallback(() => {
+    dispatch(
+      getCustomers({
+        page,
+        limit: pageSize,
+        search: search || undefined,
+        customer_type: typeFilter || undefined,
+        industry: industryFilter || undefined,
+      }),
+    );
+  }, [dispatch, page, pageSize, search, typeFilter, industryFilter]);
 
   useEffect(() => {
     fetchCustomers();
-  }, [page, limit]);
+  }, [fetchCustomers]);
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        setPage(1);
-        dispatch(getCustomers({ page: 1, limit, search: value }));
-      }, 500),
-    [limit],
-  );
+  const handleView   = (c: any) => { setSelectedCustomer(c); setDetailsOpen(true); };
+  const handleEdit   = (c: any) => { setSelectedCustomer(c); setEditOpen(true); };
+  const handleDelete = (c: any) => { dispatch(deleteCustomer(c.id)); };
 
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    debouncedSearch(value);
-  };
+  // ─── Derived stats ──────────────────────────────────────────────────────────
+  // Use API-provided stats if available (see updated BE), else derive from current page
+  const customerList: any[] = list || [];
+  const totalCount  = pagination?.total ?? customerList.length;
 
-  const handleEdit = (customer: any) => {
-    setSelectedCustomer(customer);
-    setEditCustomerOpen(true);
-  };
+  const totalBusiness   = stats?.totalBusiness   ?? customerList.filter((c) => c.customer_type === 'BUSINESS').length;
+  const totalIndividual = stats?.totalIndividual  ?? customerList.filter((c) => c.customer_type === 'INDIVIDUAL').length;
+  const totalActive     = stats?.totalActive      ?? totalCount;
 
-  const handleDelete = (customer: any) => {
-    dispatch(deleteCustomer(customer.id));
-  };
+  // Unique industries from current page for the filter dropdown (BE provides full list if stats included)
+  const industries: string[] = useMemo(() => {
+    const fromStats: string[] = stats?.industries || [];
+    if (fromStats.length) return fromStats;
+    const set = new Set<string>();
+    customerList.forEach((c) => { if (c.industry) set.add(c.industry); });
+    return Array.from(set).sort();
+  }, [customerList, stats]);
 
-  const handleView = (customer: any) => {
-    setSelectedCustomer(customer);
-    setCustomerDetailsOpen(true);
-  };
-
+  // ─── Table columns ──────────────────────────────────────────────────────────
   const columns = [
     {
-      title: "Display Name",
-      dataIndex: "display_name",
-      key: "display_name",
-      width: 230,
-      render: (value: string, record: any) => (
-        <div>
-          <Text strong style={{ color: "#1677ff", cursor: "pointer" }}
-            onClick={() => handleView(record)}>{value || "N/A"}</Text>
-          {record.company_name && (
-            <div><Text type="secondary" style={{ fontSize: 12 }}>{record.company_name}</Text></div>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: "Type",
-      dataIndex: "customer_type",
-      key: "customer_type",
-      width: 120,
-      render: (value: string) => (
-        <Tag color={value === "BUSINESS" ? "blue" : "green"} style={{ borderRadius: 6 }}>{value}</Tag>
-      ),
-    },
-    {
-      title: "Contacts",
-      dataIndex: "contacts",
-      key: "contacts",
-      width: 200,
-      render: (contacts: Contact[]) => {
-        if (!contacts?.length) return "-";
+      title: 'Customer',
+      dataIndex: 'display_name',
+      render: (_: string, record: any) => {
+        const primaryContact = record.contacts?.find((c: any) => c.is_primary) || record.contacts?.[0];
         return (
-          <div>
-            {contacts.map((c, i) => (
-              <div key={i} style={{ fontSize: 13 }}>
-                {[c.first_name, c.last_name].filter(Boolean).join(" ")}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Avatar name={record.display_name || '?'} type={record.customer_type} />
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--cus-accent)', cursor: 'pointer', fontSize: 13 }}
+                onClick={() => handleView(record)}>
+                {record.display_name || '—'}
               </div>
-            ))}
+              {record.company_name && (
+                <div style={{ fontSize: 11, color: 'var(--cus-muted)', marginTop: 1 }}>{record.company_name}</div>
+              )}
+              {primaryContact?.designation && (
+                <div style={{ fontSize: 11, color: 'var(--cus-muted)' }}>{primaryContact.designation}</div>
+              )}
+            </div>
           </div>
         );
       },
     },
     {
-      title: "Email",
-      dataIndex: "contacts",
-      key: "email",
-      width: 230,
-      render: (contacts: Contact[]) => {
-        if (!contacts?.length) return "-";
-        const emails = contacts.map((c) => c.email).filter(Boolean);
-        return emails.length ? emails.join(", ") : "-";
-      },
+      title: 'Type',
+      dataIndex: 'customer_type',
+      width: 130,
+      render: (v: string) => <TypeBadge type={v} />,
     },
     {
-      title: "Phone",
-      dataIndex: "contacts",
-      key: "phone",
-      width: 170,
-      render: (contacts: Contact[]) => {
-        if (!contacts?.length) return "-";
-        const phones = contacts.map((c) => c.phone).filter(Boolean);
-        return phones.length ? phones.join(", ") : "-";
-      },
-    },
-    {
-      title: "GST Number",
-      dataIndex: "gst_no",
-      key: "gst_number",
+      title: 'Primary Contact',
+      dataIndex: 'contacts',
       width: 200,
-      render: (v: string) => v || "-",
+      render: (contacts: any[]) => {
+        const primary = contacts?.find((c) => c.is_primary) || contacts?.[0];
+        if (!primary) return <span style={{ color: 'var(--cus-muted)', fontSize: 12 }}>—</span>;
+        const name = [primary.first_name, primary.last_name].filter(Boolean).join(' ');
+        return (
+          <div className="cusl-contact-chip">
+            <div className="cusl-contact-name">{name || '—'}</div>
+            {primary.email && <div className="cusl-contact-meta">{primary.email}</div>}
+            {primary.phone && <div className="cusl-contact-meta">{primary.phone}</div>}
+            {(primary.department || primary.designation) && (
+              <div className="cusl-contact-meta" style={{ color: '#9CA3AF' }}>
+                {[primary.designation, primary.department].filter(Boolean).join(' · ')}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
-      title: "Industry",
-      dataIndex: "industry",
-      key: "industry",
-      width: 160,
-      render: (v: string) => v || "-",
-    },
-    {
-      title: "Created At",
-      dataIndex: "created_at",
-      key: "created_at",
+      title: 'GST / Industry',
       width: 180,
-      render: (v: string) => (v ? new Date(v).toLocaleString() : "-"),
+      render: (_: any, record: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {record.gst_number
+            ? <span className="cusl-gst">{record.gst_number}</span>
+            : <span style={{ color: 'var(--cus-muted)', fontSize: 12 }}>No GST</span>
+          }
+          {record.industry && (
+            <span style={{ fontSize: 11, color: 'var(--cus-muted)' }}>{record.industry}</span>
+          )}
+        </div>
+      ),
     },
     {
-      title: "Action",
-      key: "action",
-      fixed: "right" as const,
-      width: 140,
+      title: 'Billing Address',
+      width: 220,
+      render: (_: any, record: any) => {
+        const billing = record.addresses?.find((a: any) => a.address_type === 'BILLING' && a.is_primary)
+          || record.addresses?.find((a: any) => a.address_type === 'BILLING')
+          || record.addresses?.[0];
+        if (!billing) return <span style={{ color: 'var(--cus-muted)', fontSize: 12 }}>—</span>;
+        return <div className="cusl-address-chip">{formatAddress(billing)}</div>;
+      },
+    },
+    {
+      title: 'Contacts',
+      width: 80,
+      render: (_: any, record: any) => {
+        const count = record.contacts?.length ?? 0;
+        const addrCount = record.addresses?.length ?? 0;
+        return (
+          <div style={{ fontSize: 12, color: 'var(--cus-muted)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span>{count} contact{count !== 1 ? 's' : ''}</span>
+            <span>{addrCount} addr.</span>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Added',
+      dataIndex: 'created_at',
+      width: 110,
+      render: (v: string) => <span style={{ fontSize: 12, color: 'var(--cus-muted)' }}>{formatDate(v)}</span>,
+    },
+    {
+      title: 'Actions',
+      fixed: 'right' as const,
+      width: 150,
       render: (_: any, record: any) => (
-        <Space size="small">
-          <Button type="text" icon={<EyeOutlined style={{ color: "#1677ff" }} />} onClick={() => handleView(record)} />
-          <Button type="text" icon={<EditOutlined style={{ color: "#1677ff" }} />} onClick={() => handleEdit(record)} />
+        <div className="cusl-actions-cell" onClick={(e) => e.stopPropagation()}>
+          <button className="cusl-action-btn" onClick={() => handleView(record)}>
+            <EyeOutlined /> View
+          </button>
+          <button className="cusl-action-btn edit" onClick={() => handleEdit(record)}>
+            <EditOutlined />
+          </button>
           <Popconfirm
-            title="Delete Customer"
-            description="Are you sure you want to delete this customer?"
-            okText="Yes" cancelText="No"
+            title="Delete customer?"
+            description="This action cannot be undone."
+            okText="Delete"
+            cancelText="Cancel"
             okButtonProps={{ danger: true }}
             onConfirm={() => handleDelete(record)}
           >
-            <Button type="text" danger icon={<DeleteOutlined />} />
+            <button className="cusl-action-btn del">
+              <DeleteOutlined />
+            </button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];
 
-  const total = pagination?.total || 0;
-  const customerList: Customer[] = list || [];
-
   return (
-    <div style={{ padding: isMobile ? 12 : 20, minHeight: "100vh" }}>
-      {/* Page header */}
-      <div style={styles.pageHeader}>
-        <div>
-          <div style={styles.pageTitle}>Customers</div>
-          {total > 0 && <div style={styles.pageSubtitle}>{total} total</div>}
+    <>
+      <div className="cusl-root">
+        <GlobalStyles />
+
+        {/* ── Header ── */}
+        <div className="cusl-header">
+          <div className="cusl-header-noise" />
+          <div className="cusl-header-content">
+            <div>
+              <div className="cusl-page-title">
+                <div className="cusl-page-title-icon"><TeamOutlined /></div>
+                Customers
+              </div>
+              <div className="cusl-page-subtitle">Manage your customer relationships and contacts</div>
+            </div>
+            <button className="cusl-add-btn" onClick={() => setAddOpen(true)}>
+              <PlusOutlined />
+              <span>Add Customer</span>
+            </button>
+          </div>
         </div>
-        {!isMobile && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="large"
-            onClick={() => setAddCustomerOpen(true)}
-          >
-            Add Customer
-          </Button>
-        )}
-      </div>
 
-      {/* Search */}
-      <div style={{ marginBottom: 16 }}>
-        <Search
-          allowClear
-          placeholder="Search by name, email, phone, GST…"
-          value={search}
-          onChange={(e) => handleSearch(e.target.value)}
-          size="large"
-          style={{ borderRadius: 10, width: "100%" }}
-        />
-      </div>
-
-      {/* Content */}
-      {isMobile ? (
-        <div>
-          {loading ? (
-            <div style={{ textAlign: "center", padding: 48, color: "#999" }}>Loading…</div>
-          ) : customerList.length === 0 ? (
-            <Empty description="No customers found" style={{ marginTop: 48 }} />
-          ) : (
-            customerList.map((c) => (
-              <CustomerCard
-                key={c.id}
-                customer={c}
-                onView={handleView}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))
-          )}
-
-          {total > 0 && (
-            <div style={styles.mobilePagination}>
-              <span style={styles.paginationInfo}>
-                {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
-              </span>
-              <Pagination
-                current={page}
-                pageSize={limit}
-                total={total}
-                simple
-                onChange={(p) => setPage(p)}
+        {/* ── Toolbar ── */}
+        <div className="cusl-toolbar">
+          <div className="cusl-toolbar-inner">
+            <div className="cusl-search-wrap">
+              <SearchOutlined className="cusl-search-icon" />
+              <input
+                className="cusl-search"
+                placeholder="Search by name, email, phone, GST…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
-          )}
-        </div>
-      ) : (
-        /* Desktop table */
-        <div style={styles.tableCard}>
-          <Table
-            rowKey="id"
-            loading={loading}
-            columns={columns}
-            dataSource={customerList}
-            scroll={{ x: 1600 }}
-            pagination={{
-              current: page,
-              pageSize: limit,
-              total,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              onChange: (currentPage, pageSize) => {
-                setPage(currentPage);
-                setLimit(pageSize);
-              },
-            }}
-          />
-        </div>
-      )}
 
-      {/* Mobile FAB */}
-      {isMobile && (
-        <button
-          style={styles.fab}
-          onClick={() => setAddCustomerOpen(true)}
-          aria-label="Add Customer"
-        >
-          <PlusOutlined style={{ fontSize: 22, color: "#fff" }} />
-        </button>
-      )}
+            <div className="cusl-select-wrap">
+              <FilterOutlined className="cusl-select-icon" />
+              <select
+                className="cusl-select"
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              >
+                <option value="">All Types</option>
+                <option value="BUSINESS">Business</option>
+                <option value="INDIVIDUAL">Individual</option>
+              </select>
+            </div>
 
-      {/* Modals & Drawers */}
-      <AddCustomerModal open={addCustomerOpen} onClose={() => setAddCustomerOpen(false)} />
+            {industries.length > 0 && (
+              <div className="cusl-select-wrap">
+                <ShopOutlined className="cusl-select-icon" />
+                <select
+                  className="cusl-select"
+                  value={industryFilter}
+                  onChange={(e) => { setIndustryFilter(e.target.value); setPage(1); }}
+                >
+                  <option value="">All Industries</option>
+                  {industries.map((ind) => (
+                    <option key={ind} value={ind}>{ind}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button className="cusl-icon-btn" onClick={fetchCustomers}>
+              <ReloadOutlined />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* ── Stats ── */}
+        <div className="cusl-stats">
+          <div className="cusl-stat-card">
+            <div className="cusl-stat-icon total"><TeamOutlined /></div>
+            <div className="cusl-stat-text">
+              <div className="cusl-stat-label">Total</div>
+              <div className="cusl-stat-value">{totalCount}</div>
+            </div>
+          </div>
+          <div className="cusl-stat-card">
+            <div className="cusl-stat-icon biz"><BankOutlined /></div>
+            <div className="cusl-stat-text">
+              <div className="cusl-stat-label">Business</div>
+              <div className="cusl-stat-value">{totalBusiness}</div>
+            </div>
+          </div>
+          <div className="cusl-stat-card">
+            <div className="cusl-stat-icon ind"><UserOutlined /></div>
+            <div className="cusl-stat-text">
+              <div className="cusl-stat-label">Individual</div>
+              <div className="cusl-stat-value">{totalIndividual}</div>
+            </div>
+          </div>
+          <div className="cusl-stat-card">
+            <div className="cusl-stat-icon active"><ShopOutlined /></div>
+            <div className="cusl-stat-text">
+              <div className="cusl-stat-label">Active</div>
+              <div className="cusl-stat-value">{totalActive}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Table ── */}
+        <div className="cusl-body">
+          <div className="cusl-card">
+            <div className="cusl-card-header">
+              <div className="cusl-card-title">
+                <div className="cusl-card-icon"><TeamOutlined /></div>
+                All Customers
+              </div>
+              {totalCount > 0 && (
+                <span className="cusl-count-badge">{totalCount} customer{totalCount !== 1 ? 's' : ''}</span>
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="cusl-table-wrap">
+              <Table
+                rowKey="id"
+                loading={loading}
+                dataSource={customerList}
+                columns={columns}
+                scroll={{ x: 1300 }}
+                onRow={(record) => ({
+                  onClick: () => handleView(record),
+                })}
+                locale={{
+                  emptyText: (
+                    <div className="cusl-empty">
+                      <div className="cusl-empty-icon"><TeamOutlined /></div>
+                      <div className="cusl-empty-text">No customers found</div>
+                      <div className="cusl-empty-sub">Try adjusting your search or filters</div>
+                    </div>
+                  ),
+                }}
+                pagination={{
+                  current: page,
+                  pageSize,
+                  total: totalCount,
+                  showSizeChanger: false,
+                  showTotal: (total) => `${total} customer${total !== 1 ? 's' : ''}`,
+                  onChange: (p) => setPage(p),
+                  style: { padding: '12px 16px' },
+                }}
+              />
+            </div>
+
+            {/* Mobile list */}
+            <div className="cusl-mobile-list" style={{ padding: 12 }}>
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: 32 }}><Spin /></div>
+              ) : customerList.length === 0 ? (
+                <div className="cusl-empty">
+                  <div className="cusl-empty-icon"><TeamOutlined /></div>
+                  <div className="cusl-empty-text">No customers found</div>
+                  <div className="cusl-empty-sub">Try adjusting your search or filters</div>
+                </div>
+              ) : (
+                <>
+                  {customerList.map((customer: any) => {
+                    const primaryContact = customer.contacts?.find((c: any) => c.is_primary) || customer.contacts?.[0];
+                    const billing = customer.addresses?.find((a: any) => a.address_type === 'BILLING') || customer.addresses?.[0];
+                    return (
+                      <div
+                        key={customer.id}
+                        className="cusl-mobile-card"
+                        onClick={() => handleView(customer)}
+                      >
+                        <div className="cusl-mobile-top">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                            <Avatar name={customer.display_name || '?'} type={customer.customer_type} />
+                            <div style={{ minWidth: 0 }}>
+                              <div className="cusl-mobile-name">{customer.display_name || '—'}</div>
+                              {customer.company_name && (
+                                <div className="cusl-mobile-company">{customer.company_name}</div>
+                              )}
+                            </div>
+                          </div>
+                          <TypeBadge type={customer.customer_type} />
+                        </div>
+
+                        <div className="cusl-mobile-rows">
+                          {primaryContact && (
+                            <>
+                              {(primaryContact.first_name || primaryContact.last_name) && (
+                                <div className="cusl-mobile-row">
+                                  <UserOutlined className="cusl-mobile-row-icon" />
+                                  <div className="cusl-mobile-row-text">
+                                    {[primaryContact.first_name, primaryContact.last_name].filter(Boolean).join(' ')}
+                                    {primaryContact.designation && ` · ${primaryContact.designation}`}
+                                  </div>
+                                </div>
+                              )}
+                              {primaryContact.email && (
+                                <div className="cusl-mobile-row">
+                                  <span className="cusl-mobile-row-icon">✉</span>
+                                  <div className="cusl-mobile-row-text">{primaryContact.email}</div>
+                                </div>
+                              )}
+                              {primaryContact.phone && (
+                                <div className="cusl-mobile-row">
+                                  <span className="cusl-mobile-row-icon">✆</span>
+                                  <div className="cusl-mobile-row-text">{primaryContact.phone}</div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {customer.gst_number && (
+                            <div className="cusl-mobile-row">
+                              <BankOutlined className="cusl-mobile-row-icon" />
+                              <div className="cusl-mobile-row-text">{customer.gst_number}</div>
+                            </div>
+                          )}
+                          {billing && (
+                            <div className="cusl-mobile-row">
+                              <span className="cusl-mobile-row-label">Address</span>
+                              <div className="cusl-mobile-row-text">{formatAddress(billing)}</div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="cusl-mobile-footer">
+                          <div className="cusl-mobile-date">Added {formatDate(customer.created_at)}</div>
+                          <div className="cusl-mobile-btns" onClick={(e) => e.stopPropagation()}>
+                            <button className="cusl-action-btn" onClick={() => handleView(customer)}>
+                              <EyeOutlined /> View
+                            </button>
+                            <button className="cusl-action-btn edit" onClick={() => handleEdit(customer)}>
+                              <EditOutlined />
+                            </button>
+                            <Popconfirm
+                              title="Delete customer?"
+                              okText="Delete"
+                              cancelText="Cancel"
+                              okButtonProps={{ danger: true }}
+                              onConfirm={() => handleDelete(customer)}
+                            >
+                              <button className="cusl-action-btn del">
+                                <DeleteOutlined />
+                              </button>
+                            </Popconfirm>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {totalCount > pageSize && (
+                    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
+                      <Pagination
+                        size="small"
+                        current={page}
+                        pageSize={pageSize}
+                        total={totalCount}
+                        showSizeChanger={false}
+                        onChange={(p) => setPage(p)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FAB (mobile) */}
+      <button className="cusl-fab" onClick={() => setAddOpen(true)} aria-label="Add Customer"
+        style={{ display: 'none' }} id="cusl-fab">
+        <PlusOutlined style={{ fontSize: 22, color: '#fff' }} />
+      </button>
+      <style>{`@media (max-width: 768px) { #cusl-fab { display: flex !important; } }`}</style>
+
+      <AddCustomerModal open={addOpen} onClose={() => setAddOpen(false)} />
       <EditCustomerModal
-        open={editCustomerOpen}
+        open={editOpen}
         customer={selectedCustomer}
-        onClose={() => { setEditCustomerOpen(false); setSelectedCustomer(null); }}
+        onClose={() => { setEditOpen(false); setSelectedCustomer(null); }}
       />
       <CustomerDetailsDrawer
-        open={customerDetailsOpen}
+        open={detailsOpen}
         customer={selectedCustomer}
-        onClose={() => { setCustomerDetailsOpen(false); setSelectedCustomer(null); }}
+        onClose={() => { setDetailsOpen(false); setSelectedCustomer(null); }}
       />
-    </div>
+    </>
   );
-};
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles: Record<string, React.CSSProperties> = {
-  pageHeader: {
-    display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-    marginBottom: 16, flexWrap: "wrap", gap: 8,
-  },
-  pageTitle: { fontSize: 22, fontWeight: 700, color: "#1a1a2e", letterSpacing: -0.3 },
-  pageSubtitle: { fontSize: 13, color: "#999", marginTop: 2 },
-
-  // Cards
-  card: {
-    background: "#fff", borderRadius: 14, padding: 16, marginBottom: 12,
-    boxShadow: "0 1px 4px rgba(0,0,0,.07)", border: "1px solid #f0f0f0",
-  },
-  cardHeader: { display: "flex", alignItems: "flex-start", marginBottom: 10 },
-  cardNameBtn: {
-    background: "none", border: "none", cursor: "pointer", padding: 0,
-    fontSize: 16, fontWeight: 600, color: "#1677ff", textAlign: "left",
-    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%",
-  },
-  cardCompany: { fontSize: 12, color: "#888", marginTop: 2 },
-  cardBody: { display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 },
-  cardRow: { display: "flex", alignItems: "baseline", gap: 6 },
-  cardLabel: { fontSize: 12, color: "#aaa", minWidth: 60, flexShrink: 0 },
-  cardIcon: { color: "#aaa", fontSize: 12, minWidth: 16, marginTop: 2 },
-  cardValue: { fontSize: 13, color: "#333", wordBreak: "break-all" },
-  cardActions: {
-    display: "flex", gap: 8, paddingTop: 10,
-    borderTop: "1px solid #f5f5f5", flexWrap: "wrap",
-  },
-  actionBtn: { borderRadius: 8, fontSize: 12 },
-
-  // Pagination
-  mobilePagination: {
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    marginTop: 16, flexWrap: "wrap", gap: 8,
-  },
-  paginationInfo: { fontSize: 12, color: "#999" },
-
-  // FAB
-  fab: {
-    position: "fixed", bottom: 24, right: 20, width: 56, height: 56,
-    borderRadius: "50%", background: "#1677ff", border: "none", cursor: "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    boxShadow: "0 4px 14px rgba(22,119,255,.45)", zIndex: 1000,
-  },
-
-  // Desktop table card
-  tableCard: {
-    background: "#fff", borderRadius: 12, padding: "4px 0",
-    boxShadow: "0 1px 4px rgba(0,0,0,.08)",
-    overflow: "hidden",
-  },
 };
 
 export default CustomerListPage;

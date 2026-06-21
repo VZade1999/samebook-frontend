@@ -102,6 +102,19 @@ export async function downloadQuotationPDF(
         .join(" - "),
     ].filter(Boolean);
 
+    // Shipping address lines — rendered below the billing address in the
+    // address card. Filtered the same way as billingAddressLines so empty
+    // fields (e.g. no address_line_2) don't leave blank rows.
+    const shippingAddressLines = [
+      shippingAddress.address_line_1,
+      shippingAddress.address_line_2,
+      [shippingAddress.city, shippingAddress.state].filter(Boolean).join(", "),
+      [shippingAddress.country, shippingAddress.postal_code]
+        .filter(Boolean)
+        .join(" - "),
+    ].filter(Boolean);
+    const hasShippingData = shippingAddressLines.length > 0;
+
     // Build business detail lines, filtering out undefined/empty entries
     const businessDetailsLines: string[] = [
       businessSnapshot.businessName,
@@ -141,9 +154,11 @@ export async function downloadQuotationPDF(
             .map((s: string) => s.trim())
             .filter(Boolean)
         : [];
-    const businessLocation = businessAddrParts[businessAddrParts.length - 1] || "";
+    const businessLocation =
+      businessAddrParts[businessAddrParts.length - 1] || "";
 
-    const footerEmail = businessSnapshot.businessEmail || "sales@yourcompany.com";
+    const footerEmail =
+      businessSnapshot.businessEmail || "sales@yourcompany.com";
     const footerPhone = businessSnapshot.businessPhone || "9999999999";
 
     const doc = new jsPDF({
@@ -185,7 +200,14 @@ export async function downloadQuotationPDF(
         const aspect = imgProps.width / imgProps.height;
         const logoH = LOGO_SIZE;
         const logoW = logoH * aspect;
-        doc.addImage(companyLogoDataUrl, imgProps.fileType, marginL, LOGO_Y, logoW, logoH);
+        doc.addImage(
+          companyLogoDataUrl,
+          imgProps.fileType,
+          marginL,
+          LOGO_Y,
+          logoW,
+          logoH,
+        );
         textStartX = marginL + logoW + 12;
       } catch (e) {
         console.error("Failed to add company logo to PDF", e);
@@ -226,11 +248,29 @@ export async function downloadQuotationPDF(
     const PHONE_H = data.contact_person_phone ? LINE_H : 0;
     const BOTTOM_PAD = 16;
 
+    // Shipping address block sizing — a small gap, a bold label, then either
+    // the address lines or a single "Same as billing address" fallback line.
+    const SHIP_GAP = 10;
+    const SHIP_LABEL_H = 14;
+    const shippingBlockLineCount = hasShippingData
+      ? shippingAddressLines.length
+      : 1;
+
     const leftContentH =
-      TOP_PAD + NAME_H + billingAddressLines.length * LINE_H + PHONE_H + BOTTOM_PAD;
+      TOP_PAD +
+      NAME_H +
+      billingAddressLines.length * LINE_H +
+      PHONE_H +
+      SHIP_GAP +
+      SHIP_LABEL_H +
+      shippingBlockLineCount * LINE_H +
+      BOTTOM_PAD;
 
     const rightContentH =
-      TOP_PAD + NAME_H + (businessDetailsLines.length - 1) * LINE_H + BOTTOM_PAD;
+      TOP_PAD +
+      NAME_H +
+      (businessDetailsLines.length - 1) * LINE_H +
+      BOTTOM_PAD;
 
     const cardH = Math.max(leftContentH, rightContentH, 100);
     const midX = pageWidth / 2;
@@ -241,7 +281,7 @@ export async function downloadQuotationPDF(
     doc.setFillColor(248, 248, 248);
     doc.roundedRect(marginL, cardTop, pageWidth - 90, cardH, 4, 4, "F");
 
-    // ── Left: Customer ───────────────────────────────────────────────────────
+    // ── Left: Customer (Billing + Shipping) ───────────────────────────────────
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setGray();
@@ -252,10 +292,22 @@ export async function downloadQuotationPDF(
     setBlack();
     doc.text((data.customer_name || "-").toUpperCase(), col1, cardTop + 40);
 
+    // Customer number — printed directly below the customer name (was
+    // previously shown after the full billing address instead).
+    const NAME_TO_CONTENT_GAP = 17;
+    let addrY = cardTop + 40 + NAME_TO_CONTENT_GAP;
+
+    if (data.contact_person_phone) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      setGray();
+      doc.text(`Customer No: ${data.contact_person_phone}`, col1, addrY);
+      addrY += LINE_H;
+    }
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     setBlack();
-    let addrY = cardTop + 57;
     billingAddressLines.forEach((line) => {
       const wrapped = doc.splitTextToSize(line, maxColWidth);
       wrapped.forEach((wl: string) => {
@@ -263,9 +315,30 @@ export async function downloadQuotationPDF(
         addrY += LINE_H;
       });
     });
-    if (data.contact_person_phone) {
+
+    // ── Shipping Address (below billing) ──────────────────────────────────────
+    addrY += SHIP_GAP;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    setGray();
+    doc.text("SHIPPING ADDRESS", col1, addrY);
+    addrY += SHIP_LABEL_H;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    if (hasShippingData) {
+      setBlack();
+      shippingAddressLines.forEach((line) => {
+        const wrapped = doc.splitTextToSize(line, maxColWidth);
+        wrapped.forEach((wl: string) => {
+          doc.text(wl, col1, addrY);
+          addrY += LINE_H;
+        });
+      });
+    } else {
       setGray();
-      doc.text(`(${data.contact_person_phone})`, col1, addrY);
+      doc.text("Same as billing address", col1, addrY);
+      addrY += LINE_H;
     }
 
     // ── Divider ──────────────────────────────────────────────────────────────
@@ -370,7 +443,27 @@ export async function downloadQuotationPDF(
     hLine(finalY, marginL, marginR, false);
     finalY += 20;
 
-    const BOTTOM_MARGIN = 190;
+    // How much vertical room the summary block (Subtotal → Grand Total)
+    // and the footer below it actually need, derived from the same
+    // constants used to draw them further down — not a guessed number.
+    // This is what makes the page-break decision correct no matter how
+    // many items push the table further down the page: with few items
+    // `finalY` stays small and this check is a no-op; with many items (or
+    // items spilling onto a later page), `finalY` grows and this reliably
+    // forces the summary onto a fresh page instead of letting it collide
+    // with the footer.
+    const SUMMARY_ROW_H = 17;
+    const SUMMARY_ROWS_COUNT = 6; // Subtotal, Discount, CGST, SGST, IGST, Transport
+    const SUMMARY_DIVIDER_GAP = 14;
+    const GRAND_TOTAL_ROW_H = 20; // grand total line + breathing room
+    const FOOTER_HEIGHT = 145; // matches `footerTop = pageHeight - 145` below
+    const SAFETY_BUFFER = 20;
+
+    const SUMMARY_BLOCK_HEIGHT =
+      SUMMARY_ROWS_COUNT * SUMMARY_ROW_H + SUMMARY_DIVIDER_GAP + GRAND_TOTAL_ROW_H;
+
+    const BOTTOM_MARGIN = SUMMARY_BLOCK_HEIGHT + FOOTER_HEIGHT + SAFETY_BUFFER;
+
     if (finalY + BOTTOM_MARGIN > pageHeight) {
       doc.addPage();
       drawPageBase();
@@ -452,11 +545,18 @@ export async function downloadQuotationPDF(
     const paymentLines: string[] = [];
 
     if (paymentSnapshot && Object.keys(paymentSnapshot).length > 0) {
-      if (paymentSnapshot.bank_name) paymentLines.push(`${paymentSnapshot.bank_name}`);
-      if (paymentSnapshot.account_holder_name) paymentLines.push(`Account Holder: ${paymentSnapshot.account_holder_name}`);
-      if (paymentSnapshot.account_number) paymentLines.push(`Account #: ${paymentSnapshot.account_number}`);
-      if (paymentSnapshot.ifsc_code) paymentLines.push(`IFSC: ${paymentSnapshot.ifsc_code}`);
-      if (paymentSnapshot.branch_name) paymentLines.push(`Branch: ${paymentSnapshot.branch_name}`);
+      if (paymentSnapshot.bank_name)
+        paymentLines.push(`${paymentSnapshot.bank_name}`);
+      if (paymentSnapshot.account_holder_name)
+        paymentLines.push(
+          `Account Holder: ${paymentSnapshot.account_holder_name}`,
+        );
+      if (paymentSnapshot.account_number)
+        paymentLines.push(`Account #: ${paymentSnapshot.account_number}`);
+      if (paymentSnapshot.ifsc_code)
+        paymentLines.push(`IFSC: ${paymentSnapshot.ifsc_code}`);
+      if (paymentSnapshot.branch_name)
+        paymentLines.push(`Branch: ${paymentSnapshot.branch_name}`);
     } else {
       paymentLines.push(`Account: ${data.customer_name || "-"}`);
     }
@@ -474,7 +574,9 @@ export async function downloadQuotationPDF(
     doc.setFontSize(9);
     setGray();
     const termsText = doc.splitTextToSize(
-      data.notes || companyDetails?.default_terms_conditions || "Payment due within 30 days of quotation date.",
+      data.notes ||
+        companyDetails?.default_terms_conditions ||
+        "Payment due within 30 days of quotation date.",
       160,
     );
     doc.text(termsText, pageWidth / 2 - 40, footerTop + 34);

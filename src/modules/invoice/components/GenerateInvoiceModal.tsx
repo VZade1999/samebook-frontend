@@ -322,10 +322,9 @@ const GenerateInvoiceModal: React.FC<Props> = ({ visible, onClose }) => {
         generateInvoice({
           quotation_id: values.quotation_id,
           invoice_date: values.invoice_date.format('YYYY-MM-DD'),
-          due_date: values.due_date.format('YYYY-MM-DD'),
+          payment_due_date: values.payment_due_date.format('YYYY-MM-DD'),
         }),
       );
-      message.success('Invoice generation started');
       form.resetFields();
       onClose();
     } catch {
@@ -426,10 +425,10 @@ const GenerateInvoiceModal: React.FC<Props> = ({ visible, onClose }) => {
                 <div className="igm-field">
                   <div className="igm-label">
                     <div className="igm-label-icon"><ClockCircleOutlined /></div>
-                    Due Date<span className="igm-required">*</span>
+                    Payment Due Date<span className="igm-required">*</span>
                   </div>
                   <Form.Item
-                    name="due_date"
+                    name="payment_due_date"
                     initialValue={dayjs().add(30, 'day')}
                     rules={[{ required: true, message: 'Required' }]}
                   >

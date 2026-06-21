@@ -522,7 +522,7 @@ const InvoiceDetails = () => {
   const dispatch = useDispatch();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
-  const { selectedInvoice, timeline, detailsLoading } = useSelector(
+  const { selectedInvoice, invoiceTimeline, detailsLoading } = useSelector(
     (state: any) => state.invoice,
   );
 
@@ -542,7 +542,7 @@ const InvoiceDetails = () => {
       }),
     );
     setPaymentModalOpen(false);
-    message.success("Payment recorded successfully");
+
   };
 
   const paymentColumns = [
@@ -555,7 +555,7 @@ const InvoiceDetails = () => {
     { title: "Reference", dataIndex: "transaction_reference" },
     {
       title: "Amount",
-      dataIndex: "amount",
+      dataIndex: "payment_amount",
       align: "right" as const,
       render: (v: any) => (
         <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "var(--inv-success)" }}>
@@ -785,7 +785,7 @@ const InvoiceDetails = () => {
             <span className="inv-card-title">Activity Timeline</span>
           </div>
           <div className="inv-card-body">
-            <InvoiceTimeline data={timeline || []} />
+            <InvoiceTimeline data={invoiceTimeline || []} />
           </div>
         </div>
 

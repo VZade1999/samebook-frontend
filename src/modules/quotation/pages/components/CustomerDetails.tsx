@@ -252,7 +252,7 @@ const CustomerDetails = () => {
         </div>
       </div>
       <AutoComplete
-        className="cd-header-search"
+        className=""
         style={{ width: 280, flexShrink: 0 }}
         options={customerOptions}
         onSearch={handleCustomerSearch}
@@ -263,7 +263,7 @@ const CustomerDetails = () => {
       >
         <Input
           placeholder="Search customer…"
-          prefix={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>}
+          prefix={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(10, 10, 10, 0.6)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>}
         />
       </AutoComplete>
     </div>
@@ -355,7 +355,7 @@ const CustomerDetails = () => {
                 customerGSTN: address?.gst_number || selectedCustomer?.gst_number,
               });
             }}>
-              {selectedCustomer?.addresses?.filter((a: any) => ["BILLING", "OFFICE", "BRANCH"].includes(a.address_type)).map((a: any) => (
+              {selectedCustomer?.addresses?.filter((a: any) => ["BILLING", "OFFICE", "BRANCH","SHIPPING", "WAREHOUSE", "FACTORY"].includes(a.address_type)).map((a: any) => (
                 <Option key={a.id} value={a.id}>{a.label || a.address_type}</Option>
               ))}
             </Select>
@@ -374,9 +374,10 @@ const CustomerDetails = () => {
               form.setFieldsValue({
                 shippingAddress: [address?.address_line_1, address?.address_line_2, address?.city, address?.state, address?.country, address?.postal_code].filter(Boolean).join(", "),
                 shippingAddressSnapshot: JSON.stringify(address),
+                customerGSTN: address?.gst_number || selectedCustomer?.gst_number,
               });
             }}>
-              {selectedCustomer?.addresses?.filter((a: any) => ["SHIPPING", "WAREHOUSE", "FACTORY"].includes(a.address_type)).map((a: any) => (
+              {selectedCustomer?.addresses?.filter((a: any) => ["BILLING", "OFFICE", "BRANCH","SHIPPING", "WAREHOUSE", "FACTORY"].includes(a.address_type)).map((a: any) => (
                 <Option key={a.id} value={a.id}>{a.label || a.address_type}</Option>
               ))}
             </Select>

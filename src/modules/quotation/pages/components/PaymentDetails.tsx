@@ -129,13 +129,15 @@ const PaymentDetails: React.FC = () => {
   const form = Form.useFormInstance();
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
-
+console.log("bankAccounts",bankAccounts);
   useEffect(() => {
     const storage = new StorageService();
     const company = storage.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS);
+    console.log("company",company)
     if (company) {
       try {
         const details = JSON.parse(company);
+        console.log("details",details)
         if (details?.bank_accounts) setBankAccounts(details.bank_accounts || []);
       } catch (error) {
         console.error("Failed to parse company details from storage", error);
