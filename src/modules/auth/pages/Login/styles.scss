@@ -1,67 +1,335 @@
 @use "../../../../style/variables" as *;
 
-.login-page {
+// ─── Design tokens (mirrors CustomerListPage system) ──────────────────────────
+$lgn-bg          : #F4F5F9;
+$lgn-surface     : #FFFFFF;
+$lgn-indigo-deep : #1E1B4B;   // same as cusl header
+$lgn-accent      : #4F46E5;   // same as cusl-accent
+$lgn-accent-lt   : #EEF2FF;   // same as cusl-accent-light
+$lgn-accent-hover: #4338CA;
+$lgn-border      : #E5E7EB;
+$lgn-text        : #111827;
+$lgn-muted       : #6B7280;
+$lgn-error-bg    : #FEF2F2;
+$lgn-error-border: #FECACA;
+$lgn-error-text  : #DC2626;
+$lgn-radius      : 12px;
+$lgn-radius-sm   : 8px;
+$lgn-shadow      : 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+$lgn-shadow-lg   : 0 8px 32px rgba(30, 27, 75, 0.12), 0 2px 8px rgba(30, 27, 75, 0.06);
+
+// ─── Font ─────────────────────────────────────────────────────────────────────
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+// ─── Shell — full-page centred layout ────────────────────────────────────────
+.lgn-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: $lgn-bg;
+  padding: 24px 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  // Subtle dot grid — same noise motif as cusl-header-noise but inverted
+  background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
+.lgn-card {
   width: 100%;
+  max-width: 420px;
+  background: $lgn-surface;
+  border: 1px solid $lgn-border;
+  border-radius: $lgn-radius;
+  box-shadow: $lgn-shadow-lg;
+  overflow: hidden;
 
-  &__header {
-    margin-bottom: 32px;
-
-    h2 {
-      margin-bottom: 8px !important;
-    }
+  // Dark indigo top bar — same #1E1B4B as cusl-header
+  &::before {
+    content: '';
+    display: block;
+    height: 5px;
+    background: $lgn-indigo-deep;
   }
 
-  &__container {
-    width: 100%;
+  // Everything inside the card is padded
+  > *:not(.lgn-card::before) {
+    padding-left: 36px;
+    padding-right: 36px;
+  }
+}
+
+// ─── Logo ─────────────────────────────────────────────────────────────────────
+.lgn-logo {
+  display: flex;
+  justify-content: center;
+  padding-top: 36px;
+  padding-bottom: 28px;
+  padding-left: 36px;
+  padding-right: 36px;
+}
+
+.lgn-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 14px);
+  gap: 6px;
+}
+
+.lgn-logo-box {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+
+  &--red    { background: $error-color;   }
+  &--green  { background: $success-color; }
+  &--blue   { background: $info-color;    }
+  &--yellow { background: $warning-color; }
+}
+
+// ─── Heading ──────────────────────────────────────────────────────────────────
+.lgn-heading {
+  padding-left: 36px;
+  padding-right: 36px;
+  margin-bottom: 24px;
+}
+
+.lgn-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: $lgn-text;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.lgn-sub {
+  font-size: 13px;
+  color: $lgn-muted;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// ─── Error ────────────────────────────────────────────────────────────────────
+.lgn-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 36px 20px;
+  padding: 10px 14px;
+  background: $lgn-error-bg;
+  border: 1px solid $lgn-error-border;
+  border-radius: $lgn-radius-sm;
+  font-size: 13px;
+  color: $lgn-error-text;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+// ─── Form wrapper ─────────────────────────────────────────────────────────────
+.lgn-form {
+  padding-left: 36px;
+  padding-right: 36px;
+  padding-bottom: 36px;
+
+  // Remove Ant Design Form.Item bottom margin on nested noStyle items
+  .ant-form-item {
+    margin-bottom: 0 !important;
+  }
+  .ant-form-item-explain-error {
+    font-size: 11px !important;
+    font-family: 'Inter', sans-serif !important;
+    margin-top: 4px !important;
+    color: $lgn-error-text !important;
+  }
+}
+
+// ─── Field block ──────────────────────────────────────────────────────────────
+.lgn-field {
+  margin-bottom: 18px;
+}
+
+.lgn-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.lgn-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.2px;
+  margin-bottom: 6px;
+}
+
+.lgn-label-row .lgn-label {
+  margin-bottom: 0;
+}
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+.lgn-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lgn-input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $lgn-muted;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lgn-input {
+  width: 100%;
+  padding: 10px 40px 10px 38px;
+  border: 1px solid $lgn-border;
+  border-radius: $lgn-radius-sm;
+  font-size: 13px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: $lgn-text;
+  background: #FAFAFA;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  height: 42px;
+
+  &::placeholder {
+    color: #9CA3AF;
   }
 
-  &__logo {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 28px;
+  &:hover {
+    border-color: darken($lgn-border, 8%);
+    background: #fff;
   }
 
-  .logo-icon {
-    display: grid;
-    grid-template-columns: repeat(2, 14px);
-    gap: 8px;
-
-    .logo-box {
-      width: 14px;
-      height: 14px;
-      border-radius: 2px;
-
-      &.red {
-        background: $error-color;
-      }
-
-      &.green {
-        background: $success-color;
-      }
-
-      &.blue {
-        background: $info-color;
-      }
-
-      &.yellow {
-        background: $warning-color;
-      }
-    }
-  }
-  &__footer {
-    margin-top: 16px;
-    text-align: center;
+  &:focus {
+    border-color: $lgn-accent;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    background: #fff;
   }
 
-  .ant-input-affix-wrapper,
-  .ant-input,
-  .ant-btn {
-    border-radius: 10px;
+  // Autofill — prevent browser's yellow bg bleeding through
+  &:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 100px #fff inset;
+    -webkit-text-fill-color: $lgn-text;
+  }
+}
+
+// ─── Eye toggle ───────────────────────────────────────────────────────────────
+.lgn-eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  padding: 4px;
+  cursor: pointer;
+  color: $lgn-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+
+  &:hover {
+    color: $lgn-accent;
+    background: $lgn-accent-lt;
+  }
+}
+
+// ─── Forgot password ──────────────────────────────────────────────────────────
+.lgn-forgot {
+  font-size: 12px;
+  font-weight: 600;
+  color: $lgn-accent;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: color 0.12s;
+  text-decoration: none;
+
+  &:hover {
+    color: $lgn-accent-hover;
+    text-decoration: underline;
+  }
+}
+
+// ─── Submit button ────────────────────────────────────────────────────────────
+.lgn-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  border: none;
+  border-radius: $lgn-radius-sm;
+  background: $lgn-indigo-deep;  // matches cusl header + modal header
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background: lighten($lgn-indigo-deep, 8%);
+    transform: translateY(-1px);
   }
 
-  .ant-btn {
-    height: 48px;
-    font-weight: 600;
-    background: $primary-button !important;
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
+
+  &:disabled,
+  &--loading {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// ─── Spinner (loading state) ──────────────────────────────────────────────────
+.lgn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: lgn-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes lgn-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 480px) {
+  .lgn-card > * {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .lgn-logo         { padding-left: 24px; padding-right: 24px; }
+  .lgn-heading      { padding-left: 24px; padding-right: 24px; }
+  .lgn-error        { margin-left: 24px; margin-right: 24px; }
+  .lgn-form         { padding-left: 24px; padding-right: 24px; padding-bottom: 28px; }
+  .lgn-title        { font-size: 20px; }
 }

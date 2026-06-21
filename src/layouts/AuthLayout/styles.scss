@@ -1,81 +1,281 @@
-.auth-layout {
+@use "../../style/variables" as *;
+
+// ─── Design tokens — exact mirror of the app system ───────────────────────────
+//
+//  #1E1B4B  →  deep indigo  (cusl-header, modal header, drawer header, lgn-submit)
+//  #4F46E5  →  accent       (cusl-accent, focus rings, pills, icons)
+//  #EEF2FF  →  accent-light (cusl-accent-light, pill backgrounds)
+//  #F4F5F9  →  page bg      (cusl-bg, lgn-shell)
+//  #E5E7EB  →  border       (cusl-border)
+//  #6B7280  →  muted        (cusl-muted)
+//  Inter    →  font          (all components)
+//
+// Left panel uses the deep-indigo bg so the split reads as
+// "product identity | user action" — same dark-left / light-right
+// convention that B2B SaaS apps use (Notion, Linear, Vercel onboarding).
+
+$al-indigo    : #1E1B4B;
+$al-indigo-md : #2D2A6E;   // one step lighter for hover / subtle UI
+$al-indigo-lt : #3730A3;   // accent-on-dark
+$al-accent    : #4F46E5;
+$al-accent-lt : #EEF2FF;
+$al-bg        : #F4F5F9;
+$al-surface   : #FFFFFF;
+$al-border    : #E5E7EB;
+$al-muted     : #6B7280;
+$al-text      : #111827;
+$al-shadow-lg : 0 8px 32px rgba(30, 27, 75, 0.12), 0 2px 8px rgba(30, 27, 75, 0.06);
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+// ─── Root shell ───────────────────────────────────────────────────────────────
+.al-root {
   display: flex;
   min-height: 100vh;
   width: 100%;
-
-  &__left {
-    flex: 1;
-    background: var(--background);
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 40px;
-
-    color: var(--foreground);
-  }
-
-  &__right {
-    flex: 1;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: var(--background);
-
-    padding: 24px;
-  }
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.branding {
-  max-width: 400px;
+// ─── Left panel ───────────────────────────────────────────────────────────────
+.al-left {
+  // Exact same #1E1B4B used on every page/modal header in the app
+  background: $al-indigo;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
 
-  h1 {
-    font-size: 56px;
+  // Dot-grid overlay (mirrors lgn-shell dot pattern, inverted to light-on-dark)
+  &__noise {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  // Decorative arc at bottom-right
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -120px;
+    right: -120px;
+    width: 340px;
+    height: 340px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+    pointer-events: none;
+  }
+
+  // Everything sits above the noise overlay
+  > *:not(.al-left__noise) { position: relative; z-index: 1; }
+
+  // ── Top-left logo row ──
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 28px 36px;
+  }
+
+  &__logo-name {
+    font-size: 15px;
     font-weight: 700;
-    margin-bottom: 20px;
+    color: #fff;
+    letter-spacing: -0.2px;
   }
 
-  p {
-    font-size: 18px;
-    line-height: 1.7;
-    opacity: 0.9;
-  }
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 600px;
-
-  background: var(--card);
-
-  padding: 70px;
-
-  border-radius: 30px;
-
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-}
-
-@media (max-width: 768px) {
-  .auth-layout {
+  // ── Centre content ──
+  &__body {
+    flex: 1;
+    display: flex;
     flex-direction: column;
-
-    &__left {
-      min-height: 250px;
-    }
-
-    &__right {
-      padding: 20px;
-    }
+    justify-content: center;
+    padding: 0 48px;
+    max-width: 480px;
   }
 
-  .branding {
-    text-align: center;
+  // ── Bottom tagline ──
+  &__footer {
+    padding: 28px 36px;
+  }
 
-    h1 {
-      font-size: 42px;
+  &__footer-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+}
+
+// ─── Logo grid (reuses LoginPage logo — same markup, same sizes) ──────────────
+.al-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 12px);
+  gap: 5px;
+}
+
+.al-logo-box {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+
+  &--red    { background: $error-color;   }
+  &--green  { background: $success-color; }
+  &--blue   { background: $info-color;    }
+  &--yellow { background: $warning-color; }
+}
+
+// ─── Branding copy ────────────────────────────────────────────────────────────
+.al-tagline {
+  margin-bottom: 40px;
+
+  &__eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin: 0 0 16px;
+  }
+
+  &__headline {
+    font-size: clamp(32px, 3.5vw, 44px);
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+    margin: 0 0 18px;
+  }
+
+  &__sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.7;
+    margin: 0;
+    max-width: 340px;
+  }
+}
+
+// ─── Feature pills ────────────────────────────────────────────────────────────
+.al-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.al-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  width: fit-content;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.18);
+  }
+
+  &__icon {
+    font-size: 15px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.8);
+  }
+}
+
+// ─── Right panel ──────────────────────────────────────────────────────────────
+.al-right {
+  // Same $lgn-bg / cusl-bg page background
+  background: $al-bg;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  min-width: 0;
+
+  // Dot-grid mirrors the login page shell pattern
+  background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px);
+  background-size: 22px 22px;
+
+  &__inner {
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+// Tablet — stack vertically, left becomes a compact top bar
+@media (max-width: 900px) {
+  .al-root { flex-direction: column; }
+
+  .al-left {
+    flex: none;
+
+    &__body {
+      padding: 0 32px 32px;
+      max-width: 100%;
     }
+
+    &__footer { display: none; }
+
+    &::after { display: none; }
+  }
+
+  .al-tagline {
+    margin-bottom: 24px;
+
+    &__headline { font-size: 28px; }
+    &__sub      { max-width: 100%; }
+  }
+
+  .al-pills {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .al-right {
+    flex: none;
+    padding: 32px 20px 48px;
+    // Remove the dot grid on mobile — too busy stacked under the dark panel
+    background-image: none;
+    background-color: $al-bg;
+  }
+}
+
+// Mobile — minimal top bar, full card below
+@media (max-width: 560px) {
+  .al-left {
+    &__logo { padding: 20px 20px 0; }
+    &__body { padding: 20px 20px 28px; }
+  }
+
+  .al-tagline {
+    &__headline { font-size: 24px; }
+    &__sub      { display: none; }
+  }
+
+  .al-pills { display: none; }
+
+  .al-right {
+    padding: 24px 16px 40px;
+
+    &__inner { max-width: 100%; }
   }
 }
