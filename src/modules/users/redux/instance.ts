@@ -6,7 +6,7 @@ import { UNAUTHORIZED } from "@/modules/auth/redux/authActions";
 const storageService = new StorageService();
 
 const instance = axios.create({
-  baseURL: "http://localhost:3010",
+  baseURL: process.env.REACT_APP_CUSTOMERS_API_URL || "http://localhost:3010",
   withCredentials: true,
 });
 
