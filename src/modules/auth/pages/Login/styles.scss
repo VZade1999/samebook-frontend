@@ -1,4 +1,5 @@
-@use "../../../../style/variables" as *;
+ @use "../../../../style/variables" as *;
+ @use "sass:color";
 
 // ─── Design tokens (mirrors CustomerListPage system) ──────────────────────────
 $lgn-bg          : #F4F5F9;
@@ -208,7 +209,7 @@ $lgn-shadow-lg   : 0 8px 32px rgba(30, 27, 75, 0.12), 0 2px 8px rgba(30, 27, 75,
   }
 
   &:hover {
-    border-color: darken($lgn-border, 8%);
+border-color: color.adjust($lgn-border, $lightness: -8%);
     background: #fff;
   }
 
@@ -288,7 +289,7 @@ $lgn-shadow-lg   : 0 8px 32px rgba(30, 27, 75, 0.12), 0 2px 8px rgba(30, 27, 75,
   transition: background 0.15s ease, transform 0.1s ease;
 
   &:hover:not(:disabled) {
-    background: lighten($lgn-indigo-deep, 8%);
+  background: color.adjust($lgn-indigo-deep, $lightness: 8%);
     transform: translateY(-1px);
   }
 
