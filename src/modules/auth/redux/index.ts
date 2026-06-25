@@ -2,7 +2,7 @@ import logMessage from "../../../utils/logger";
 import instance from "./instance";
 
 class AuthnService {
-  login = async (payload) => {
+  login = async (payload:any) => {
     try {
       return await instance.post(`/auth/login`, payload);
     } catch (error) {
@@ -11,7 +11,7 @@ class AuthnService {
     }
   };
 
-  forgotPassword = async (payload) => {
+  forgotPassword = async (payload:any) => {
     try {
       return await instance.post(`/auth/forgot-password`, payload);
     } catch (error) {
@@ -20,7 +20,7 @@ class AuthnService {
     }
   };
 
-  confirmForgotPassword = async (payload) => {
+  confirmForgotPassword = async (payload:any) => {
     try {
       return await instance.post(`/auth/confirm-forgot-password`, payload);
     } catch (error) {
