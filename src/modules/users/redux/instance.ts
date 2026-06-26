@@ -13,7 +13,7 @@ const instance = axios.create({
 // ─── Request Interceptor: Attach stored cookies to every request ───────────
 instance.interceptors.request.use(
   (config) => {
-    const cookies = storageService.getItem("auth_cookies"); // retrieve saved cookies
+    const cookies = storageService.getItem("token"); // retrieve saved cookies
 
     if (cookies) {
       config.headers["Cookie"] = cookies; // attach as Cookie header
@@ -34,7 +34,7 @@ instance.interceptors.response.use(
         ? setCookieHeader.map((c: string) => c.split(";")[0]).join("; ")
         : (setCookieHeader as string).split(";")[0];
 
-      storageService.setItem("auth_cookies", cookieString);
+      storageService.setItem("token", cookieString);
     }
 
     return response;
