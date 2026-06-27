@@ -1,25 +1,58 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import dayjs from "dayjs";
 import {
-  Form, notification, Pagination, Row, Col, Space, Table, Tabs, Empty,
-  Popconfirm, Input, Grid, Drawer, Spin,
+  Form,
+  notification,
+  Pagination,
+  Row,
+  Col,
+  Space,
+  Table,
+  Tabs,
+  Empty,
+  Popconfirm,
+  Input,
+  Grid,
+  Drawer,
+  Spin,
   Select,
   Tooltip,
 } from "antd";
 import {
-  PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined,
-  CloseOutlined, DownloadOutlined, UserOutlined, MailOutlined, PhoneOutlined,
-  BankOutlined, EnvironmentOutlined, ClockCircleOutlined, FileTextOutlined,
-  ShopOutlined, NumberOutlined, CheckCircleOutlined, SendOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  EyeOutlined,
+  CloseOutlined,
+  DownloadOutlined,
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  BankOutlined,
+  EnvironmentOutlined,
+  ClockCircleOutlined,
+  FileTextOutlined,
+  ShopOutlined,
+  NumberOutlined,
+  CheckCircleOutlined,
+  SendOutlined,
   RightOutlined,
   CheckCircleFilled,
   FileDoneOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import {
   approveQuotation,
-  createQuotation, deleteQuotation, getQuotationDetails, getQuotationHistory,
-  getQuotationTimeline, getQuotations, sendQuotation, updateQuotation,
+  createQuotation,
+  deleteQuotation,
+  getQuotationDetails,
+  getQuotationHistory,
+  getQuotationTimeline,
+  getQuotations,
+  sendQuotation,
+  updateQuotation,
 } from "../redux/quotationActions";
 import { downloadQuotationPDF as downloadQuotationPDFHelper } from "../components/quotationPdf";
 import QuotationService from "../redux";
@@ -138,6 +171,17 @@ export const GlobalStyles = () => (
       font-size: 12px; color: var(--qt-muted); white-space: nowrap;
       background: #F3F4F6; padding: 6px 12px; border-radius: 6px;
     }
+      .qt-icon-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border: 1px solid var(--qt-border);
+  border-radius: var(--qt-radius-sm); background: #FAFAFA;
+  color: var(--qt-text); font-size: 13px; font-weight: 500;
+  font-family: 'Inter', sans-serif; cursor: pointer;
+  transition: all .15s; white-space: nowrap;
+}
+.qt-icon-btn:hover {
+  background: var(--qt-accent-light); border-color: var(--qt-accent); color: var(--qt-accent);
+}
 
     /* ── Body ── */
     .qt-body { padding: 0 24px 40px; }
@@ -421,15 +465,31 @@ export const GlobalStyles = () => (
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (value: any) => {
   const n = Number(value);
-  return Number.isFinite(n) ? `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹0.00";
+  return Number.isFinite(n)
+    ? `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : "₹0.00";
 };
 
 export const joinAddr = (snap: any) =>
-  [snap?.address_line_1, snap?.address_line_2, snap?.city, snap?.state, snap?.country, snap?.postal_code]
-    .filter(Boolean).join(", ");
+  [
+    snap?.address_line_1,
+    snap?.address_line_2,
+    snap?.city,
+    snap?.state,
+    snap?.country,
+    snap?.postal_code,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
 export const parseJsonField = (raw: any) => {
-  if (typeof raw === "string") { try { return JSON.parse(raw); } catch { return undefined; } }
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
   return raw;
 };
 
@@ -440,22 +500,25 @@ export const getValidityDate = (v: string | undefined) => {
 };
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
-  SENT:           { color: "#4F46E5", bg: "#ECFDF5" },
-  DRAFT:          { color: "#6B7280", bg: "#F3F4F6" },
-  EXPIRED:        { color: "#DC2626", bg: "#FEF2F2" },
-  APPROVED:       { color: "#059669", bg: "#EEF2FF" },
-  REJECTED:       { color: "#EA580C", bg: "#FFF7ED" },
-  PAID:           { color: "#0891B2", bg: "#ECFEFF" },
+  SENT: { color: "#4F46E5", bg: "#ECFDF5" },
+  DRAFT: { color: "#6B7280", bg: "#F3F4F6" },
+  EXPIRED: { color: "#DC2626", bg: "#FEF2F2" },
+  APPROVED: { color: "#059669", bg: "#EEF2FF" },
+  REJECTED: { color: "#EA580C", bg: "#FFF7ED" },
+  PAID: { color: "#0891B2", bg: "#ECFEFF" },
   PARTIALLY_PAID: { color: "#D97706", bg: "#FFFBEB" },
-  PARTIAL:        { color: "#D97706", bg: "#FFFBEB" },
-  DELETED :        { color: "#DC2626", bg: "#F3F4F6" }, 
+  PARTIAL: { color: "#D97706", bg: "#FFFBEB" },
+  DELETED: { color: "#DC2626", bg: "#F3F4F6" },
 };
 
 const StatusPill = ({ status }: { status?: string }) => {
   const key = (status || "").toUpperCase().replace(/-/g, "_");
   const cfg = STATUS_CONFIG[key] || { color: "#7C3AED", bg: "#F5F3FF" };
   return (
-    <span className="qt-status" style={{ background: cfg.bg, color: cfg.color }}>
+    <span
+      className="qt-status"
+      style={{ background: cfg.bg, color: cfg.color }}
+    >
       <span className="qt-status-dot" style={{ background: cfg.color }} />
       {(status || "UNKNOWN").toUpperCase()}
     </span>
@@ -463,14 +526,33 @@ const StatusPill = ({ status }: { status?: string }) => {
 };
 
 // ─── Details tab sub-components ───────────────────────────────────────────────
-const InfoRow = ({ icon, label, value }: { icon?: React.ReactNode; label: string; value: React.ReactNode }) => (
+const InfoRow = ({
+  icon,
+  label,
+  value,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) => (
   <div className="qt-info-row">
-    <span className="qt-info-label">{icon}{label}</span>
+    <span className="qt-info-label">
+      {icon}
+      {label}
+    </span>
     <span className="qt-info-value">{value ?? "—"}</span>
   </div>
 );
 
-const SectionCard = ({ title, children, noPad }: { title: string; children: React.ReactNode; noPad?: boolean }) => (
+const SectionCard = ({
+  title,
+  children,
+  noPad,
+}: {
+  title: string;
+  children: React.ReactNode;
+  noPad?: boolean;
+}) => (
   <div className="qt-section">
     <div className="qt-section-label">{title}</div>
     {noPad ? children : <div className="qt-section-card">{children}</div>}
@@ -478,7 +560,10 @@ const SectionCard = ({ title, children, noPad }: { title: string; children: Reac
 );
 
 // ─── Details Tab ──────────────────────────────────────────────────────────────
-const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) => {
+const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({
+  q,
+  isMobile,
+}) => {
   const shipping = parseJsonField(q.shipping_address_snapshot);
   const billing = parseJsonField(q.billing_address_snapshot);
   const business = parseJsonField(q.business_details_snapshot) || {};
@@ -489,12 +574,33 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
   const hasIgst = q.igst_percent > 0 || q.igst_amount > 0;
 
   const itemColumns = [
-    { title: "Item", dataIndex: "product_name", render: (_: any, r: any) => r.product_name || r.itemName || r.description },
+    {
+      title: "Item",
+      dataIndex: "product_name",
+      render: (_: any, r: any) => r.product_name || r.itemName || r.description,
+    },
     { title: "HSN", dataIndex: "hsn_code", render: (v: any) => v || "—" },
-    { title: "Qty", dataIndex: "qty", width: 60, render: (_: any, r: any) => r.qty || r.quantity || 0 },
+    {
+      title: "Qty",
+      dataIndex: "qty",
+      width: 60,
+      render: (_: any, r: any) => r.qty || r.quantity || 0,
+    },
     { title: "Rate", dataIndex: "rate", width: 90, render: (v: any) => fmt(v) },
-    { title: "Disc%", dataIndex: "discount_percent", width: 70, render: (v: any) => v ? `${v}%` : "—" },
-    { title: "Amount", dataIndex: "amount", width: 100, render: (_: any, r: any) => <span className="qt-currency">{fmt(r.amount || r.total || 0)}</span> },
+    {
+      title: "Disc%",
+      dataIndex: "discount_percent",
+      width: 70,
+      render: (v: any) => (v ? `${v}%` : "—"),
+    },
+    {
+      title: "Amount",
+      dataIndex: "amount",
+      width: 100,
+      render: (_: any, r: any) => (
+        <span className="qt-currency">{fmt(r.amount || r.total || 0)}</span>
+      ),
+    },
   ];
 
   return (
@@ -505,20 +611,40 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
         <div className="qt-detail-hero-content">
           <div>
             <div className="qt-detail-qnum">#{q.quotation_number}</div>
-            <div className="qt-detail-customer">{q.customer_name}{q.company_name ? ` · ${q.company_name}` : ""}</div>
-            <div className="qt-detail-version">Version {q.version_number ?? 1}</div>
+            <div className="qt-detail-customer">
+              {q.customer_name}
+              {q.company_name ? ` · ${q.company_name}` : ""}
+            </div>
+            <div className="qt-detail-version">
+              Version {q.version_number ?? 1}
+            </div>
             {(q.validity || q.validity_date) && (
               <div className="qt-detail-validity">
                 <ClockCircleOutlined />
-                Valid till {q.validity || new Date(q.validity_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                Valid till{" "}
+                {q.validity ||
+                  new Date(q.validity_date).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
               </div>
             )}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 8,
+            }}
+          >
             <StatusPill status={q.status} />
             <div className="qt-detail-total-strip">
               <div className="qt-detail-total-label">Grand Total</div>
-              <div className="qt-detail-total-val">{fmt(q.grand_total ?? 0)}</div>
+              <div className="qt-detail-total-val">
+                {fmt(q.grand_total ?? 0)}
+              </div>
             </div>
           </div>
         </div>
@@ -526,11 +652,44 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
 
       {/* Contact */}
       <SectionCard title="Contact">
-        {q.contact_person_name && <InfoRow icon={<UserOutlined />} label="Name" value={q.contact_person_name} />}
-        {q.contact_person_email && <InfoRow icon={<MailOutlined />} label="Email" value={q.contact_person_email} />}
-        {q.contact_person_phone && <InfoRow icon={<PhoneOutlined />} label="Phone" value={q.contact_person_phone} />}
+        {q.contact_person_name && (
+          <InfoRow
+            icon={<UserOutlined />}
+            label="Name"
+            value={q.contact_person_name}
+          />
+        )}
+        {q.contact_person_email && (
+          <InfoRow
+            icon={<MailOutlined />}
+            label="Email"
+            value={q.contact_person_email}
+          />
+        )}
+        {q.contact_person_phone && (
+          <InfoRow
+            icon={<PhoneOutlined />}
+            label="Phone"
+            value={q.contact_person_phone}
+          />
+        )}
         {q.customer_gst_number && (
-          <InfoRow icon={<NumberOutlined />} label="GST" value={<code style={{ fontSize: 12, background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>{q.customer_gst_number}</code>} />
+          <InfoRow
+            icon={<NumberOutlined />}
+            label="GST"
+            value={
+              <code
+                style={{
+                  fontSize: 12,
+                  background: "#F3F4F6",
+                  padding: "1px 6px",
+                  borderRadius: 4,
+                }}
+              >
+                {q.customer_gst_number}
+              </code>
+            }
+          />
         )}
       </SectionCard>
 
@@ -539,11 +698,17 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
         <div className="qt-section-label">Addresses</div>
         <div className="qt-addr-grid">
           <div className="qt-addr-card">
-            <div className="qt-addr-label"><EnvironmentOutlined style={{ color: "#4F46E5" }} />Shipping</div>
+            <div className="qt-addr-label">
+              <EnvironmentOutlined style={{ color: "#4F46E5" }} />
+              Shipping
+            </div>
             <div className="qt-addr-text">{joinAddr(shipping) || "—"}</div>
           </div>
           <div className="qt-addr-card">
-            <div className="qt-addr-label"><EnvironmentOutlined style={{ color: "#059669" }} />Billing</div>
+            <div className="qt-addr-label">
+              <EnvironmentOutlined style={{ color: "#059669" }} />
+              Billing
+            </div>
             <div className="qt-addr-text">{joinAddr(billing) || "—"}</div>
           </div>
         </div>
@@ -552,22 +717,106 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
       {/* Business */}
       {(business.businessName || business.businessAddress) && (
         <SectionCard title="Business">
-          {business.businessName && <InfoRow icon={<ShopOutlined />} label="Name" value={business.businessName} />}
-          {business.businessGST && <InfoRow label="GST" value={<code style={{ fontSize: 12, background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>{business.businessGST}</code>} />}
-          {business.businessPhone && <InfoRow icon={<PhoneOutlined />} label="Phone" value={business.businessPhone} />}
-          {business.businessEmail && <InfoRow icon={<MailOutlined />} label="Email" value={business.businessEmail} />}
-          {business.businessAddress && <InfoRow icon={<EnvironmentOutlined />} label="Address" value={typeof business.businessAddress === "string" ? business.businessAddress.replace(/\n/g, ", ") : ""} />}
+          {business.businessName && (
+            <InfoRow
+              icon={<ShopOutlined />}
+              label="Name"
+              value={business.businessName}
+            />
+          )}
+          {business.businessGST && (
+            <InfoRow
+              label="GST"
+              value={
+                <code
+                  style={{
+                    fontSize: 12,
+                    background: "#F3F4F6",
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                  }}
+                >
+                  {business.businessGST}
+                </code>
+              }
+            />
+          )}
+          {business.businessPhone && (
+            <InfoRow
+              icon={<PhoneOutlined />}
+              label="Phone"
+              value={business.businessPhone}
+            />
+          )}
+          {business.businessEmail && (
+            <InfoRow
+              icon={<MailOutlined />}
+              label="Email"
+              value={business.businessEmail}
+            />
+          )}
+          {business.businessAddress && (
+            <InfoRow
+              icon={<EnvironmentOutlined />}
+              label="Address"
+              value={
+                typeof business.businessAddress === "string"
+                  ? business.businessAddress.replace(/\n/g, ", ")
+                  : ""
+              }
+            />
+          )}
         </SectionCard>
       )}
 
       {/* Payment */}
       {payment?.bank_name && (
         <SectionCard title="Bank Details">
-          <InfoRow icon={<BankOutlined />} label="Bank" value={<strong>{payment.bank_name}</strong>} />
-          {payment.account_holder_name && <InfoRow label="Holder" value={payment.account_holder_name} />}
-          {payment.account_number && <InfoRow label="Account" value={<code style={{ fontSize: 12, background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>{payment.account_number}</code>} />}
-          {payment.ifsc_code && <InfoRow label="IFSC" value={<code style={{ fontSize: 12, background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>{payment.ifsc_code}</code>} />}
-          {payment.branch_name && <InfoRow label="Branch" value={payment.branch_name} />}
+          <InfoRow
+            icon={<BankOutlined />}
+            label="Bank"
+            value={<strong>{payment.bank_name}</strong>}
+          />
+          {payment.account_holder_name && (
+            <InfoRow label="Holder" value={payment.account_holder_name} />
+          )}
+          {payment.account_number && (
+            <InfoRow
+              label="Account"
+              value={
+                <code
+                  style={{
+                    fontSize: 12,
+                    background: "#F3F4F6",
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                  }}
+                >
+                  {payment.account_number}
+                </code>
+              }
+            />
+          )}
+          {payment.ifsc_code && (
+            <InfoRow
+              label="IFSC"
+              value={
+                <code
+                  style={{
+                    fontSize: 12,
+                    background: "#F3F4F6",
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                  }}
+                >
+                  {payment.ifsc_code}
+                </code>
+              }
+            />
+          )}
+          {payment.branch_name && (
+            <InfoRow label="Branch" value={payment.branch_name} />
+          )}
         </SectionCard>
       )}
 
@@ -578,7 +827,10 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
             <Table
               size="small"
               columns={itemColumns}
-              dataSource={(q.items || []).map((item: any, i: number) => ({ ...item, key: i }))}
+              dataSource={(q.items || []).map((item: any, i: number) => ({
+                ...item,
+                key: i,
+              }))}
               pagination={false}
               style={{ fontSize: 13 }}
               className="qt-table-wrap"
@@ -592,10 +844,38 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
         <div className="qt-summary-card">
           {[
             { label: "Subtotal", val: fmt(q.sub_total ?? 0) },
-            { label: "Discount", pct: `${Number(q.discount_percent ?? 0)}%`, val: `− ${fmt(q.discount_amount ?? 0)}` },
-            ...(hasCgst ? [{ label: "CGST", pct: `${Number(q.cgst_percent ?? 0)}%`, val: fmt(q.cgst_amount ?? 0) }] : []),
-            ...(hasSgst ? [{ label: "SGST", pct: `${Number(q.sgst_percent ?? 0)}%`, val: fmt(q.sgst_amount ?? 0) }] : []),
-            ...(hasIgst ? [{ label: "IGST", pct: `${Number(q.igst_percent ?? 0)}%`, val: fmt(q.igst_amount ?? 0) }] : []),
+            {
+              label: "Discount",
+              pct: `${Number(q.discount_percent ?? 0)}%`,
+              val: `− ${fmt(q.discount_amount ?? 0)}`,
+            },
+            ...(hasCgst
+              ? [
+                  {
+                    label: "CGST",
+                    pct: `${Number(q.cgst_percent ?? 0)}%`,
+                    val: fmt(q.cgst_amount ?? 0),
+                  },
+                ]
+              : []),
+            ...(hasSgst
+              ? [
+                  {
+                    label: "SGST",
+                    pct: `${Number(q.sgst_percent ?? 0)}%`,
+                    val: fmt(q.sgst_amount ?? 0),
+                  },
+                ]
+              : []),
+            ...(hasIgst
+              ? [
+                  {
+                    label: "IGST",
+                    pct: `${Number(q.igst_percent ?? 0)}%`,
+                    val: fmt(q.igst_amount ?? 0),
+                  },
+                ]
+              : []),
             { label: "Transport", val: fmt(q.transport_charges ?? 0) },
           ].map(({ label, pct, val }) => (
             <div key={label} className="qt-summary-row">
@@ -608,7 +888,9 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
           ))}
           <div className="qt-summary-row total">
             <span style={{ fontWeight: 700, fontSize: 14 }}>Grand Total</span>
-            <span className="qt-summary-val total">{fmt(q.grand_total ?? 0)}</span>
+            <span className="qt-summary-val total">
+              {fmt(q.grand_total ?? 0)}
+            </span>
           </div>
         </div>
       </SectionCard>
@@ -616,14 +898,32 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
       {/* Notes */}
       {q.notes && (
         <SectionCard title="Notes">
-          <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, padding: "10px 14px" }}>{q.notes}</div>
+          <div
+            style={{
+              fontSize: 13,
+              color: "#374151",
+              lineHeight: 1.7,
+              padding: "10px 14px",
+            }}
+          >
+            {q.notes}
+          </div>
         </SectionCard>
       )}
 
       {/* Audit */}
       <SectionCard title="Audit">
-        <InfoRow label="Created At" value={q.created_at ? new Date(q.created_at).toLocaleString() : "—"} />
-        <InfoRow label="Created By" value={`${q.created_by_user?.first_name || ""} ${q.created_by_user?.last_name || ""}`.trim() || "—"} />
+        <InfoRow
+          label="Created At"
+          value={q.created_at ? new Date(q.created_at).toLocaleString() : "—"}
+        />
+        <InfoRow
+          label="Created By"
+          value={
+            `${q.created_by_user?.first_name || ""} ${q.created_by_user?.last_name || ""}`.trim() ||
+            "—"
+          }
+        />
       </SectionCard>
     </div>
   );
@@ -631,12 +931,15 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({ q, isMobile }) =>
 
 // ─── History Tab ──────────────────────────────────────────────────────────────
 const HistoryTab: React.FC<{ history: any[] }> = ({ history }) => {
-  if (!history.length) return (
-    <div className="qt-empty" style={{ paddingTop: 32 }}>
-      <div className="qt-empty-icon"><ClockCircleOutlined /></div>
-      <div className="qt-empty-text">No history available</div>
-    </div>
-  );
+  if (!history.length)
+    return (
+      <div className="qt-empty" style={{ paddingTop: 32 }}>
+        <div className="qt-empty-icon">
+          <ClockCircleOutlined />
+        </div>
+        <div className="qt-empty-text">No history available</div>
+      </div>
+    );
   return (
     <div style={{ paddingTop: 12 }}>
       {history.map((item: any, i: number) => (
@@ -646,15 +949,34 @@ const HistoryTab: React.FC<{ history: any[] }> = ({ history }) => {
             <div className="qt-timeline-title">
               Version {item.version_number || item.id}
               {item.action_type && (
-                <span style={{ marginLeft: 8, background: "#F3F4F6", color: "#6B7280", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99 }}>
+                <span
+                  style={{
+                    marginLeft: 8,
+                    background: "#F3F4F6",
+                    color: "#6B7280",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "2px 8px",
+                    borderRadius: 99,
+                  }}
+                >
                   {item.action_type}
                 </span>
               )}
             </div>
-            <div className="qt-timeline-desc">{item.change_reason || item.action_type || "Quotation snapshot saved"}</div>
+            <div className="qt-timeline-desc">
+              {item.change_reason ||
+                item.action_type ||
+                "Quotation snapshot saved"}
+            </div>
             <div className="qt-timeline-meta">
-              {item.changed_by_user ? `By ${item.changed_by_user.first_name || ""} ${item.changed_by_user.last_name || ""}`.trim() : item.changed_by ? `By user ${item.changed_by}` : "Unknown"}
-              {item.created_at && ` · ${new Date(item.created_at).toLocaleString()}`}
+              {item.changed_by_user
+                ? `By ${item.changed_by_user.first_name || ""} ${item.changed_by_user.last_name || ""}`.trim()
+                : item.changed_by
+                  ? `By user ${item.changed_by}`
+                  : "Unknown"}
+              {item.created_at &&
+                ` · ${new Date(item.created_at).toLocaleString()}`}
             </div>
           </div>
         </div>
@@ -665,12 +987,15 @@ const HistoryTab: React.FC<{ history: any[] }> = ({ history }) => {
 
 // ─── Timeline Tab ─────────────────────────────────────────────────────────────
 const TimelineTab: React.FC<{ timeline: any[] }> = ({ timeline }) => {
-  if (!timeline.length) return (
-    <div className="qt-empty" style={{ paddingTop: 32 }}>
-      <div className="qt-empty-icon"><ClockCircleOutlined /></div>
-      <div className="qt-empty-text">No timeline events</div>
-    </div>
-  );
+  if (!timeline.length)
+    return (
+      <div className="qt-empty" style={{ paddingTop: 32 }}>
+        <div className="qt-empty-icon">
+          <ClockCircleOutlined />
+        </div>
+        <div className="qt-empty-text">No timeline events</div>
+      </div>
+    );
   return (
     <div style={{ paddingTop: 12 }}>
       {timeline.map((item: any, i: number) => (
@@ -678,12 +1003,17 @@ const TimelineTab: React.FC<{ timeline: any[] }> = ({ timeline }) => {
           <div className="qt-timeline-dot" style={{ background: "#4F46E5" }} />
           <div style={{ flex: 1 }}>
             <div className="qt-timeline-title">
-              <ClockCircleOutlined style={{ marginRight: 6, color: "#4F46E5" }} />
+              <ClockCircleOutlined
+                style={{ marginRight: 6, color: "#4F46E5" }}
+              />
               {item.action_type || item.type || "Event"}
             </div>
             <div className="qt-timeline-meta">
-              {item.changed_by_user ? `Changed by ${item.changed_by_user.first_name || ""} ${item.changed_by_user.last_name || ""}`.trim() : "Timeline event"}
-              {item.created_at && ` · ${new Date(item.created_at).toLocaleString()}`}
+              {item.changed_by_user
+                ? `Changed by ${item.changed_by_user.first_name || ""} ${item.changed_by_user.last_name || ""}`.trim()
+                : "Timeline event"}
+              {item.created_at &&
+                ` · ${new Date(item.created_at).toLocaleString()}`}
             </div>
           </div>
         </div>
@@ -697,17 +1027,34 @@ const TimelineTab: React.FC<{ timeline: any[] }> = ({ timeline }) => {
 // checks the desktop table applies (has_invoice / status === "DRAFT"), not
 // just raw permission flags — see how this is invoked from QuotationPage.
 const MobileCard: React.FC<{
-  record: any; downloadingId: number | null;
-  onView: (r: any) => void; onEdit: (r: any) => void;
-  onDelete: (r: any) => void; onDownload: (r: any) => void;
-  canEdit: boolean; canDelete: boolean; canExport: boolean;
-}> = ({ record, downloadingId, onView, onEdit, onDelete, onDownload, canEdit, canDelete, canExport }) => (
+  record: any;
+  downloadingId: number | null;
+  onView: (r: any) => void;
+  onEdit: (r: any) => void;
+  onDelete: (r: any) => void;
+  onDownload: (r: any) => void;
+  canEdit: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+}> = ({
+  record,
+  downloadingId,
+  onView,
+  onEdit,
+  onDelete,
+  onDownload,
+  canEdit,
+  canDelete,
+  canExport,
+}) => (
   <div className="qt-mobile-card" onClick={() => onView(record)}>
     <div className="qt-mobile-card-top">
       <div>
         <div className="qt-mobile-qnum">{record.quotation_number}</div>
         <div className="qt-mobile-customer">{record.customer_name}</div>
-        {record.company_name && <div className="qt-mobile-company">{record.company_name}</div>}
+        {record.company_name && (
+          <div className="qt-mobile-company">{record.company_name}</div>
+        )}
       </div>
       <StatusPill status={record.status} />
     </div>
@@ -715,37 +1062,75 @@ const MobileCard: React.FC<{
     <div className="qt-mobile-amounts">
       <div className="qt-mobile-amt-block">
         <div className="qt-mobile-amt-label">Total</div>
-        <div className="qt-mobile-amt-val" style={{ color: "#4F46E5" }}>{fmt(record.grand_total)}</div>
+        <div className="qt-mobile-amt-val" style={{ color: "#4F46E5" }}>
+          {fmt(record.grand_total)}
+        </div>
       </div>
       <div className="qt-mobile-amt-block">
         <div className="qt-mobile-amt-label">Expiry</div>
         <div className="qt-mobile-amt-val" style={{ fontSize: 13 }}>
-          {record.validity_date ? new Date(record.validity_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}
+          {record.validity_date
+            ? new Date(record.validity_date).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+              })
+            : "—"}
         </div>
       </div>
       <div className="qt-mobile-amt-block">
         <div className="qt-mobile-amt-label">Created</div>
         <div className="qt-mobile-amt-val" style={{ fontSize: 13 }}>
-          {record.created_at ? new Date(record.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}
+          {record.created_at
+            ? new Date(record.created_at).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+              })
+            : "—"}
         </div>
       </div>
     </div>
 
-    <div className="qt-mobile-footer" onClick={e => e.stopPropagation()}>
+    <div className="qt-mobile-footer" onClick={(e) => e.stopPropagation()}>
       <div className="qt-mobile-meta">
         {record.created_by_user?.first_name} {record.created_by_user?.last_name}
       </div>
       <div className="qt-mobile-btns">
         {canExport && (
-          <button className="qt-btn qt-btn-ghost qt-btn-sm" onClick={() => onDownload(record)}>
-            {downloadingId === record.id ? <Spin size="small" /> : <DownloadOutlined />}
+          <button
+            className="qt-btn qt-btn-ghost qt-btn-sm"
+            onClick={() => onDownload(record)}
+          >
+            {downloadingId === record.id ? (
+              <Spin size="small" />
+            ) : (
+              <DownloadOutlined />
+            )}
           </button>
         )}
-        <button className="qt-btn qt-btn-ghost qt-btn-sm" onClick={() => onView(record)}><EyeOutlined /> View</button>
-        {canEdit && <button className="qt-btn qt-btn-ghost qt-btn-sm" onClick={() => onEdit(record)}><EditOutlined /></button>}
+        <button
+          className="qt-btn qt-btn-ghost qt-btn-sm"
+          onClick={() => onView(record)}
+        >
+          <EyeOutlined /> View
+        </button>
+        {canEdit && (
+          <button
+            className="qt-btn qt-btn-ghost qt-btn-sm"
+            onClick={() => onEdit(record)}
+          >
+            <EditOutlined />
+          </button>
+        )}
         {canDelete && (
-          <Popconfirm title="Delete this quotation?" onConfirm={() => onDelete(record)} okText="Delete" okButtonProps={{ danger: true }}>
-            <button className="qt-btn qt-btn-danger qt-btn-sm"><DeleteOutlined /></button>
+          <Popconfirm
+            title="Delete this quotation?"
+            onConfirm={() => onDelete(record)}
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+          >
+            <button className="qt-btn qt-btn-danger qt-btn-sm">
+              <DeleteOutlined />
+            </button>
           </Popconfirm>
         )}
       </div>
@@ -766,9 +1151,18 @@ const QuotationPage = () => {
   const isMobile = !screens.md;
 
   useEffect(() => {
-    const stored = storageService.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS);
-    const userDetails = storageService.getItem(StorageService.STORAGE_KEYS.USER_DETAILS);
-    if (stored && userDetails) { try { setCompanyDetails(JSON.parse(stored)); setUserDetails(JSON.parse(userDetails)) } catch { } }
+    const stored = storageService.getItem(
+      StorageService.STORAGE_KEYS.COMPANY_DETAILS,
+    );
+    const userDetails = storageService.getItem(
+      StorageService.STORAGE_KEYS.USER_DETAILS,
+    );
+    if (stored && userDetails) {
+      try {
+        setCompanyDetails(JSON.parse(stored));
+        setUserDetails(JSON.parse(userDetails));
+      } catch {}
+    }
   }, [storageService]);
 
   const [page, setPage] = useState(1);
@@ -781,8 +1175,12 @@ const QuotationPage = () => {
   const [editingQuotation, setEditingQuotation] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [detailsVisible, setDetailsVisible] = useState(false);
-  const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(null);
-  const [downloadingQuotationId, setDownloadingQuotationId] = useState<number | null>(null);
+  const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(
+    null,
+  );
+  const [downloadingQuotationId, setDownloadingQuotationId] = useState<
+    number | null
+  >(null);
 
   const quotationState = useSelector((state: any) => state.quotations);
   const authState = useSelector((state: any) => state.authn);
@@ -810,15 +1208,25 @@ const QuotationPage = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    if (prevCreateLoadingRef.current && !createLoading && !quotationState.error) {
-      setShowForm(false); setEditingQuotation(null); form.resetFields();
-      dispatch(getQuotations({ page, limit: pageSize, search: search || undefined }));
+    if (
+      prevCreateLoadingRef.current &&
+      !createLoading &&
+      !quotationState.error
+    ) {
+      setShowForm(false);
+      setEditingQuotation(null);
+      form.resetFields();
+      dispatch(
+        getQuotations({ page, limit: pageSize, search: search || undefined }),
+      );
     }
     prevCreateLoadingRef.current = createLoading;
   }, [createLoading, quotationState.error]);
 
   useEffect(() => {
-    dispatch(getQuotations({ page, limit: pageSize, search: search || undefined }));
+    dispatch(
+      getQuotations({ page, limit: pageSize, search: search || undefined }),
+    );
   }, [dispatch, page, pageSize, search]);
 
   useEffect(() => {
@@ -831,85 +1239,193 @@ const QuotationPage = () => {
   useEffect(() => {
     if (!editingQuotation || !selectedQuotation) return;
     if (selectedQuotation.id !== editingQuotation.id) return;
-    const billingSnapshot = parseJsonField(selectedQuotation.billing_address_snapshot);
-    const shippingSnapshot = parseJsonField(selectedQuotation.shipping_address_snapshot);
-    const businessSnapshot = parseJsonField(selectedQuotation.business_details_snapshot) || {};
-    const paymentSnapshot = parseJsonField(selectedQuotation.payment_details_snapshot) || {};
+    const billingSnapshot = parseJsonField(
+      selectedQuotation.billing_address_snapshot,
+    );
+    const shippingSnapshot = parseJsonField(
+      selectedQuotation.shipping_address_snapshot,
+    );
+    const businessSnapshot =
+      parseJsonField(selectedQuotation.business_details_snapshot) || {};
+    const paymentSnapshot =
+      parseJsonField(selectedQuotation.payment_details_snapshot) || {};
     form.setFieldsValue({
-      customerId: selectedQuotation.customer_id, customerName: selectedQuotation.customer_name,
-      customerType: selectedQuotation.customer_type, companyName: selectedQuotation.company_name,
-      customerGSTN: selectedQuotation.customer_gst_number, customerEmail: selectedQuotation.contact_person_email,
-      customerPhone: selectedQuotation.contact_person_phone, contactPersonId: selectedQuotation.contact_person_id,
-      billingAddressId: selectedQuotation.billing_address_id, shippingAddressId: selectedQuotation.shipping_address_id,
-      billingAddressSnapshot: JSON.stringify(billingSnapshot), shippingAddressSnapshot: JSON.stringify(shippingSnapshot),
-      businessDetailsSnapshot: JSON.stringify(businessSnapshot), paymentBankId: paymentSnapshot.bank_id,
-      paymentBankName: paymentSnapshot.bank_name, paymentAccountHolder: paymentSnapshot.account_holder_name,
-      paymentAccountNumber: paymentSnapshot.account_number, paymentIFSC: paymentSnapshot.ifsc_code,
-      paymentBranchName: paymentSnapshot.branch_name, paymentBranchAddress: paymentSnapshot.branch_address,
-      paymentAccountType: paymentSnapshot.account_type, paymentIsDefault: paymentSnapshot.is_default,
-      businessName: businessSnapshot.businessName ?? selectedQuotation.company_name ?? "",
-      selectedAddress: Array.isArray(businessSnapshot.selectedAddress) ? businessSnapshot.selectedAddress : [],
-      selectedLocation: Array.isArray(businessSnapshot.selectedLocation) ? businessSnapshot.selectedLocation : [],
-      selectedPhones: Array.isArray(businessSnapshot.selectedPhones) ? businessSnapshot.selectedPhones : [],
-      selectedEmails: Array.isArray(businessSnapshot.selectedEmails) ? businessSnapshot.selectedEmails : [],
-      businessAddress: businessSnapshot.businessAddress ?? joinAddr(billingSnapshot),
-      businessGST: businessSnapshot.businessGST ?? "", businessPhone: businessSnapshot.businessPhone ?? "",
+      customerId: selectedQuotation.customer_id,
+      customerName: selectedQuotation.customer_name,
+      customerType: selectedQuotation.customer_type,
+      companyName: selectedQuotation.company_name,
+      customerGSTN: selectedQuotation.customer_gst_number,
+      customerEmail: selectedQuotation.contact_person_email,
+      customerPhone: selectedQuotation.contact_person_phone,
+      contactPersonId: selectedQuotation.contact_person_id,
+      billingAddressId: selectedQuotation.billing_address_id,
+      shippingAddressId: selectedQuotation.shipping_address_id,
+      billingAddressSnapshot: JSON.stringify(billingSnapshot),
+      shippingAddressSnapshot: JSON.stringify(shippingSnapshot),
+      businessDetailsSnapshot: JSON.stringify(businessSnapshot),
+      paymentBankId: paymentSnapshot.bank_id,
+      paymentBankName: paymentSnapshot.bank_name,
+      paymentAccountHolder: paymentSnapshot.account_holder_name,
+      paymentAccountNumber: paymentSnapshot.account_number,
+      paymentIFSC: paymentSnapshot.ifsc_code,
+      paymentBranchName: paymentSnapshot.branch_name,
+      paymentBranchAddress: paymentSnapshot.branch_address,
+      paymentAccountType: paymentSnapshot.account_type,
+      paymentIsDefault: paymentSnapshot.is_default,
+      businessName:
+        businessSnapshot.businessName ?? selectedQuotation.company_name ?? "",
+      selectedAddress: Array.isArray(businessSnapshot.selectedAddress)
+        ? businessSnapshot.selectedAddress
+        : [],
+      selectedLocation: Array.isArray(businessSnapshot.selectedLocation)
+        ? businessSnapshot.selectedLocation
+        : [],
+      selectedPhones: Array.isArray(businessSnapshot.selectedPhones)
+        ? businessSnapshot.selectedPhones
+        : [],
+      selectedEmails: Array.isArray(businessSnapshot.selectedEmails)
+        ? businessSnapshot.selectedEmails
+        : [],
+      businessAddress:
+        businessSnapshot.businessAddress ?? joinAddr(billingSnapshot),
+      businessGST: businessSnapshot.businessGST ?? "",
+      businessPhone: businessSnapshot.businessPhone ?? "",
       businessEmail: businessSnapshot.businessEmail ?? "",
-      businessMeta: Array.isArray(businessSnapshot.businessMeta) ? businessSnapshot.businessMeta : [],
-      billingAddress: joinAddr(billingSnapshot), shippingAddress: joinAddr(shippingSnapshot),
+      businessMeta: Array.isArray(businessSnapshot.businessMeta)
+        ? businessSnapshot.businessMeta
+        : [],
+      billingAddress: joinAddr(billingSnapshot),
+      shippingAddress: joinAddr(shippingSnapshot),
       items: (selectedQuotation.items || []).map((item: any) => ({
-        itemName: item.product_name, hsn_code: item.hsn_code || item.hsn || "",
-        quantity: item.qty, price: item.rate, discount: item.discount_percent, total: item.amount,
+        itemName: item.product_name,
+        hsn_code: item.hsn_code || item.hsn || "",
+        quantity: item.qty,
+        price: item.rate,
+        discount: item.discount_percent,
+        total: item.amount,
       })),
-      subTotal: selectedQuotation.sub_total, discount: selectedQuotation.discount,
-      cgst: selectedQuotation.cgst_percent, sgst: selectedQuotation.sgst_percent, igst: selectedQuotation.igst_percent,
+      subTotal: selectedQuotation.sub_total,
+      discount: selectedQuotation.discount,
+      cgst: selectedQuotation.cgst_percent,
+      sgst: selectedQuotation.sgst_percent,
+      igst: selectedQuotation.igst_percent,
       placeOfOrder: billingSnapshot?.state || shippingSnapshot?.state,
-      transport: selectedQuotation.transport_charges, grandTotal: selectedQuotation.grand_total,
-      validity_date: getValidityDate(selectedQuotation.validity_date), notes: selectedQuotation.notes,
+      transport: selectedQuotation.transport_charges,
+      grandTotal: selectedQuotation.grand_total,
+      validity_date: getValidityDate(selectedQuotation.validity_date),
+      notes: selectedQuotation.notes,
     });
   }, [editingQuotation, selectedQuotation, form]);
 
   const downloadQuotationPDF = async (quotation: any) => {
     setDownloadingQuotationId(quotation.id);
-    try { await downloadQuotationPDFHelper(quotation, async (id: number) => quotationService.getQuotationDetails(id)); }
-    finally { setDownloadingQuotationId(null); }
+    try {
+      await downloadQuotationPDFHelper(quotation, async (id: number) =>
+        quotationService.getQuotationDetails(id),
+      );
+    } finally {
+      setDownloadingQuotationId(null);
+    }
   };
 
   const handleFinish = (values: any) => {
     const customerId = values.customerId;
     const userId = userDetails.id;
     const itemsRaw = values.items || [];
-    if (!itemsRaw.length) { notification.error({ message: "No items added", description: "Please add at least one item." }); return; }
+    if (!itemsRaw.length) {
+      notification.error({
+        message: "No items added",
+        description: "Please add at least one item.",
+      });
+      return;
+    }
     const items = itemsRaw.map((item: any) => ({
-      product_name: item?.itemName, hsn_code: item?.hsn_code,
-      qty: Number(item?.quantity || item?.qty || 0), rate: Number(item?.price || item?.rate || 0),
+      product_name: item?.itemName,
+      hsn_code: item?.hsn_code,
+      qty: Number(item?.quantity || item?.qty || 0),
+      rate: Number(item?.price || item?.rate || 0),
       discount_percent: Number(item?.discount || 0),
     }));
     const subTotal = Number(values.subTotal || 0);
     const discountPercent = Number(values.discount || 0);
-    const discountAmount = Number(values.discount_amount ?? (subTotal * discountPercent) / 100);
+    const discountAmount = Number(
+      values.discount_amount ?? (subTotal * discountPercent) / 100,
+    );
     const taxableAmount = subTotal - discountAmount;
-    const cgstPercent = Number(values.cgst || 0), sgstPercent = Number(values.sgst || 0), igstPercent = Number(values.igst || 0);
-    const cgstAmount = (taxableAmount * cgstPercent) / 100, sgstAmount = (taxableAmount * sgstPercent) / 100, igstAmount = (taxableAmount * igstPercent) / 100;
+    const cgstPercent = Number(values.cgst || 0),
+      sgstPercent = Number(values.sgst || 0),
+      igstPercent = Number(values.igst || 0);
+    const cgstAmount = (taxableAmount * cgstPercent) / 100,
+      sgstAmount = (taxableAmount * sgstPercent) / 100,
+      igstAmount = (taxableAmount * igstPercent) / 100;
     const transportCharges = Number(values.transport || 0);
-    const grandTotal = Number(values.grandTotal || taxableAmount + cgstAmount + sgstAmount + igstAmount + transportCharges);
-    const storedCD = storageService.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS);
-    const currentCompanyId = companyDetails?.id || (storedCD ? (() => { try { return JSON.parse(storedCD)?.id; } catch { return undefined; } })() : undefined);
+    const grandTotal = Number(
+      values.grandTotal ||
+        taxableAmount + cgstAmount + sgstAmount + igstAmount + transportCharges,
+    );
+    const storedCD = storageService.getItem(
+      StorageService.STORAGE_KEYS.COMPANY_DETAILS,
+    );
+    const currentCompanyId =
+      companyDetails?.id ||
+      (storedCD
+        ? (() => {
+            try {
+              return JSON.parse(storedCD)?.id;
+            } catch {
+              return undefined;
+            }
+          })()
+        : undefined);
     const basePayload: any = {
-      customer_id: Number(customerId) || undefined, user_id: Number(userId) || undefined,
-      contact_person_id: values.contactPersonId, billing_address_id: values.billingAddressId, shipping_address_id: values.shippingAddressId,
-      customer_name: values.customerName, customer_type: values.customerType, customer_gst_number: values.customerGSTN,
-      contact_person_name: values.customerName, contact_person_email: values.customerEmail, contact_person_phone: values.customerPhone,
+      customer_id: Number(customerId) || undefined,
+      user_id: Number(userId) || undefined,
+      contact_person_id: values.contactPersonId,
+      billing_address_id: values.billingAddressId,
+      shipping_address_id: values.shippingAddressId,
+      customer_name: values.customerName,
+      customer_type: values.customerType,
+      customer_gst_number: values.customerGSTN,
+      contact_person_name: values.customerName,
+      contact_person_email: values.customerEmail,
+      contact_person_phone: values.customerPhone,
       // Use the safe parser used everywhere else in this file — a raw
       // JSON.parse here would throw and crash submission if either
       // snapshot field is ever empty or malformed.
-      billing_address_snapshot: parseJsonField(values.billingAddressSnapshot), shipping_address_snapshot: parseJsonField(values.shippingAddressSnapshot),
-      business_details_snapshot: values.businessDetailsSnapshot ? parseJsonField(values.businessDetailsSnapshot) : undefined,
-      payment_details_snapshot: values.paymentBankId ? JSON.stringify({ bank_id: values.paymentBankId, bank_name: values.paymentBankName, account_holder_name: values.paymentAccountHolder, account_number: values.paymentAccountNumber, ifsc_code: values.paymentIFSC, branch_name: values.paymentBranchName, branch_address: values.paymentBranchAddress, account_type: values.paymentAccountType, is_default: values.paymentIsDefault }) : undefined,
-      validity_date: values.validity_date ? values.validity_date.toISOString() : undefined, notes: values.notes,
-      sub_total: subTotal, discount_percent: discountPercent, discount_amount: discountAmount,
-      cgst_percent: cgstPercent, cgst_amount: cgstAmount, sgst_percent: sgstPercent, sgst_amount: sgstAmount,
-      igst_percent: igstPercent, igst_amount: igstAmount, transport_charges: transportCharges, grand_total: grandTotal, items,
+      billing_address_snapshot: parseJsonField(values.billingAddressSnapshot),
+      shipping_address_snapshot: parseJsonField(values.shippingAddressSnapshot),
+      business_details_snapshot: values.businessDetailsSnapshot
+        ? parseJsonField(values.businessDetailsSnapshot)
+        : undefined,
+      payment_details_snapshot: values.paymentBankId
+        ? JSON.stringify({
+            bank_id: values.paymentBankId,
+            bank_name: values.paymentBankName,
+            account_holder_name: values.paymentAccountHolder,
+            account_number: values.paymentAccountNumber,
+            ifsc_code: values.paymentIFSC,
+            branch_name: values.paymentBranchName,
+            branch_address: values.paymentBranchAddress,
+            account_type: values.paymentAccountType,
+            is_default: values.paymentIsDefault,
+          })
+        : undefined,
+      validity_date: values.validity_date
+        ? values.validity_date.toISOString()
+        : undefined,
+      notes: values.notes,
+      sub_total: subTotal,
+      discount_percent: discountPercent,
+      discount_amount: discountAmount,
+      cgst_percent: cgstPercent,
+      cgst_amount: cgstAmount,
+      sgst_percent: sgstPercent,
+      sgst_amount: sgstAmount,
+      igst_percent: igstPercent,
+      igst_amount: igstAmount,
+      transport_charges: transportCharges,
+      grand_total: grandTotal,
+      items,
     };
     if (editingQuotation) {
       dispatch(updateQuotation({ ...basePayload, id: editingQuotation.id }));
@@ -920,19 +1436,33 @@ const QuotationPage = () => {
       // retry, risking a duplicate quotation instead of fixing the
       // original, and dropped the user's entered data on any failure.
     } else {
-      console.log(basePayload,"basePayload")
+      console.log(basePayload, "basePayload");
       const missing: string[] = [];
       if (!basePayload.customer_id) missing.push("selected customer");
       if (!currentCompanyId) missing.push("company details");
       if (!basePayload.user_id) missing.push("login");
-      if (missing.length) { notification.error({ message: "Missing Required Fields", description: `Please provide ${missing.join(" and ")}.` }); return; }
-      dispatch(createQuotation({ ...basePayload, company_id: currentCompanyId, quotation_date: new Date().toISOString() }));
+      if (missing.length) {
+        notification.error({
+          message: "Missing Required Fields",
+          description: `Please provide ${missing.join(" and ")}.`,
+        });
+        return;
+      }
+      dispatch(
+        createQuotation({
+          ...basePayload,
+          company_id: currentCompanyId,
+          quotation_date: new Date().toISOString(),
+        }),
+      );
     }
   };
 
   const handleEdit = (record: any) => {
     setEditingQuotation(record);
-    dispatch(getCustomers({ search: record.customer_name, page: 1, limit: 10 }));
+    dispatch(
+      getCustomers({ search: record.customer_name, page: 1, limit: 10 }),
+    );
     dispatch(getQuotationDetails(record.id));
     setShowForm(true);
     const bs = parseJsonField(record.billing_address_snapshot) || {};
@@ -940,135 +1470,266 @@ const QuotationPage = () => {
     const biz = parseJsonField(record.business_details_snapshot) || {};
     const pay = parseJsonField(record.payment_details_snapshot) || {};
     form.setFieldsValue({
-      customerId: record.customer_id, customerName: record.customer_name, customerType: record.customer_type,
-      companyName: record.company_name, customerGSTN: record.customer_gst_number, customerEmail: record.contact_person_email,
-      customerPhone: record.contact_person_phone, contactPersonId: record.contact_person_id,
-      billingAddressId: record.billing_address_id, shippingAddressId: record.shipping_address_id,
-      billingAddressSnapshot: JSON.stringify(bs), shippingAddressSnapshot: JSON.stringify(ss),
-      businessDetailsSnapshot: JSON.stringify(biz), paymentBankId: pay.bank_id,
-      paymentBankName: pay.bank_name, paymentAccountHolder: pay.account_holder_name,
-      paymentAccountNumber: pay.account_number, paymentIFSC: pay.ifsc_code,
-      paymentBranchName: pay.branch_name, paymentBranchAddress: pay.branch_address,
-      paymentAccountType: pay.account_type, paymentIsDefault: pay.is_default,
+      customerId: record.customer_id,
+      customerName: record.customer_name,
+      customerType: record.customer_type,
+      companyName: record.company_name,
+      customerGSTN: record.customer_gst_number,
+      customerEmail: record.contact_person_email,
+      customerPhone: record.contact_person_phone,
+      contactPersonId: record.contact_person_id,
+      billingAddressId: record.billing_address_id,
+      shippingAddressId: record.shipping_address_id,
+      billingAddressSnapshot: JSON.stringify(bs),
+      shippingAddressSnapshot: JSON.stringify(ss),
+      businessDetailsSnapshot: JSON.stringify(biz),
+      paymentBankId: pay.bank_id,
+      paymentBankName: pay.bank_name,
+      paymentAccountHolder: pay.account_holder_name,
+      paymentAccountNumber: pay.account_number,
+      paymentIFSC: pay.ifsc_code,
+      paymentBranchName: pay.branch_name,
+      paymentBranchAddress: pay.branch_address,
+      paymentAccountType: pay.account_type,
+      paymentIsDefault: pay.is_default,
       businessName: biz.businessName ?? record.company_name ?? "",
-      selectedAddress: Array.isArray(biz.selectedAddress) ? biz.selectedAddress : [],
-      selectedLocation: Array.isArray(biz.selectedLocation) ? biz.selectedLocation : [],
-      selectedPhones: Array.isArray(biz.selectedPhones) ? biz.selectedPhones : [],
-      selectedEmails: Array.isArray(biz.selectedEmails) ? biz.selectedEmails : [],
-      businessAddress: biz.businessAddress ?? joinAddr(bs), businessGST: biz.businessGST ?? "",
-      businessPhone: biz.businessPhone ?? "", businessEmail: biz.businessEmail ?? "",
+      selectedAddress: Array.isArray(biz.selectedAddress)
+        ? biz.selectedAddress
+        : [],
+      selectedLocation: Array.isArray(biz.selectedLocation)
+        ? biz.selectedLocation
+        : [],
+      selectedPhones: Array.isArray(biz.selectedPhones)
+        ? biz.selectedPhones
+        : [],
+      selectedEmails: Array.isArray(biz.selectedEmails)
+        ? biz.selectedEmails
+        : [],
+      businessAddress: biz.businessAddress ?? joinAddr(bs),
+      businessGST: biz.businessGST ?? "",
+      businessPhone: biz.businessPhone ?? "",
+      businessEmail: biz.businessEmail ?? "",
       businessMeta: Array.isArray(biz.businessMeta) ? biz.businessMeta : [],
-      billingAddress: joinAddr(bs), shippingAddress: joinAddr(ss),
-      items: (record.items || []).map((item: any) => ({ itemName: item.product_name, hsn_code: item.hsn_code || "", quantity: item.qty, price: item.rate, discount: item.discount_percent, total: item.amount })),
-      subTotal: record.sub_total, discount: record.discount, cgst: record.cgst_percent, sgst: record.sgst_percent, igst: record.igst_percent,
-      placeOfOrder: bs?.state || ss?.state, transport: record.transport_charges,
-      grandTotal: record.grand_total, validity_date: getValidityDate(record.validity_date), notes: record.notes,
+      billingAddress: joinAddr(bs),
+      shippingAddress: joinAddr(ss),
+      items: (record.items || []).map((item: any) => ({
+        itemName: item.product_name,
+        hsn_code: item.hsn_code || "",
+        quantity: item.qty,
+        price: item.rate,
+        discount: item.discount_percent,
+        total: item.amount,
+      })),
+      subTotal: record.sub_total,
+      discount: record.discount,
+      cgst: record.cgst_percent,
+      sgst: record.sgst_percent,
+      igst: record.igst_percent,
+      placeOfOrder: bs?.state || ss?.state,
+      transport: record.transport_charges,
+      grandTotal: record.grand_total,
+      validity_date: getValidityDate(record.validity_date),
+      notes: record.notes,
     });
   };
 
   const handleDelete = (record: any) => dispatch(deleteQuotation(record.id));
-  const handleView = (record: any) => { setSelectedQuotationId(record.id); setDetailsVisible(true); };
-  const handleSend = () => { if (!selectedQuotationId) return; dispatch(sendQuotation({ id: selectedQuotationId, user_id: authState?.user?.id })); };
-  const handleApprove = () => { if (!selectedQuotationId) return;  dispatch(approveQuotation({ id: selectedQuotationId, user_id: authState?.user?.id })); };
-
-  const closeForm = () => { setEditingQuotation(null); form.resetFields(); setShowForm(false); };
-  const openCreate = () => {
-    setShowForm(true); setEditingQuotation(null); form.resetFields();
-    if (companyDetails?.default_terms_conditions) form.setFieldsValue({ notes: companyDetails.default_terms_conditions });
+  const handleView = (record: any) => {
+    setSelectedQuotationId(record.id);
+    setDetailsVisible(true);
+  };
+  const handleSend = () => {
+    if (!selectedQuotationId) return;
+    dispatch(
+      sendQuotation({ id: selectedQuotationId, user_id: authState?.user?.id }),
+    );
+  };
+  const handleApprove = () => {
+    if (!selectedQuotationId) return;
+    dispatch(
+      approveQuotation({
+        id: selectedQuotationId,
+        user_id: authState?.user?.id,
+      }),
+    );
   };
 
-  const columns = [
-    {
-      title: "Quotation #", dataIndex: "quotation_number", width: 160,
-      render: (value: any, record: any) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ fontWeight: 700, color: `${record.has_invoice ? "#16A34A" : "#4F46E5"}`, cursor: "pointer" }} onClick={() => handleView(record)}>
-          {value}
-        </span>
-       {record.has_invoice && (
-  <Tooltip title="Invoice generated">
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 40,
-        height: 20,
-        borderRadius: "50%",
-        background: "#DCFCE7",
-      }}
-    >
-      <FileDoneOutlined style={{ color: "#16A34A", fontSize: 20 }} />
-    </span>
-  </Tooltip>
-)}
+  const closeForm = () => {
+    setEditingQuotation(null);
+    form.resetFields();
+    setShowForm(false);
+  };
+  const openCreate = () => {
+    setShowForm(true);
+    setEditingQuotation(null);
+    form.resetFields();
+    if (companyDetails?.default_terms_conditions)
+      form.setFieldsValue({ notes: companyDetails.default_terms_conditions });
+  };
+const columns = [
+  {
+    title: "Quotation",
+    dataIndex: "quotation_number",
+    width: 200,
+    render: (_: any, record: any) => (
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Avatar */}
+        <div style={{
+          width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 11, fontWeight: 700,
+          background: record.customer_type === "BUSINESS" ? "#DBEAFE" : "#ECFDF5",
+          color: record.customer_type === "BUSINESS" ? "#1D4ED8" : "#059669",
+        }}>
+          {(record.customer_name || "?").split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)}
         </div>
-      ),
-    },
-    {
-      title: "Customer", dataIndex: "customer", width: 180,
-      render: (_: any, record: any) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{record.customer_name}</div>
-          {record.company_name && <div style={{ fontSize: 12, color: "#6B7280" }}>{record.company_name}</div>}
-        </div>
-      ),
-    },
-    {
-      title: "Payment", dataIndex: "payment_details_snapshot", width: 120,
-      render: (_: any, record: any) => {
-        const p = parseJsonField(record.payment_details_snapshot) || {};
-        if (!p.bank_name && !p.account_number) return <span style={{ color: "#9CA3AF" }}>—</span>;
-        return (
-          <div>
-            {p.bank_name && <div style={{ fontWeight: 500 }}>{p.bank_name}</div>}
-            {p.account_number && <code style={{ fontSize: 12, color: "#6B7280" }}>{p.account_number}</code>}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{ fontWeight: 700, color: record.has_invoice ? "#16A34A" : "#4F46E5", cursor: "pointer", fontSize: 13 }}
+              onClick={() => handleView(record)}
+            >
+              {record.quotation_number}
+            </span>
+            {record.has_invoice && (
+              <Tooltip title="Invoice generated">
+                <FileDoneOutlined style={{ color: "#16A34A", fontSize: 14 }} />
+              </Tooltip>
+            )}
           </div>
-        );
-      },
-    },
-    {
-      title: "Total", dataIndex: "grand_total", width: 120, align: "right" as const,
-      render: (v: any) => <span className="qt-currency">{fmt(v)}</span>,
-    },
-    {
-      title: "Status", dataIndex: "status", width: 140,
-      render: (s: string) => <StatusPill status={s} />,
-    },
-
-    {
-      title: "Expiry", dataIndex: "validity_date", width: 110,
-      render: (v: string) => {
-        const expired = v && new Date(v) < new Date();
-        return <span style={{ fontSize: 12, color: expired ? "#DC2626" : "#6B7280", fontWeight: expired ? 600 : 400 }}>
-          {v ? new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-        </span>;
-      },
-    },
-    {
-      title: "Created By", dataIndex: "created_by", width: 140,
-      render: (_: any, record: any) => <span style={{ fontSize: 13 }}>{`${record.created_by_user?.first_name || ""} ${record.created_by_user?.last_name || ""}`.trim() || "—"}</span>,
-    },
-    {
-      title: "Actions", key: "action", fixed: "right" as const, width: 140,
-      render: (_: any, record: any) => (
-        <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
-          {can("quotations.export") && (
-            <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => downloadQuotationPDF(record)} title="Download PDF">
-              {downloadingQuotationId === record.id ? <Spin size="small" /> : <DownloadOutlined />}
-            </button>
-          )}
-          <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => handleView(record)} title="View"><EyeOutlined /></button>
-          {can("quotations.edit") && (!record.has_invoice) && <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => handleEdit(record)} title="Edit"><EditOutlined /></button>}
-          {can("quotations.delete") &&  (record.status ==="DRAFT") && (
-            <Popconfirm title="Delete this quotation?" onConfirm={() => handleDelete(record)} okText="Delete" okButtonProps={{ danger: true }}>
-              <button className="qt-btn qt-btn-danger qt-btn-icon" title="Delete"><DeleteOutlined /></button>
-            </Popconfirm>
-          )}
+          <div style={{ fontSize: 11, color: "var(--qt-muted)", marginTop: 1 }}>
+            v{record.version_number ?? 1} · {record.quotation_date ? new Date(record.quotation_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+          </div>
         </div>
-      ),
+      </div>
+    ),
+  },
+  {
+    title: "Customer",
+    dataIndex: "customer_name",
+    width: 200,
+    render: (_: any, record: any) => (
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--qt-text)" }}>{record.customer_name || "—"}</div>
+        {record.company_name && (
+          <div style={{ fontSize: 11, color: "var(--qt-muted)", marginTop: 1 }}>{record.company_name}</div>
+        )}
+        {record.contact_person_phone && (
+          <div style={{ fontSize: 11, color: "var(--qt-muted)" }}>{record.contact_person_phone}</div>
+        )}
+      </div>
+    ),
+  },
+  {
+    title: "GST / Type",
+    width: 170,
+    render: (_: any, record: any) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {record.customer_gst_number
+          ? <code style={{ fontSize: 11, background: "#F3F4F6", padding: "2px 6px", borderRadius: 4, color: "var(--qt-text)", letterSpacing: "0.3px", fontFamily: "Courier New, monospace" }}>{record.customer_gst_number}</code>
+          : <span style={{ color: "var(--qt-muted)", fontSize: 12 }}>No GST</span>
+        }
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          padding: "2px 7px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+          background: record.customer_type === "BUSINESS" ? "#DBEAFE" : "#ECFDF5",
+          color: record.customer_type === "BUSINESS" ? "#1D4ED8" : "#059669",
+          width: "fit-content",
+        }}>
+          {record.customer_type === "BUSINESS" ? <BankOutlined style={{ fontSize: 10 }} /> : <UserOutlined style={{ fontSize: 10 }} />}
+          {record.customer_type === "BUSINESS" ? "Business" : "Individual"}
+        </span>
+      </div>
+    ),
+  },
+  {
+    title: "Items",
+    width: 160,
+    render: (_: any, record: any) => {
+      const items = record.items || [];
+      const first = items[0];
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {first
+            ? <>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--qt-text)" }}>{first.product_name}</div>
+                {first.hsn_code && <div style={{ fontSize: 11, color: "var(--qt-muted)" }}>HSN: {first.hsn_code}</div>}
+                {items.length > 1 && <div style={{ fontSize: 11, color: "var(--qt-accent)", fontWeight: 600 }}>+{items.length - 1} more item{items.length - 1 !== 1 ? "s" : ""}</div>}
+              </>
+            : <span style={{ color: "var(--qt-muted)", fontSize: 12 }}>—</span>
+          }
+        </div>
+      );
     },
-  ];
+  },
+  {
+    title: "Total",
+    dataIndex: "grand_total",
+    width: 120,
+    align: "right" as const,
+    render: (v: any) => (
+      <div style={{ textAlign: "right" }}>
+        <div className="qt-currency">{fmt(v)}</div>
+        <div style={{ fontSize: 11, color: "var(--qt-muted)", marginTop: 1 }}>incl. taxes</div>
+      </div>
+    ),
+  },
+  {
+    title: "Status / Expiry",
+    width: 150,
+    render: (_: any, record: any) => {
+      const expired = record.validity_date && new Date(record.validity_date) < new Date();
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <StatusPill status={record.status} />
+          <span style={{ fontSize: 11, color: expired ? "#DC2626" : "var(--qt-muted)", fontWeight: expired ? 600 : 400 }}>
+            {record.validity_date
+              ? new Date(record.validity_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+              : "No expiry"}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
+    title: "Created By",
+    width: 130,
+    render: (_: any, record: any) => (
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500 }}>
+          {`${record.created_by_user?.first_name || ""} ${record.created_by_user?.last_name || ""}`.trim() || "—"}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--qt-muted)", marginTop: 1 }}>
+          {record.created_at ? new Date(record.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : ""}
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: "Actions",
+    key: "action",
+    fixed: "right" as const,
+    width: 140,
+    render: (_: any, record: any) => (
+      <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
+        {can("quotations.export") && (
+          <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => downloadQuotationPDF(record)} title="Download PDF">
+            {downloadingQuotationId === record.id ? <Spin size="small" /> : <DownloadOutlined />}
+          </button>
+        )}
+        <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => handleView(record)} title="View"><EyeOutlined /></button>
+        {can("quotations.edit") && !record.has_invoice && (
+          <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => handleEdit(record)} title="Edit"><EditOutlined /></button>
+        )}
+        {can("quotations.delete") && record.status === "DRAFT" && (
+          <Popconfirm title="Delete this quotation?" onConfirm={() => handleDelete(record)} okText="Delete" okButtonProps={{ danger: true }}>
+            <button className="qt-btn qt-btn-danger qt-btn-icon" title="Delete"><DeleteOutlined /></button>
+          </Popconfirm>
+        )}
+      </div>
+    ),
+  },
+];
 
   return (
     <div className="qt-root">
@@ -1080,10 +1741,14 @@ const QuotationPage = () => {
         <div className="qt-header-content">
           <div>
             <div className="qt-page-title">
-              <div className="qt-page-title-icon"><FileTextOutlined /></div>
+              <div className="qt-page-title-icon">
+                <FileTextOutlined />
+              </div>
               Quotations
             </div>
-            <div className="qt-page-subtitle">Create, send, and manage customer quotations</div>
+            <div className="qt-page-subtitle">
+              Create, send, and manage customer quotations
+            </div>
           </div>
           {can("quotations.create") && (
             <button className="qt-add-btn" onClick={openCreate}>
@@ -1095,7 +1760,15 @@ const QuotationPage = () => {
       </div>
 
       {/* ── Stats ───────────────────────────────────────────────────────────── */}
-      <div style={{ padding: "0 24px", marginTop: -18, position: "relative", zIndex: 2, marginBottom: 16 }}>
+      <div
+        style={{
+          padding: "0 24px",
+          marginTop: -18,
+          position: "relative",
+          zIndex: 2,
+          marginBottom: 16,
+        }}
+      >
         <div className="qt-stats">
           <div className="qt-stat-card">
             <div className="qt-stat-label">Total</div>
@@ -1103,63 +1776,106 @@ const QuotationPage = () => {
           </div>
           <div className="qt-stat-card">
             <div className="qt-stat-label">Approved</div>
-            <div className="qt-stat-value success">{statusCounts.APPROVED || 0}</div>
+            <div className="qt-stat-value success">
+              {statusCounts.APPROVED || 0}
+            </div>
           </div>
           <div className="qt-stat-card">
             <div className="qt-stat-label">Sent</div>
-            <div className="qt-stat-value" style={{ color: "#0891B2" }}>{statusCounts.SENT || 0}</div>
+            <div className="qt-stat-value" style={{ color: "#0891B2" }}>
+              {statusCounts.SENT || 0}
+            </div>
           </div>
           <div className="qt-stat-card">
             <div className="qt-stat-label">Draft</div>
-            <div className="qt-stat-value" style={{ color: "#5b6062" }}>{statusCounts.DRAFT || 0}</div>
+            <div className="qt-stat-value" style={{ color: "#5b6062" }}>
+              {statusCounts.DRAFT || 0}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="qt-body">
-
         {/* ── Form ─────────────────────────────────────────────────────────── */}
         {showForm && (
           <div className="qt-form-card">
             <div className="qt-form-header">
               <div className="qt-form-header-noise" />
               <div>
-                <div className="qt-form-title">{editingQuotation ? "Edit Quotation" : "New Quotation"}</div>
+                <div className="qt-form-title">
+                  {editingQuotation ? "Edit Quotation" : "New Quotation"}
+                </div>
                 <div className="qt-form-subtitle">
-                  {editingQuotation ? `Editing ${editingQuotation.quotation_number}` : "Create a professional quotation for your customer"}
+                  {editingQuotation
+                    ? `Editing ${editingQuotation.quotation_number}`
+                    : "Create a professional quotation for your customer"}
                 </div>
               </div>
-              <button className="qt-form-close" onClick={closeForm}><CloseOutlined /></button>
+              <button className="qt-form-close" onClick={closeForm}>
+                <CloseOutlined />
+              </button>
             </div>
 
             <div className="qt-form-body">
-              <Form form={form} layout="vertical" onFinish={handleFinish} autoComplete="off">
-                <Form.Item name="customerId" hidden><input type="hidden" /></Form.Item>
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleFinish}
+                autoComplete="off"
+              >
+                <Form.Item name="customerId" hidden>
+                  <input type="hidden" />
+                </Form.Item>
                 <Row gutter={[16, 0]}>
-                  <Col xs={24} md={12}><BusinessDetails /></Col>
-                  <Col xs={24} md={12}><CustomerDetails /></Col>
+                  <Col xs={24} md={12}>
+                    <BusinessDetails />
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <CustomerDetails />
+                  </Col>
                 </Row>
                 <QuotationItems />
-                <QuotationSummary  />
+                <QuotationSummary />
                 <PaymentDetails />
               </Form>
             </div>
 
             <div className="qt-form-footer">
-              {(editingQuotation ? can("quotations.edit") : can("quotations.create")) && (
+              {(editingQuotation
+                ? can("quotations.edit")
+                : can("quotations.create")) && (
                 <button
                   className="qt-btn qt-btn-primary"
                   onClick={() => form.submit()}
                   disabled={createLoading}
                 >
                   {createLoading ? (
-                    <><span style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", borderRadius: "50%", animation: "qt-spin .6s linear infinite", display: "inline-block" }} />Saving…</>
+                    <>
+                      <span
+                        style={{
+                          width: 13,
+                          height: 13,
+                          border: "2px solid rgba(255,255,255,0.35)",
+                          borderTopColor: "#fff",
+                          borderRadius: "50%",
+                          animation: "qt-spin .6s linear infinite",
+                          display: "inline-block",
+                        }}
+                      />
+                      Saving…
+                    </>
                   ) : (
-                    <><CheckCircleOutlined />{editingQuotation ? "Save Changes" : "Save Quotation"}</>
+                    <>
+                      <CheckCircleOutlined />
+                      {editingQuotation ? "Save Changes" : "Save Quotation"}
+                    </>
                   )}
                 </button>
               )}
-              <button className="qt-btn qt-btn-ghost" onClick={closeForm}><CloseOutlined />Cancel</button>
+              <button className="qt-btn qt-btn-ghost" onClick={closeForm}>
+                <CloseOutlined />
+                Cancel
+              </button>
             </div>
 
             <style>{`@keyframes qt-spin { to { transform: rotate(360deg); } }`}</style>
@@ -1169,19 +1885,44 @@ const QuotationPage = () => {
         {/* ── Toolbar ──────────────────────────────────────────────────────── */}
         <div className="qt-card" style={{ marginBottom: 12 }}>
           <div style={{ padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
               <div className="qt-search-wrap">
                 <SearchOutlined className="qt-search-icon" />
                 <input
                   className="qt-search"
                   placeholder="Search quotation no. or customer…"
                   value={searchInput}
-                  onChange={e => setSearchInput(e.target.value)}
+                  onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
               {quotations.length > 0 && (
-                <span className="qt-toolbar-count">{pagination.total || quotations.length} quotation{(pagination.total || quotations.length) !== 1 ? "s" : ""}</span>
+                <span className="qt-toolbar-count">
+                  {pagination.total || quotations.length} quotation
+                  {(pagination.total || quotations.length) !== 1 ? "s" : ""}
+                </span>
               )}
+              <button
+                className="qt-icon-btn"
+                onClick={() =>
+                  dispatch(
+                    getQuotations({
+                      page,
+                      limit: pageSize,
+                      search: search || undefined,
+                    }),
+                  )
+                }
+              >
+                <ReloadOutlined />
+                Refresh
+              </button>
             </div>
           </div>
         </div>
@@ -1190,7 +1931,9 @@ const QuotationPage = () => {
         <div className="qt-card">
           <div className="qt-card-header">
             <div className="qt-card-title">
-              <div className="qt-card-icon"><FileTextOutlined /></div>
+              <div className="qt-card-icon">
+                <FileTextOutlined />
+              </div>
               All Quotations
             </div>
             {quotations.length > 0 && (
@@ -1205,13 +1948,19 @@ const QuotationPage = () => {
               dataSource={quotations.map((q: any) => ({ ...q, key: q.id }))}
               pagination={false}
               loading={loading}
-              locale={{ emptyText: (
-                <div className="qt-empty">
-                  <div className="qt-empty-icon"><FileTextOutlined /></div>
-                  <div className="qt-empty-text">No quotations found</div>
-                  <div className="qt-empty-sub">Try adjusting your search or create one</div>
-                </div>
-              )}}
+              locale={{
+                emptyText: (
+                  <div className="qt-empty">
+                    <div className="qt-empty-icon">
+                      <FileTextOutlined />
+                    </div>
+                    <div className="qt-empty-text">No quotations found</div>
+                    <div className="qt-empty-sub">
+                      Try adjusting your search or create one
+                    </div>
+                  </div>
+                ),
+              }}
               scroll={{ x: "max-content" }}
               onRow={(record) => ({ onClick: () => handleView(record) })}
             />
@@ -1220,18 +1969,29 @@ const QuotationPage = () => {
           {/* Mobile */}
           <div className="qt-mobile-list" style={{ padding: "12px" }}>
             {loading ? (
-              <div style={{ textAlign: "center", padding: 40 }}><Spin /></div>
+              <div style={{ textAlign: "center", padding: 40 }}>
+                <Spin />
+              </div>
             ) : quotations.length === 0 ? (
               <div className="qt-empty">
-                <div className="qt-empty-icon"><FileTextOutlined /></div>
+                <div className="qt-empty-icon">
+                  <FileTextOutlined />
+                </div>
                 <div className="qt-empty-text">No quotations found</div>
-                <div className="qt-empty-sub">Try adjusting your search or create one</div>
+                <div className="qt-empty-sub">
+                  Try adjusting your search or create one
+                </div>
               </div>
             ) : (
               quotations.map((q: any) => (
                 <MobileCard
-                  key={q.id} record={q} downloadingId={downloadingQuotationId}
-                  onView={handleView} onEdit={handleEdit} onDelete={handleDelete} onDownload={downloadQuotationPDF}
+                  key={q.id}
+                  record={q}
+                  downloadingId={downloadingQuotationId}
+                  onView={handleView}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onDownload={downloadQuotationPDF}
                   // Mirror the same business rules the desktop table applies
                   // (was previously permission-only, letting mobile users
                   // edit invoiced quotations or delete non-draft ones).
@@ -1247,14 +2007,23 @@ const QuotationPage = () => {
           {pagination.total > 0 && (
             <div className="qt-pagination-row">
               <span className="qt-pagination-info">
-                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, pagination.total)} of {pagination.total}
+                {(page - 1) * pageSize + 1}–
+                {Math.min(page * pageSize, pagination.total)} of{" "}
+                {pagination.total}
               </span>
               <Pagination
-                current={page} pageSize={pageSize} total={pagination.total}
-                showSizeChanger={!isMobile} showQuickJumper={!isMobile} simple={isMobile}
+                current={page}
+                pageSize={pageSize}
+                total={pagination.total}
+                showSizeChanger={!isMobile}
+                showQuickJumper={!isMobile}
+                simple={isMobile}
                 pageSizeOptions={["5", "10", "25", "50"]}
-                onChange={p => setPage(p)}
-                onShowSizeChange={(_, s) => { setPageSize(s); setPage(1); }}
+                onChange={(p) => setPage(p)}
+                onShowSizeChange={(_, s) => {
+                  setPageSize(s);
+                  setPage(1);
+                }}
               />
             </div>
           )}
@@ -1267,12 +2036,25 @@ const QuotationPage = () => {
         title={
           selectedQuotation ? (
             <div style={{ position: "relative", zIndex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#fff" }}>#{selectedQuotation.quotation_number}</div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
-                {selectedQuotation.customer_name}{selectedQuotation.company_name ? ` · ${selectedQuotation.company_name}` : ""}
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#fff" }}>
+                #{selectedQuotation.quotation_number}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "rgba(255,255,255,0.6)",
+                  marginTop: 2,
+                }}
+              >
+                {selectedQuotation.customer_name}
+                {selectedQuotation.company_name
+                  ? ` · ${selectedQuotation.company_name}`
+                  : ""}
               </div>
             </div>
-          ) : "Quotation Details"
+          ) : (
+            "Quotation Details"
+          )
         }
         placement="right"
         width={isMobile ? "100%" : 700}
@@ -1280,33 +2062,76 @@ const QuotationPage = () => {
         open={detailsVisible}
         footer={
           <div className="qt-drawer-footer">
-            <button className="qt-btn qt-btn-ghost" onClick={() => setDetailsVisible(false)}>Close</button>
+            <button
+              className="qt-btn qt-btn-ghost"
+              onClick={() => setDetailsVisible(false)}
+            >
+              Close
+            </button>
             {can("quotations.export") && selectedQuotation && (
               <button
                 className="qt-btn qt-btn-ghost"
                 onClick={() => downloadQuotationPDF(selectedQuotation)}
                 disabled={downloadingQuotationId === selectedQuotation?.id}
               >
-                {downloadingQuotationId === selectedQuotation?.id ? <Spin size="small" /> : <DownloadOutlined />}
+                {downloadingQuotationId === selectedQuotation?.id ? (
+                  <Spin size="small" />
+                ) : (
+                  <DownloadOutlined />
+                )}
                 Download PDF
               </button>
             )}
             {can("quotations.send") && (
-              <><button className="qt-btn qt-btn-primary" onClick={handleSend} disabled={actionLoading}>
-                {actionLoading ? <span style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.35)", borderTopColor: "#fff", borderRadius: "50%", animation: "qt-spin .6s linear infinite", display: "inline-block" }} /> : <SendOutlined />}
-                Send Quotation
-              </button>
-               
-              </>
-              
-            )}
-             {can("quotations.send") && (selectedQuotation?.status === "SENT") &&(
               <>
-              <button className="qt-btn qt-btn-primary" onClick={handleApprove} disabled={actionLoading}>
-                {actionLoading ? <span style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.35)", borderTopColor: "#fff", borderRadius: "50%", animation: "qt-spin .6s linear infinite", display: "inline-block" }} /> : <RightOutlined />}
-                Approve Quotation
-              </button>
-              
+                <button
+                  className="qt-btn qt-btn-primary"
+                  onClick={handleSend}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? (
+                    <span
+                      style={{
+                        width: 13,
+                        height: 13,
+                        border: "2px solid rgba(255,255,255,.35)",
+                        borderTopColor: "#fff",
+                        borderRadius: "50%",
+                        animation: "qt-spin .6s linear infinite",
+                        display: "inline-block",
+                      }}
+                    />
+                  ) : (
+                    <SendOutlined />
+                  )}
+                  Send Quotation
+                </button>
+              </>
+            )}
+            {can("quotations.send") && selectedQuotation?.status === "SENT" && (
+              <>
+                <button
+                  className="qt-btn qt-btn-primary"
+                  onClick={handleApprove}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? (
+                    <span
+                      style={{
+                        width: 13,
+                        height: 13,
+                        border: "2px solid rgba(255,255,255,.35)",
+                        borderTopColor: "#fff",
+                        borderRadius: "50%",
+                        animation: "qt-spin .6s linear infinite",
+                        display: "inline-block",
+                      }}
+                    />
+                  ) : (
+                    <RightOutlined />
+                  )}
+                  Approve Quotation
+                </button>
               </>
             )}
           </div>
@@ -1317,15 +2142,33 @@ const QuotationPage = () => {
             defaultActiveKey="details"
             size={isMobile ? "small" : "middle"}
             items={[
-              { key: "details", label: "Details", children: <DetailsTab q={selectedQuotation} isMobile={isMobile} /> },
-              { key: "history", label: `History${quotationHistory.length ? ` (${quotationHistory.length})` : ""}`, children: <HistoryTab history={quotationHistory} /> },
-              { key: "timeline", label: `Timeline${quotationTimeline.length ? ` (${quotationTimeline.length})` : ""}`, children: <TimelineTab timeline={quotationTimeline} /> },
+              {
+                key: "details",
+                label: "Details",
+                children: (
+                  <DetailsTab q={selectedQuotation} isMobile={isMobile} />
+                ),
+              },
+              {
+                key: "history",
+                label: `History${quotationHistory.length ? ` (${quotationHistory.length})` : ""}`,
+                children: <HistoryTab history={quotationHistory} />,
+              },
+              {
+                key: "timeline",
+                label: `Timeline${quotationTimeline.length ? ` (${quotationTimeline.length})` : ""}`,
+                children: <TimelineTab timeline={quotationTimeline} />,
+              },
             ]}
           />
         ) : (
           <div className="qt-empty" style={{ marginTop: 60 }}>
-            <div className="qt-empty-icon"><FileTextOutlined /></div>
-            <div className="qt-empty-text">Select a quotation to view details</div>
+            <div className="qt-empty-icon">
+              <FileTextOutlined />
+            </div>
+            <div className="qt-empty-text">
+              Select a quotation to view details
+            </div>
           </div>
         )}
       </Drawer>
