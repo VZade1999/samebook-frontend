@@ -14,10 +14,10 @@ import { StorageService } from "@/storage";
 const authService = new AuthnService();
 const storageService = new StorageService();
 
-function* loginSaga(action) {
+function* loginSaga(action: any) {
   try {
     const response = yield call(authService.login, action?.payload);
-    if (response.data.success) {
+    if (response.data.success && response.data.data) {
       yield put({
         type: ASYNC_LOGIN_SUCCESS,
         data: response.data,
@@ -32,25 +32,25 @@ function* loginSaga(action) {
         email: response.data.data.user.email,
         role: response.data.data.user.roles,
         phone: response.data.data.user.phone,
-      }
+      };
       storageService.setItem(StorageService.STORAGE_KEYS.TOKEN, token);
       storageService.setItem(
         StorageService.STORAGE_KEYS.PERMISSIONS,
-        permissions
+        permissions,
       );
       storageService.setItem(
         StorageService.STORAGE_KEYS.COMPANY_DETAILS,
-        JSON.stringify(companyDetails)
+        JSON.stringify(companyDetails),
       );
       storageService.setItem(
         StorageService.STORAGE_KEYS.USER_DETAILS,
-        JSON.stringify(userDetails)
+        JSON.stringify(userDetails),
       );
     } else {
-      yield put({ type: ASYNC_LOGIN_FAILED });
+      yield put({ type: ASYNC_LOGIN_FAILED, error: response.data?.message });
     }
   } catch (error: any) {
-    yield put({ type: ASYNC_LOGIN_FAILED });
+    yield put({ type: ASYNC_LOGIN_FAILED, error: error.message });
   }
 }
 

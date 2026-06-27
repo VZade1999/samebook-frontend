@@ -4,6 +4,10 @@ import {
   RESET_AUTH_STATE,
   ASYNC_LOGOUT_SUCCESS,
   UNAUTHORIZED,
+  ASYNC_LOGIN,
+  ASYNC_FORGOT_PASSWORD_FAILED,
+  ASYNC_LOGIN_FAILED,
+  ASYNC_LOGOUT_FAILED,
 } from "./authActions";
 
 interface AuthState {
@@ -24,14 +28,31 @@ const initialState: AuthState = {
 
 export const authReducer = (state = initialState, action:any) => {
   switch (action.type) {
+     case ASYNC_LOGIN:
+          return {
+            ...state,
+            loading: true,
+          };
     case ASYNC_LOGIN_SUCCESS: {
       return {
         ...state,
         login: true,
         isLoggedIn: true,
+        loading: false,
         user: action.data.data.user,
+        error: null,
       };
     }
+
+        case ASYNC_LOGIN_FAILED:
+        case ASYNC_LOGOUT_FAILED:
+        case ASYNC_FORGOT_PASSWORD_FAILED:
+
+          return {
+            ...state,
+            loading: false,
+            error: action.error,
+          };
 
     // case actions.ASYNC_FORGOT_PASSWORD_SUCCESS: {
     //   return {
