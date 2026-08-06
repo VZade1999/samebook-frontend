@@ -379,10 +379,11 @@ export async function downloadQuotationPDF(
       data.items?.map((item: any, index: number) => [
         `${index + 1}.`,
         item.product_name || "",
-        item.hsn_code || "-",
+        // item.hsn_code || "-",
         Number(item.qty || 0).toFixed(2),
         formatCurrency(item.rate),
-        formatCurrency(item.discount_amount),
+         `${Number(item.discount_percent || 0).toFixed(2)}% ${formatCurrency(item.rate - item.discounted_rate)}`,
+        formatCurrency(item.discounted_rate),
         formatCurrency(item.total),
       ]) || [];
 
@@ -401,7 +402,7 @@ export async function downloadQuotationPDF(
       startY: metaY + 18,
       margin: { left: marginL, right: 45 },
       head: [
-        ["NO", "ITEM DESCRIPTION", "HSN", "QTY", "PRICE", "DISCOUNT", "TOTAL"],
+        ["NO", "ITEM DESCRIPTION", "QTY", "MRP",  "DISCOUNT", "DISCOUNTED RATE", "TOTAL"],
       ],
       body: rows,
       theme: "plain",

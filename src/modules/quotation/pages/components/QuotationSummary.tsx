@@ -521,7 +521,16 @@ const QuotationSummary = () => {
         >
           <Row gutter={[16, 0]}>
             <Col xs={24} md={12}>
-              <Form.Item label="Valid Until" name="validity_date"  >
+              <Form.Item
+                label="Valid Until"
+                name="validity_date"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please select a valid until date",
+                  },
+                ]}
+              >
                 <DatePicker
                   style={{ width: "100%" }}
                   placeholder="Select expiry date"
