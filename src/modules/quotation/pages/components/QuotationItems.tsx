@@ -342,7 +342,7 @@ const QuotationItems: React.FC = () => {
 
   const calculateAndUpdateSubTotal = () => {
     const items: QuotationLineItem[] = form.getFieldValue("items") || [];
-    const subTotal = items.reduce((sum, item) => sum + (item.discounted_price || 0), 0);
+    const subTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
     form.setFieldsValue({ subTotal: parseFloat(subTotal.toFixed(2)) });
   };
 
