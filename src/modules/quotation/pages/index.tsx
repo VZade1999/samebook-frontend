@@ -586,6 +586,12 @@ const DetailsTab: React.FC<{ q: any; isMobile: boolean }> = ({
       width: 60,
       render: (_: any, r: any) => r.qty || r.quantity || 0,
     },
+    {
+      title: "Unit",
+      dataIndex: "unit",
+      width: 60,
+      render: (_: any, r: any) => r.unit || "—",
+    },
     { title: "Rate", dataIndex: "rate", width: 90, render: (v: any) => fmt(v) },
     {
       title: "Disc%",
@@ -1299,10 +1305,14 @@ const QuotationPage = () => {
       items: (selectedQuotation.items || []).map((item: any) => ({
         itemName: item.product_name,
         hsn_code: item.hsn_code || item.hsn || "",
+        unit: item.unit || item.uom || "",  
         quantity: item.qty,
+  
         price: item.rate,
         discount: item.discount_percent,
-        total: item.amount,
+  
+        discounted_price: item.discounted_rate ?? item.discounted_price,      // ← added
+      total: item.total ?? item.amount
       })),
       subTotal: selectedQuotation.sub_total,
       discount: selectedQuotation.discount,
@@ -1342,6 +1352,7 @@ const QuotationPage = () => {
     const items = itemsRaw.map((item: any) => ({
       product_name: item?.itemName,
       hsn_code: item?.hsn_code,
+      unit: item?.unit,
       qty: Number(item?.quantity || item?.qty || 0),
       rate: Number(item?.price || item?.rate || 0),
       discount_percent: Number(item?.discount || 0),
@@ -1515,6 +1526,7 @@ const QuotationPage = () => {
       items: (record.items || []).map((item: any) => ({
         itemName: item.product_name,
         hsn_code: item.hsn_code || "",
+        unit: item.unit || "",
         quantity: item.qty,
         price: item.rate,
         discount: item.discount_percent,

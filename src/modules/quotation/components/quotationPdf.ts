@@ -381,32 +381,78 @@ export async function downloadQuotationPDF(
         item.product_name || "",
         // item.hsn_code || "-",
         Number(item.qty || 0).toFixed(2),
+        item.unit || "",
         formatCurrency(item.rate),
-         `${Number(item.discount_percent || 0).toFixed(2)}% ${formatCurrency(item.rate - item.discounted_rate)}`,
+        `${Number(item.discount_percent || 0).toFixed(2)}%\n${formatCurrency(item.rate - item.discounted_rate)}`,
         formatCurrency(item.discounted_rate),
         formatCurrency(item.total),
       ]) || [];
 
-    // Shared column definitions so head & body align perfectly
+    // ── Fixed column grid ───────────────────────────────────────────────────
+    // 8 header labels, 8 values per body row (see `rows` above) — every
+    // index from 0 to 7 MUST have an explicit width here. Previously column
+    // 7 (TOTAL) had no entry, so it fell back to "auto" sizing alongside the
+    // ITEM DESCRIPTION column (also "auto"). Two auto-width columns compete
+    // for the same leftover space based on each row's actual text length,
+    // so a longer/shorter item name silently reflowed the column boundaries
+    // and the header row (sized once, from its own text) no longer lined up
+    // with the body cells underneath it. Giving every column but the
+    // description a fixed width — and only letting the description column
+    // flex — keeps every column boundary identical between the head and
+    // every body row, regardless of how long an item name is.
+    const availableWidth = marginR - marginL;
+    const fixedColumnWidths = {
+      no: 24,
+      qty: 42,
+      unit: 40,
+      mrp: 68,
+      discount: 78,
+      discountedRate: 68,
+      total: 68,
+    };
+    const fixedTotal =
+      fixedColumnWidths.no +
+      fixedColumnWidths.qty +
+      fixedColumnWidths.unit +
+      fixedColumnWidths.mrp +
+      fixedColumnWidths.discount +
+      fixedColumnWidths.discountedRate +
+      fixedColumnWidths.total;
+    // Whatever space is left after all fixed columns goes to the item
+    // description column — computed, not guessed, so the table always
+    // spans exactly `availableWidth` no matter the page size.
+    const descriptionWidth = Math.max(availableWidth - fixedTotal, 90);
+
     const tableColumnStyles = {
-      0: { cellWidth: 26, halign: "left" as const },
-      1: { cellWidth: "auto" as const, halign: "left" as const },
-      2: { cellWidth: 60, halign: "center" as const },
-      3: { cellWidth: 45, halign: "center" as const },
-      4: { cellWidth: 75, halign: "right" as const },
-      5: { cellWidth: 75, halign: "right" as const },
-      6: { cellWidth: 75, halign: "right" as const },
+      0: { cellWidth: fixedColumnWidths.no, halign: "left" as const },
+      1: { cellWidth: descriptionWidth, halign: "left" as const },
+      2: { cellWidth: fixedColumnWidths.qty, halign: "center" as const },
+      3: { cellWidth: fixedColumnWidths.unit, halign: "center" as const },
+      4: { cellWidth: fixedColumnWidths.mrp, halign: "right" as const },
+      5: { cellWidth: fixedColumnWidths.discount, halign: "right" as const },
+      6: {
+        cellWidth: fixedColumnWidths.discountedRate,
+        halign: "right" as const,
+      },
+      7: { cellWidth: fixedColumnWidths.total, halign: "right" as const },
     };
 
     autoTable(doc, {
       startY: metaY + 18,
       margin: { left: marginL, right: 45 },
       head: [
-        ["NO", "ITEM DESCRIPTION", "QTY", "MRP",  "DISCOUNT", "DISCOUNTED RATE", "TOTAL"],
+        ["NO", "ITEM DESCRIPTION", "QTY", "UNIT", "MRP", "DISCOUNT", "DISCOUNTED RATE", "TOTAL"],
       ],
       body: rows,
       theme: "plain",
-      tableWidth: marginR - marginL,
+      tableWidth: availableWidth,
+      // Every column has a fixed cellWidth now (see tableColumnStyles), so
+      // autoTable must treat the table as fixed-layout rather than
+      // recomputing widths from content — this is what actually locks the
+      // header to the body columns.
+      styles: {
+        overflow: "linebreak",
+      },
       headStyles: {
         fillColor: false,
         textColor: [30, 30, 30],
