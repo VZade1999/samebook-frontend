@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Form, Select, Input, Card, Empty, Space } from "antd";
+import { Form, Select, Input, Card, Empty, Space, Spin } from "antd";
+import { useSelector } from "react-redux";
 import { StorageService } from "@/storage";
 
 /* ─── Shared tokens ──────────────────────────────────────────────────────── */
@@ -127,17 +128,24 @@ injectStyles();
 
 const PaymentDetails: React.FC = () => {
   const form = Form.useFormInstance();
+  // Company details (including bank_accounts) are fetched asynchronously by
+  // the sibling BusinessDetails component (getCompanyDetails saga) and land
+  // in this same Redux slice. Reading from sessionStorage once on mount used
+  // to race that fetch and permanently miss the data — this component must
+  // stay reactive to the Redux state so it picks up bank_accounts whenever
+  // they actually arrive, regardless of which component triggered the fetch.
+  const companyState = useSelector((state: any) => state.companies || {});
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
-console.log("bankAccounts",bankAccounts);
+
+  // Synchronous seed from storage so a returning user (data already cached
+  // from a previous fetch this session) doesn't see an empty flash.
   useEffect(() => {
     const storage = new StorageService();
     const company = storage.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS);
-    console.log("company",company)
     if (company) {
       try {
         const details = JSON.parse(company);
-        console.log("details",details)
         if (details?.bank_accounts) setBankAccounts(details.bank_accounts || []);
       } catch (error) {
         console.error("Failed to parse company details from storage", error);
@@ -145,7 +153,18 @@ console.log("bankAccounts",bankAccounts);
     }
     const currentBankId = form.getFieldValue("paymentBankId");
     if (currentBankId != null) setSelectedBankId(Number(currentBankId));
-  }, [form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-sync whenever the async company-details fetch resolves (or refreshes).
+  useEffect(() => {
+    const details = companyState?.companyDetails;
+    if (details?.bank_accounts) {
+      setBankAccounts(details.bank_accounts || []);
+    }
+  }, [companyState?.companyDetails]);
+
+  const bankAccountsLoading = !!companyState?.loading && bankAccounts.length === 0;
 
   const selectedBank = bankAccounts.find((b) => b.id === selectedBankId);
 
@@ -204,7 +223,8 @@ console.log("bankAccounts",bankAccounts);
             style={{ marginBottom: 0 }}
           >
             <Select
-              placeholder="Select bank account"
+              placeholder={bankAccountsLoading ? "Loading bank accounts…" : "Select bank account"}
+              loading={bankAccountsLoading}
               onChange={handleBankChange}
               value={selectedBankId || undefined}
               optionLabelProp="label"
@@ -286,7 +306,12 @@ console.log("bankAccounts",bankAccounts);
             </div>
           )}
 
-          {bankAccounts.length === 0 && (
+          {bankAccounts.length === 0 && bankAccountsLoading && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+              <Spin size="small" tip="Loading bank accounts…" />
+            </div>
+          )}
+          {bankAccounts.length === 0 && !bankAccountsLoading && (
             <Empty description={<span style={{ color: tokens.textMuted }}>No bank accounts found in company details</span>} style={{ padding: "24px 0" }} />
           )}
         </Space>
