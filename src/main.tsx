@@ -8,7 +8,7 @@ import store from "./app/store";
 // api/axios.ts consumers (module instance.ts files) — this module itself
 // depends on the redux store, and the store's sagas transitively import
 // those instance.ts files, so importing interceptors.ts from them would be
-// a circular import.
+// a circular import
 import "./api/interceptors";
 import "./index.css";
 import ThemeProvider from "./theme/ThemeProvider";
