@@ -1,19 +1,28 @@
 import logMessage from "../../../utils/logger";
-import instance from "./instance";
+import apiClient from "@/api/axios";
 
 class AuthnService {
   login = async (payload:any) => {
     try {
-      return await instance.post(`/auth/login`, payload);
+      return await apiClient.post(`/auth/login`, payload);
     } catch (error) {
       logMessage("[auth error]", error);
       throw error;
     }
   };
 
+  refresh = async () => {
+    try {
+      return await apiClient.post(`/auth/refresh`);
+    } catch (error) {
+      logMessage("[refresh error]", error);
+      throw error;
+    }
+  };
+
   forgotPassword = async (payload:any) => {
     try {
-      return await instance.post(`/auth/forgot-password`, payload);
+      return await apiClient.post(`/auth/forgot-password`, payload);
     } catch (error) {
       logMessage("[forgot password error]", error);
       throw error;
@@ -22,7 +31,7 @@ class AuthnService {
 
   confirmForgotPassword = async (payload:any) => {
     try {
-      return await instance.post(`/auth/confirm-forgot-password`, payload);
+      return await apiClient.post(`/auth/confirm-forgot-password`, payload);
     } catch (error) {
       logMessage("[confirm forgot password error]", error);
       throw error;
@@ -31,7 +40,7 @@ class AuthnService {
 
   logout = async () => {
     try {
-      return await instance.post(`/auth/logout`);
+      return await apiClient.post(`/auth/logout`);
     } catch (error) {
       logMessage("[Logout error]", error);
       throw error;

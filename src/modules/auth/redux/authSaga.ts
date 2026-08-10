@@ -1,6 +1,5 @@
 import { call, put, takeLatest } from "redux-saga/effects";
 
-import axios from "axios";
 import {
   ASYNC_LOGIN,
   ASYNC_LOGOUT,
@@ -22,7 +21,6 @@ function* loginSaga(action: any) {
         type: ASYNC_LOGIN_SUCCESS,
         data: response.data,
       });
-      const token = response.data.data.accessToken;
       const permissions = response.data.data.user.permissions;
       const companyDetails = response.data.data.user.company;
       const userDetails = {
@@ -33,7 +31,11 @@ function* loginSaga(action: any) {
         role: response.data.data.user.roles,
         phone: response.data.data.user.phone,
       };
-      storageService.setItem(StorageService.STORAGE_KEYS.TOKEN, token);
+      // Auth is enforced via an httpOnly cookie, not this value — it's only a
+      // non-sensitive client-side "am I logged in" presence flag for route
+      // guarding (see PrivateRoutes/PublicRoutes), so store the user id rather
+      // than the actual JWT.
+      storageService.setItem(StorageService.STORAGE_KEYS.TOKEN, String(userDetails.id));
       storageService.setItem(
         StorageService.STORAGE_KEYS.PERMISSIONS,
         permissions,
