@@ -148,7 +148,7 @@ table {
   thead {
     tr {
       th {
-        color: #333;
+        color: var(--muted-foreground);
         font-weight: 600;
         padding: 12px !important;
       }

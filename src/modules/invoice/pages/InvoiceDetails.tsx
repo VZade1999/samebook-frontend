@@ -92,18 +92,18 @@ const GlobalStyles = () => (
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {
-      --id-bg: #F0F1F7;
-      --id-surface: #FFFFFF;
-      --id-border: #E5E7EB;
-      --id-border-light: #F3F4F6;
+      --id-bg: var(--background);
+      --id-surface: var(--card);
+      --id-border: var(--border);
+      --id-border-light: var(--border);
       --id-accent: #4F46E5;
       --id-accent-light: #EEF2FF;
       --id-success: #059669;
       --id-danger: #DC2626;
       --id-warning: #D97706;
       --id-purple: #7C3AED;
-      --id-text: #111827;
-      --id-muted: #6B7280;
+      --id-text: var(--foreground);
+      --id-muted: var(--muted-foreground);
       --id-radius: 14px;
       --id-radius-sm: 8px;
       --id-shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
@@ -242,7 +242,7 @@ const GlobalStyles = () => (
       border: 1.5px solid var(--id-border) !important;
       box-shadow: var(--id-shadow);
     }
-    .id-btn-ghost:hover { background: #F9FAFB; transform: translateY(-1px); box-shadow: var(--id-shadow-md); }
+    .id-btn-ghost:hover { background: var(--muted); transform: translateY(-1px); box-shadow: var(--id-shadow-md); }
 
     /* ── Sticky payment progress bar ── */
     .id-payment-track-wrap {
@@ -307,12 +307,12 @@ const GlobalStyles = () => (
     .id-info-row:last-child { border-bottom: none; }
     .id-info-label { font-size: 12px; color: var(--id-muted); flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
     .id-info-value { font-size: 13px; font-weight: 500; color: var(--id-text); text-align: right; word-break: break-word; }
-    .id-info-value.mono { font-family: 'Courier New', monospace; font-size: 12px; background: #F3F4F6; padding: 2px 7px; border-radius: 5px; }
+    .id-info-value.mono { font-family: 'Courier New', monospace; font-size: 12px; background: var(--muted); padding: 2px 7px; border-radius: 5px; }
 
     /* ── Address ── */
     .id-address-text { font-size: 13px; color: var(--id-text); line-height: 1.65; }
     .id-address-sub  { font-size: 12px; color: var(--id-muted); margin-top: 5px; }
-    .id-address-gst  { display: inline-block; margin-top: 6px; font-family: 'Courier New', monospace; font-size: 11px; background: #F3F4F6; padding: 2px 7px; border-radius: 5px; color: var(--id-text); }
+    .id-address-gst  { display: inline-block; margin-top: 6px; font-family: 'Courier New', monospace; font-size: 11px; background: var(--muted); padding: 2px 7px; border-radius: 5px; color: var(--id-text); }
 
     /* ── Summary ── */
     .id-summary-row {
@@ -331,14 +331,14 @@ const GlobalStyles = () => (
     /* ── Items table ── */
     .id-items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .id-items-table th {
-      background: #F9FAFB; color: var(--id-muted); font-size: 11px; font-weight: 600;
+      background: var(--muted); color: var(--id-muted); font-size: 11px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.5px;
       padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--id-border);
     }
     .id-items-table th:last-child, .id-items-table td:last-child { text-align: right; }
     .id-items-table td { padding: 12px 16px; border-bottom: 1px solid var(--id-border-light); vertical-align: top; }
     .id-items-table tr:last-child td { border-bottom: none; }
-    .id-items-table tr:hover td { background: #FAFBFF; }
+    .id-items-table tr:hover td { background: var(--muted); }
     .id-item-name    { font-weight: 600; color: var(--id-text); margin-bottom: 2px; }
     .id-item-hsn     { font-size: 11px; color: var(--id-muted); font-family: 'Courier New', monospace; }
     .id-item-disc    { font-size: 11px; color: var(--id-danger); font-weight: 600; margin-top: 2px; }
@@ -349,7 +349,7 @@ const GlobalStyles = () => (
     /* ── Payment history table ── */
     .id-pay-table-wrap .ant-table { font-size: 13px !important; font-family: 'Inter', sans-serif !important; }
     .id-pay-table-wrap .ant-table-thead > tr > th {
-      background: #F9FAFB !important; color: var(--id-muted) !important;
+      background: var(--muted) !important; color: var(--id-muted) !important;
       font-size: 11px !important; font-weight: 600 !important;
       text-transform: uppercase !important; letter-spacing: 0.5px !important;
       border-bottom: 1px solid var(--id-border) !important; padding: 10px 16px !important;
@@ -359,7 +359,7 @@ const GlobalStyles = () => (
       padding: 12px 16px !important; vertical-align: middle !important;
     }
     .id-pay-table-wrap .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-    .id-pay-table-wrap .ant-table-tbody > tr:hover > td { background: #FAFBFF !important; }
+    .id-pay-table-wrap .ant-table-tbody > tr:hover > td { background: var(--muted) !important; }
 
     /* ── Timeline ── */
     .id-timeline { padding: 4px 0; }
@@ -397,11 +397,11 @@ const GlobalStyles = () => (
     }
 
     /* ── Notes ── */
-    .id-notes-body { white-space: pre-line; font-size: 13px; color: #374151; line-height: 1.75; }
+    .id-notes-body { white-space: pre-line; font-size: 13px; color: var(--id-text); line-height: 1.75; }
 
     /* ── Audit strip ── */
     .id-audit-strip {
-      padding: 12px 20px; background: #FAFAFA; border-top: 1px solid var(--id-border);
+      padding: 12px 20px; background: var(--muted); border-top: 1px solid var(--id-border);
       display: flex; gap: 24px; flex-wrap: wrap;
     }
     .id-audit-item { font-size: 11px; color: var(--id-muted); }

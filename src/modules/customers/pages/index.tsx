@@ -25,16 +25,16 @@ const GlobalStyles = () => (
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
     :root {
-      --cus-bg: #F4F5F9;
-      --cus-surface: #FFFFFF;
-      --cus-border: #E5E7EB;
+      --cus-bg: var(--background);
+      --cus-surface: var(--card);
+      --cus-border: var(--border);
       --cus-accent: #4F46E5;
       --cus-accent-light: #EEF2FF;
       --cus-success: #059669;
       --cus-danger: #DC2626;
       --cus-warning: #D97706;
-      --cus-text: #111827;
-      --cus-muted: #6B7280;
+      --cus-text: var(--foreground);
+      --cus-muted: var(--muted-foreground);
       --cus-radius: 12px;
       --cus-radius-sm: 8px;
       --cus-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
@@ -164,14 +164,14 @@ const GlobalStyles = () => (
       font-size: 13px;
       font-family: 'Inter', sans-serif;
       color: var(--cus-text);
-      background: #FAFAFA;
+      background: var(--muted);
       outline: none;
       transition: border-color .15s, box-shadow .15s;
     }
     .cusl-search:focus {
       border-color: var(--cus-accent);
       box-shadow: 0 0 0 3px rgba(79,70,229,.1);
-      background: #fff;
+      background: var(--cus-surface);
     }
     .cusl-search::placeholder { color: var(--cus-muted); }
 
@@ -197,7 +197,7 @@ const GlobalStyles = () => (
       font-size: 13px;
       font-family: 'Inter', sans-serif;
       color: var(--cus-text);
-      background: #FAFAFA;
+      background: var(--muted);
       outline: none;
       appearance: none;
       cursor: pointer;
@@ -215,7 +215,7 @@ const GlobalStyles = () => (
       padding: 8px 14px;
       border: 1px solid var(--cus-border);
       border-radius: var(--cus-radius-sm);
-      background: #FAFAFA;
+      background: var(--muted);
       color: var(--cus-text);
       font-size: 13px;
       font-weight: 500;
@@ -351,7 +351,7 @@ const GlobalStyles = () => (
       font-family: 'Inter', sans-serif !important;
     }
     .cusl-table-wrap .ant-table-thead > tr > th {
-      background: #F9FAFB !important;
+      background: var(--muted) !important;
       color: var(--cus-muted) !important;
       font-size: 11px !important;
       font-weight: 600 !important;
@@ -361,12 +361,12 @@ const GlobalStyles = () => (
       padding: 10px 16px !important;
     }
     .cusl-table-wrap .ant-table-tbody > tr > td {
-      border-bottom: 1px solid #F3F4F6 !important;
+      border-bottom: 1px solid var(--cus-border) !important;
       padding: 12px 16px !important;
       vertical-align: middle !important;
     }
     .cusl-table-wrap .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-    .cusl-table-wrap .ant-table-tbody > tr:hover > td { background: #FAFBFF !important; }
+    .cusl-table-wrap .ant-table-tbody > tr:hover > td { background: var(--muted) !important; }
     .cusl-table-wrap .ant-table-tbody > tr { cursor: pointer; }
 
     /* ── Row actions ── */
@@ -382,7 +382,7 @@ const GlobalStyles = () => (
       font-family: 'Inter', sans-serif;
       cursor: pointer;
       border: 1px solid var(--cus-border);
-      background: #FAFAFA;
+      background: var(--muted);
       color: var(--cus-text);
       transition: all .12s;
       white-space: nowrap;
@@ -407,7 +407,7 @@ const GlobalStyles = () => (
     .cusl-gst {
       font-size: 12px;
       font-family: 'Courier New', monospace;
-      background: #F3F4F6;
+      background: var(--muted);
       padding: 2px 6px;
       border-radius: 4px;
       color: var(--cus-text);

@@ -55,7 +55,7 @@ const ModalStyles = () => (
       align-items: center;
       gap: 10px;
       padding: 18px 0 14px;
-      border-bottom: 1px solid #E5E7EB;
+      border-bottom: 1px solid var(--border);
       margin-bottom: 20px;
     }
     .acm-section-icon {
@@ -70,12 +70,12 @@ const ModalStyles = () => (
     .acm-section-title {
       font-size: 13px;
       font-weight: 700;
-      color: #111827;
+      color: var(--foreground);
       letter-spacing: 0.1px;
     }
     .acm-section-sub {
       font-size: 11px;
-      color: #6B7280;
+      color: var(--muted-foreground);
       margin-left: auto;
     }
 
@@ -95,7 +95,7 @@ const ModalStyles = () => (
     .acm-root .ant-form-item-label > label {
       font-size: 12px !important;
       font-weight: 600 !important;
-      color: #374151 !important;
+      color: var(--foreground) !important;
       font-family: 'Inter', sans-serif !important;
       letter-spacing: 0.2px;
     }
@@ -105,8 +105,8 @@ const ModalStyles = () => (
       font-family: 'Inter', sans-serif !important;
       font-size: 13px !important;
       border-radius: 8px !important;
-      border-color: #E5E7EB !important;
-      background: #FAFAFA !important;
+      border-color: var(--border) !important;
+      background: var(--muted) !important;
     }
     .acm-root .ant-input:focus,
     .acm-root .ant-input:hover,
@@ -114,24 +114,24 @@ const ModalStyles = () => (
     .acm-root .ant-select-focused .ant-select-selector {
       border-color: #4F46E5 !important;
       box-shadow: 0 0 0 3px rgba(79,70,229,.08) !important;
-      background: #fff !important;
+      background: var(--card) !important;
     }
 
     /* ── Sub-card (for contacts/addresses) ── */
     .acm-sub-card {
-      border: 1px solid #E5E7EB;
+      border: 1px solid var(--border);
       border-radius: 10px;
       margin-bottom: 12px;
       overflow: hidden;
-      background: #fff;
+      background: var(--card);
     }
     .acm-sub-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      background: #F9FAFB;
-      border-bottom: 1px solid #E5E7EB;
+      background: var(--muted);
+      border-bottom: 1px solid var(--border);
     }
     .acm-sub-card-title {
       display: flex;
@@ -139,7 +139,7 @@ const ModalStyles = () => (
       gap: 8px;
       font-size: 12px;
       font-weight: 700;
-      color: #374151;
+      color: var(--foreground);
       letter-spacing: 0.2px;
     }
     .acm-sub-card-num {
@@ -204,15 +204,15 @@ const ModalStyles = () => (
       align-items: center;
       gap: 10px;
       padding: 10px 0 14px;
-      border-top: 1px solid #F3F4F6;
+      border-top: 1px solid var(--border);
       margin-top: 4px;
     }
     .acm-switch-label {
       font-size: 12px;
       font-weight: 600;
-      color: #374151;
+      color: var(--foreground);
     }
-    .acm-switch-desc { font-size: 11px; color: #9CA3AF; }
+    .acm-switch-desc { font-size: 11px; color: var(--muted-foreground); }
 
     /* ── Primary badge ── */
     .acm-primary-badge {
@@ -235,7 +235,7 @@ const ModalStyles = () => (
       margin-bottom: 16px;
     }
     .acm-type-card {
-      border: 1.5px solid #E5E7EB;
+      border: 1.5px solid var(--border);
       border-radius: 10px;
       padding: 14px 16px;
       cursor: pointer;
@@ -243,11 +243,11 @@ const ModalStyles = () => (
       display: flex;
       align-items: center;
       gap: 12px;
-      background: #FAFAFA;
+      background: var(--muted);
     }
     .acm-type-card.active {
       border-color: #4F46E5;
-      background: #EEF2FF;
+      background: rgba(79,70,229,.12);
       box-shadow: 0 0 0 3px rgba(79,70,229,.08);
     }
     .acm-type-card-icon {
@@ -258,9 +258,9 @@ const ModalStyles = () => (
       flex-shrink: 0;
     }
     .acm-type-card.active .acm-type-card-icon { background: #C7D2FE; color: #4F46E5; }
-    .acm-type-card:not(.active) .acm-type-card-icon { background: #F3F4F6; color: #9CA3AF; }
-    .acm-type-card-label { font-size: 13px; font-weight: 700; color: #111827; }
-    .acm-type-card-sub { font-size: 11px; color: #6B7280; margin-top: 1px; }
+    .acm-type-card:not(.active) .acm-type-card-icon { background: var(--muted); color: var(--muted-foreground); }
+    .acm-type-card-label { font-size: 13px; font-weight: 700; color: var(--foreground); }
+    .acm-type-card-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
 
     /* ── GST monospace ── */
     .acm-root .acm-gst-input input {
@@ -293,28 +293,28 @@ const ModalStyles = () => (
     /* ── Footer ── */
     .acm-footer {
       padding: 16px 24px;
-      border-top: 1px solid #E5E7EB;
-      background: #F9FAFB;
+      border-top: 1px solid var(--border);
+      background: var(--muted);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
     }
-    .acm-footer-hint { font-size: 11px; color: #9CA3AF; }
+    .acm-footer-hint { font-size: 11px; color: var(--muted-foreground); }
     .acm-footer-actions { display: flex; gap: 8px; }
     .acm-cancel-btn {
       padding: 9px 18px;
-      border: 1px solid #E5E7EB;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      background: #fff;
-      color: #374151;
+      background: var(--card);
+      color: var(--foreground);
       font-size: 13px;
       font-weight: 600;
       font-family: 'Inter', sans-serif;
       cursor: pointer;
       transition: all .12s;
     }
-    .acm-cancel-btn:hover { background: #F9FAFB; border-color: #D1D5DB; }
+    .acm-cancel-btn:hover { background: var(--muted); border-color: var(--border); }
     .acm-save-btn {
       padding: 9px 20px;
       border: none;
@@ -341,7 +341,7 @@ const ModalStyles = () => (
     }
     .acm-body::-webkit-scrollbar { width: 4px; }
     .acm-body::-webkit-scrollbar-track { background: transparent; }
-    .acm-body::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 99px; }
+    .acm-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
     /* ── Responsive ── */
     @media (max-width: 640px) {

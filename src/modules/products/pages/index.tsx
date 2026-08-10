@@ -359,8 +359,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex", alignItems: "flex-start", justifyContent: "space-between",
     marginBottom: 16, flexWrap: "wrap", gap: 8,
   },
-  pageTitle: { fontSize: 22, fontWeight: 700, color: "#1a1a2e", letterSpacing: -0.3 },
-  pageSubtitle: { fontSize: 13, color: "#999", marginTop: 2 },
+  pageTitle: { fontSize: 22, fontWeight: 700, color: "var(--foreground)", letterSpacing: -0.3 },
+  pageSubtitle: { fontSize: 13, color: "var(--muted-foreground)", marginTop: 2 },
   mobileSearch: { marginBottom: 14 },
   dash: { color: "#ccc" },
 
@@ -397,7 +397,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     marginTop: 16, flexWrap: "wrap", gap: 8,
   },
-  paginationInfo: { fontSize: 12, color: "#999" },
+  paginationInfo: { fontSize: 12, color: "var(--muted-foreground)" },
   desktopPagination: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     marginTop: 20, paddingTop: 16, borderTop: "1px solid #f5f5f5", flexWrap: "wrap", gap: 10,

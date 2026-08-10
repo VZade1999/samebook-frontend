@@ -509,8 +509,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex", alignItems: "flex-start", justifyContent: "space-between",
     marginBottom: 16, flexWrap: "wrap", gap: 8,
   },
-  pageTitle: { fontSize: 22, fontWeight: 700, color: "#1a1a2e", letterSpacing: -0.3 },
-  pageSubtitle: { fontSize: 13, color: "#999", marginTop: 2 },
+  pageTitle: { fontSize: 22, fontWeight: 700, color: "var(--foreground)", letterSpacing: -0.3 },
+  pageSubtitle: { fontSize: 13, color: "var(--muted-foreground)", marginTop: 2 },
   searchBar: { marginBottom: 16 },
 
   // Mobile cards
@@ -538,7 +538,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     marginTop: 16, flexWrap: "wrap", gap: 8,
   },
-  paginationInfo: { fontSize: 12, color: "#999" },
+  paginationInfo: { fontSize: 12, color: "var(--muted-foreground)" },
   desktopPagination: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     marginTop: 20, paddingTop: 16, borderTop: "1px solid #f5f5f5", flexWrap: "wrap", gap: 10,
@@ -558,8 +558,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fafafa", borderRadius: 10, padding: 14, marginBottom: 4,
   },
   drawerSectionTitle: {
-    fontSize: 15, fontWeight: 600, color: "#1a1a2e", paddingBottom: 4,
-    borderBottom: "2px solid #e8f0fe",
+    fontSize: 15, fontWeight: 600, color: "var(--foreground)", paddingBottom: 4,
+    borderBottom: "2px solid var(--border)",
   },
   infoGrid: { display: "flex", flexDirection: "column", gap: 8 },
   infoRow: { display: "flex", gap: 12, flexWrap: "wrap" },

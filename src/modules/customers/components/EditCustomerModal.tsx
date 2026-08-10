@@ -15,7 +15,7 @@ const ModalStyles = () => (
 
     .ecm-root {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      color: #111827;
+      color: var(--foreground);
     }
 
     /* ── Modal overrides ── */
@@ -44,7 +44,7 @@ const ModalStyles = () => (
       position: absolute;
       bottom: -1px; left: 0; right: 0;
       height: 16px;
-      background: #fff;
+      background: var(--card);
       border-radius: 16px 16px 0 0;
     }
     .ecm-header-noise {
@@ -82,13 +82,13 @@ const ModalStyles = () => (
     }
     .ecm-body::-webkit-scrollbar { width: 5px; }
     .ecm-body::-webkit-scrollbar-track { background: transparent; }
-    .ecm-body::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 99px; }
+    .ecm-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
     /* ── Section label ── */
     .ecm-section {
       display: flex; align-items: center; gap: 8px;
       font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
-      text-transform: uppercase; color: #6B7280;
+      text-transform: uppercase; color: var(--muted-foreground);
       margin: 20px 0 12px;
     }
     .ecm-section::before {
@@ -96,31 +96,31 @@ const ModalStyles = () => (
       background: #4F46E5; border-radius: 2px;
     }
     .ecm-section::after {
-      content: ''; flex: 1; height: 1px; background: #E5E7EB;
+      content: ''; flex: 1; height: 1px; background: var(--border);
     }
 
     /* ── Customer type pills ── */
     .ecm-type-row  { display: flex; gap: 10px; margin-bottom: 14px; }
     .ecm-type-pill {
       flex: 1; display: flex; align-items: center; gap: 10px;
-      padding: 11px 14px; border: 2px solid #E5E7EB;
+      padding: 11px 14px; border: 2px solid var(--border);
       border-radius: 10px; cursor: not-allowed;
-      background: #fff; opacity: 0.8;
+      background: var(--card); opacity: 0.8;
     }
-    .ecm-type-pill.active.business  { border-color: #1D4ED8; background: #EFF6FF; opacity: 1; }
-    .ecm-type-pill.active.individual { border-color: #059669; background: #ECFDF5; opacity: 1; }
+    .ecm-type-pill.active.business  { border-color: #1D4ED8; background: rgba(29,78,216,.12); opacity: 1; }
+    .ecm-type-pill.active.individual { border-color: #059669; background: rgba(5,150,105,.12); opacity: 1; }
     .ecm-type-icon {
       width: 32px; height: 32px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center; font-size: 14px;
     }
     .business  .ecm-type-icon { background: #DBEAFE; color: #1D4ED8; }
     .individual .ecm-type-icon { background: #D1FAE5; color: #059669; }
-    .ecm-type-pill:not(.active) .ecm-type-icon { background: #F3F4F6; color: #9CA3AF; }
-    .ecm-type-name { font-size: 13px; font-weight: 700; color: #111827; }
-    .ecm-type-sub  { font-size: 11px; color: #6B7280; margin-top: 1px; }
+    .ecm-type-pill:not(.active) .ecm-type-icon { background: var(--muted); color: var(--muted-foreground); }
+    .ecm-type-name { font-size: 13px; font-weight: 700; color: var(--foreground); }
+    .ecm-type-sub  { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
     .ecm-locked {
       margin-left: auto; font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
-      color: #9CA3AF; background: #F3F4F6;
+      color: var(--muted-foreground); background: var(--muted);
       padding: 2px 7px; border-radius: 4px;
       display: flex; align-items: center; gap: 4px;
     }
@@ -135,7 +135,7 @@ const ModalStyles = () => (
     .ecm-root .ant-form-item-label   { padding-bottom: 4px !important; }
     .ecm-root .ant-form-item-label > label {
       font-size: 11px !important; font-weight: 600 !important;
-      letter-spacing: 0.3px !important; color: #6B7280 !important;
+      letter-spacing: 0.3px !important; color: var(--muted-foreground) !important;
       text-transform: uppercase !important; height: auto !important;
     }
     .ecm-root .ant-input,
@@ -144,34 +144,34 @@ const ModalStyles = () => (
       border-radius: 8px !important;
       font-size: 13px !important;
       font-family: 'Inter', sans-serif !important;
-      background: #FAFAFA !important;
-      border-color: #E5E7EB !important;
+      background: var(--muted) !important;
+      border-color: var(--border) !important;
     }
     .ecm-root .ant-input:focus,
     .ecm-root .ant-select-focused .ant-select-selector {
       border-color: #4F46E5 !important;
       box-shadow: 0 0 0 3px rgba(79,70,229,.1) !important;
-      background: #fff !important;
+      background: var(--card) !important;
     }
     .ecm-root .ant-input[disabled],
     .ecm-root .ant-select-disabled .ant-select-selector {
-      background: #F3F4F6 !important;
-      color: #9CA3AF !important;
+      background: var(--muted) !important;
+      color: var(--muted-foreground) !important;
     }
     .ecm-root textarea.ant-input { min-height: 80px !important; resize: vertical !important; }
 
     /* ── Contact / Address cards ── */
     .ecm-card {
-      background: #FAFBFF;
-      border: 1px solid #E5E7EB;
+      background: var(--muted);
+      border: 1px solid var(--border);
       border-radius: 12px;
       margin-bottom: 12px;
       overflow: hidden;
     }
     .ecm-card-head {
       padding: 11px 16px;
-      background: #fff;
-      border-bottom: 1px solid #E5E7EB;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
     }
     .ecm-card-head-left { display: flex; align-items: center; gap: 8px; }
@@ -182,7 +182,7 @@ const ModalStyles = () => (
       display: flex; align-items: center; justify-content: center;
     }
     .ecm-card-num.addr { background: #ECFDF5; color: #059669; }
-    .ecm-card-title  { font-size: 13px; font-weight: 600; color: #111827; }
+    .ecm-card-title  { font-size: 13px; font-weight: 600; color: var(--foreground); }
     .ecm-primary-badge {
       font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
       padding: 2px 7px; border-radius: 99px;
@@ -197,10 +197,10 @@ const ModalStyles = () => (
     .ecm-switch-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 9px 12px;
-      background: #fff; border: 1px solid #E5E7EB; border-radius: 8px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
     }
-    .ecm-switch-label { font-size: 12px; font-weight: 600; color: #111827; }
-    .ecm-switch-sub   { font-size: 11px; color: #6B7280; margin-top: 1px; }
+    .ecm-switch-label { font-size: 12px; font-weight: 600; color: var(--foreground); }
+    .ecm-switch-sub   { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
 
     /* ── Remove button ── */
     .ecm-remove-btn {
@@ -226,20 +226,20 @@ const ModalStyles = () => (
     /* ── Footer ── */
     .ecm-footer {
       padding: 16px 24px;
-      border-top: 1px solid #E5E7EB;
+      border-top: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
-      background: #fff;
+      background: var(--card);
       position: sticky; bottom: 0;
     }
-    .ecm-footer-note { font-size: 11px; color: #6B7280; }
+    .ecm-footer-note { font-size: 11px; color: var(--muted-foreground); }
     .ecm-footer-note span { color: #4F46E5; font-weight: 700; }
     .ecm-footer-btns { display: flex; gap: 10px; }
     .ecm-cancel-btn {
-      padding: 9px 20px; border: 1px solid #E5E7EB; border-radius: 8px;
-      background: #fff; color: #111827; font-size: 13px; font-weight: 600;
+      padding: 9px 20px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--card); color: var(--foreground); font-size: 13px; font-weight: 600;
       font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s;
     }
-    .ecm-cancel-btn:hover { background: #F3F4F6; }
+    .ecm-cancel-btn:hover { background: var(--muted); }
     .ecm-save-btn {
       padding: 9px 22px; border: none; border-radius: 8px;
       background: #4F46E5; color: #fff; font-size: 13px; font-weight: 700;

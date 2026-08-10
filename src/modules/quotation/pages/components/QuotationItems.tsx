@@ -42,9 +42,9 @@ const mockItems: Item[] = [
 ];
 
 const tokens = {
-  navy: "#0F1F3D", navyMid: "#1A3560", surface: "#F8F9FC", surfaceCard: "#FFFFFF",
-  border: "#E4E8F0", borderFocus: "#3B6FE8", accent: "#3B6FE8", accentLight: "#EBF0FD",
-  text: "#0F1F3D", textMuted: "#6B7A99", textLight: "#A0ABBF",
+  navy: "#0F1F3D", navyMid: "#1A3560", surface: "var(--muted)", surfaceCard: "var(--card)",
+  border: "var(--border)", borderFocus: "#3B6FE8", accent: "#3B6FE8", accentLight: "#EBF0FD",
+  text: "var(--foreground)", textMuted: "var(--muted-foreground)", textLight: "var(--muted-foreground)",
   red: "#EF4444", redLight: "#FEF2F2",
   green: "#10B981", greenLight: "#ECFDF5",
   radius: "12px", radiusSm: "8px",

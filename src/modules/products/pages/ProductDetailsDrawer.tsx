@@ -365,7 +365,7 @@ const styles: Record<string, React.CSSProperties> = {
   priceCardValue: { fontSize: 20, fontWeight: 700, color: "#1a1a2e" },
 
   sectionTitle: {
-    fontSize: 12, fontWeight: 600, color: "#888", textTransform: "uppercase",
+    fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase",
     letterSpacing: 0.6, marginBottom: 8, marginTop: 18,
   },
   infoCard: {

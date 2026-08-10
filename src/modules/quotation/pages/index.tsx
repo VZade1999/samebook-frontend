@@ -74,16 +74,16 @@ export const GlobalStyles = () => (
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
     :root {
-      --qt-bg: #F4F5F9;
-      --qt-surface: #FFFFFF;
-      --qt-border: #E5E7EB;
+      --qt-bg: var(--background);
+      --qt-surface: var(--card);
+      --qt-border: var(--border);
       --qt-accent: #4F46E5;
       --qt-accent-light: #EEF2FF;
       --qt-success: #059669;
       --qt-danger: #DC2626;
       --qt-warning: #D97706;
-      --qt-text: #111827;
-      --qt-muted: #6B7280;
+      --qt-text: var(--foreground);
+      --qt-muted: var(--muted-foreground);
       --qt-radius: 12px;
       --qt-radius-sm: 8px;
       --qt-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
@@ -161,20 +161,20 @@ export const GlobalStyles = () => (
       width: 100%; padding: 8px 12px 8px 34px;
       border: 1px solid var(--qt-border); border-radius: var(--qt-radius-sm);
       font-size: 13px; font-family: 'Inter', sans-serif; color: var(--qt-text);
-      background: #FAFAFA; outline: none; transition: border-color .15s, box-shadow .15s;
+      background: var(--muted); outline: none; transition: border-color .15s, box-shadow .15s;
     }
     .qt-search:focus {
-      border-color: var(--qt-accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); background: #fff;
+      border-color: var(--qt-accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); background: var(--qt-surface);
     }
     .qt-search::placeholder { color: var(--qt-muted); }
     .qt-toolbar-count {
       font-size: 12px; color: var(--qt-muted); white-space: nowrap;
-      background: #F3F4F6; padding: 6px 12px; border-radius: 6px;
+      background: var(--muted); padding: 6px 12px; border-radius: 6px;
     }
       .qt-icon-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border: 1px solid var(--qt-border);
-  border-radius: var(--qt-radius-sm); background: #FAFAFA;
+  border-radius: var(--qt-radius-sm); background: var(--muted);
   color: var(--qt-text); font-size: 13px; font-weight: 500;
   font-family: 'Inter', sans-serif; cursor: pointer;
   transition: all .15s; white-space: nowrap;
@@ -254,7 +254,7 @@ export const GlobalStyles = () => (
     .qt-form-close:hover { background: rgba(255,255,255,0.2); color: #fff; }
     .qt-form-body { padding: 24px; }
     .qt-form-footer {
-      padding: 16px 24px; border-top: 1px solid var(--qt-border); background: #FAFAFA;
+      padding: 16px 24px; border-top: 1px solid var(--qt-border); background: var(--muted);
       display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
     }
 
@@ -272,10 +272,10 @@ export const GlobalStyles = () => (
     .qt-btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, #4338CA 0%, #3730A3 100%); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,.4); }
     .qt-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
     .qt-btn-ghost {
-      background: #fff; color: var(--qt-text);
+      background: var(--qt-surface); color: var(--qt-text);
       border: 1.5px solid var(--qt-border) !important;
     }
-    .qt-btn-ghost:hover { background: #F9FAFB; }
+    .qt-btn-ghost:hover { background: var(--muted); }
     .qt-btn-danger { background: #FEF2F2; color: var(--qt-danger); border: 1.5px solid #FECACA !important; }
     .qt-btn-danger:hover { background: var(--qt-danger); color: #fff; }
     .qt-btn-sm { padding: 6px 12px; font-size: 12px; }
@@ -284,14 +284,14 @@ export const GlobalStyles = () => (
     /* ── Table overrides ── */
     .qt-table-wrap .ant-table { font-size: 13px !important; font-family: 'Inter', sans-serif !important; }
     .qt-table-wrap .ant-table-thead > tr > th {
-      background: #F9FAFB !important; color: var(--qt-muted) !important;
+      background: var(--muted) !important; color: var(--qt-muted) !important;
       font-size: 11px !important; font-weight: 600 !important;
       text-transform: uppercase !important; letter-spacing: 0.5px !important;
       border-bottom: 1px solid var(--qt-border) !important; padding: 10px 16px !important;
     }
-    .qt-table-wrap .ant-table-tbody > tr > td { border-bottom: 1px solid #F3F4F6 !important; padding: 12px 16px !important; vertical-align: middle !important; }
+    .qt-table-wrap .ant-table-tbody > tr > td { border-bottom: 1px solid var(--qt-border) !important; padding: 12px 16px !important; vertical-align: middle !important; }
     .qt-table-wrap .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-    .qt-table-wrap .ant-table-tbody > tr:hover > td { background: #FAFBFF !important; }
+    .qt-table-wrap .ant-table-tbody > tr:hover > td { background: var(--muted) !important; }
     .qt-table-wrap .ant-table-tbody > tr { cursor: pointer; }
 
     /* ── Status pill ── */
@@ -416,7 +416,7 @@ export const GlobalStyles = () => (
 
     /* ── Drawer footer ── */
     .qt-drawer-footer {
-      padding: 14px 20px; border-top: 1px solid var(--qt-border); background: #FAFAFA;
+      padding: 14px 20px; border-top: 1px solid var(--qt-border); background: var(--muted);
       display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
     }
 
@@ -1800,7 +1800,7 @@ const columns = [
           </div>
           <div className="qt-stat-card">
             <div className="qt-stat-label">Draft</div>
-            <div className="qt-stat-value" style={{ color: "#5b6062" }}>
+            <div className="qt-stat-value">
               {statusCounts.DRAFT || 0}
             </div>
           </div>

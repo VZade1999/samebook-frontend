@@ -27,16 +27,16 @@ const GlobalStyles = () => (
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
     :root {
-      --inv-bg: #F4F5F9;
-      --inv-surface: #FFFFFF;
-      --inv-border: #E5E7EB;
+      --inv-bg: var(--background);
+      --inv-surface: var(--card);
+      --inv-border: var(--border);
       --inv-accent: #4F46E5;
       --inv-accent-light: #EEF2FF;
       --inv-success: #059669;
       --inv-danger: #DC2626;
       --inv-warning: #D97706;
-      --inv-text: #111827;
-      --inv-muted: #6B7280;
+      --inv-text: var(--foreground);
+      --inv-muted: var(--muted-foreground);
       --inv-radius: 12px;
       --inv-radius-sm: 8px;
       --inv-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
@@ -164,10 +164,10 @@ const GlobalStyles = () => (
       width: 100%; padding: 8px 12px 8px 34px;
       border: 1px solid var(--inv-border); border-radius: var(--inv-radius-sm);
       font-size: 13px; font-family: 'Inter', sans-serif; color: var(--inv-text);
-      background: #FAFAFA; outline: none; transition: border-color .15s, box-shadow .15s;
+      background: var(--muted); outline: none; transition: border-color .15s, box-shadow .15s;
     }
     .invl-search:focus {
-      border-color: var(--inv-accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); background: #fff;
+      border-color: var(--inv-accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); background: var(--inv-surface);
     }
     .invl-search::placeholder { color: var(--inv-muted); }
 
@@ -180,7 +180,7 @@ const GlobalStyles = () => (
       width: 100%; padding: 8px 12px 8px 32px;
       border: 1px solid var(--inv-border); border-radius: var(--inv-radius-sm);
       font-size: 13px; font-family: 'Inter', sans-serif; color: var(--inv-text);
-      background: #FAFAFA; outline: none; appearance: none; cursor: pointer;
+      background: var(--muted); outline: none; appearance: none; cursor: pointer;
       transition: border-color .15s;
     }
     .invl-select:focus {
@@ -189,13 +189,13 @@ const GlobalStyles = () => (
 
     .invl-toolbar-count {
       font-size: 12px; color: var(--inv-muted); white-space: nowrap;
-      background: #F3F4F6; padding: 6px 12px; border-radius: 6px;
+      background: var(--muted); padding: 6px 12px; border-radius: 6px;
     }
 
     .invl-icon-btn {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 8px 14px; border: 1px solid var(--inv-border);
-      border-radius: var(--inv-radius-sm); background: #FAFAFA;
+      border-radius: var(--inv-radius-sm); background: var(--muted);
       color: var(--inv-text); font-size: 13px; font-weight: 500;
       font-family: 'Inter', sans-serif; cursor: pointer;
       transition: all .15s; white-space: nowrap;
@@ -232,16 +232,16 @@ const GlobalStyles = () => (
     /* ── Table overrides ── */
     .invl-table-wrap .ant-table { font-size: 13px !important; font-family: 'Inter', sans-serif !important; }
     .invl-table-wrap .ant-table-thead > tr > th {
-      background: #F9FAFB !important; color: var(--inv-muted) !important;
+      background: var(--muted) !important; color: var(--inv-muted) !important;
       font-size: 11px !important; font-weight: 600 !important;
       text-transform: uppercase !important; letter-spacing: 0.5px !important;
       border-bottom: 1px solid var(--inv-border) !important; padding: 10px 16px !important;
     }
     .invl-table-wrap .ant-table-tbody > tr > td {
-      border-bottom: 1px solid #F3F4F6 !important; padding: 12px 16px !important; vertical-align: middle !important;
+      border-bottom: 1px solid var(--inv-border) !important; padding: 12px 16px !important; vertical-align: middle !important;
     }
     .invl-table-wrap .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-    .invl-table-wrap .ant-table-tbody > tr:hover > td { background: #FAFBFF !important; }
+    .invl-table-wrap .ant-table-tbody > tr:hover > td { background: var(--muted) !important; }
     .invl-table-wrap .ant-table-tbody > tr { cursor: pointer; }
 
     /* ── Status pill ── */
@@ -266,10 +266,10 @@ const GlobalStyles = () => (
       white-space: nowrap;
     }
     .invl-btn-ghost {
-      background: #fff; color: var(--inv-text);
+      background: var(--inv-surface); color: var(--inv-text);
       border: 1.5px solid var(--inv-border) !important;
     }
-    .invl-btn-ghost:hover { background: #F9FAFB; }
+    .invl-btn-ghost:hover { background: var(--muted); }
     .invl-btn-sm { padding: 6px 12px; font-size: 12px; }
     .invl-btn-icon { padding: 7px; }
     .invl-btn-send {
