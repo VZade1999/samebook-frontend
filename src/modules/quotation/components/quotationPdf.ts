@@ -499,6 +499,7 @@ export async function downloadQuotationPDF(
     // items spilling onto a later page), `finalY` grows and this reliably
     // forces the summary onto a fresh page instead of letting it collide
     // with the footer.
+    // checking 
     const SUMMARY_ROW_H = 17;
     const SUMMARY_ROWS_COUNT = 6; // Subtotal, Discount, CGST, SGST, IGST, Transport
     const SUMMARY_DIVIDER_GAP = 14;
