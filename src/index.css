@@ -83,38 +83,46 @@
     --sidebar-ring: oklch(0.708 0 0);
 }
 
+/*
+ * Dark mode palette — adapted from kdelectricals.in's dark "industrial-tech"
+ * system (deep layered navy surfaces + electric blue accent, amber as a
+ * secondary highlight). Token NAMES are unchanged so every component/page
+ * already wired to var(--background)/var(--card)/var(--border)/etc. picks
+ * this up automatically with zero per-page changes. Light mode (:root above)
+ * is untouched — this only affects .dark.
+ */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: #04080F;
+    --foreground: #F8FAFC;
+    --card: #0D1728;
+    --card-foreground: #F8FAFC;
+    --popover: #0D1728;
+    --popover-foreground: #F8FAFC;
+    --primary: #3B82F6;
+    --primary-foreground: #F8FAFC;
+    --secondary: #111F38;
+    --secondary-foreground: #F8FAFC;
+    --muted: #111F38;
+    --muted-foreground: #94A3B8;
+    --accent: #111F38;
+    --accent-foreground: #F8FAFC;
+    --destructive: #EF4444;
+    --border: #132040;
+    --input: #1E3358;
+    --ring: #3B82F6;
+    --chart-1: #60A5FA;
+    --chart-2: #3B82F6;
+    --chart-3: #2563EB;
+    --chart-4: #F59E0B;
+    --chart-5: #FCD34D;
+    --sidebar: #080F1E;
+    --sidebar-foreground: #F8FAFC;
+    --sidebar-primary: #3B82F6;
+    --sidebar-primary-foreground: #F8FAFC;
+    --sidebar-accent: #111F38;
+    --sidebar-accent-foreground: #F8FAFC;
+    --sidebar-border: #132040;
+    --sidebar-ring: #3B82F6;
 }
 
 @layer base {

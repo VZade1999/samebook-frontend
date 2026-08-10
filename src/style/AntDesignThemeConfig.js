@@ -12,9 +12,13 @@ const light = {
 const dark = {
 	algorithm: antdTheme.darkAlgorithm,
 	token: {
-		colorPrimary: '#5ea3ff',
-		colorBgBase: '#0b1220',
-		colorTextBase: '#ffffff',
+		// Matches the .dark CSS-variable palette in index.css (deep navy +
+		// electric blue), so AntD components (Table, Select, Modal, etc.)
+		// visually match the rest of the app's dark mode instead of AntD's
+		// own default blue-gray.
+		colorPrimary: '#3B82F6',
+		colorBgBase: '#04080F',
+		colorTextBase: '#F8FAFC',
 	},
 };
 
