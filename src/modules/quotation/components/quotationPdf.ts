@@ -16,8 +16,19 @@ const formatDate = (date: string) => {
   });
 };
 
-// Convert a Buffer-like object ({ type: "Buffer", data: number[] }) to a base64 data URL
+// Normalizes a company logo into a data URL, regardless of which backend
+// endpoint produced it: login returns a raw Buffer (serialized as
+// { type: "Buffer", data: number[] }), while GET /companies/:id already
+// pre-encodes it as a "data:image/...;base64,..." string.
 const bufferToImageDataUrl = (logo: any): string | null => {
+  if (!logo) return null;
+
+  if (typeof logo === "string") {
+    if (logo.startsWith("data:image")) return logo;
+    // Plain base64 without a data: prefix — wrap it.
+    return logo.length > 0 ? `data:image/png;base64,${logo}` : null;
+  }
+
   if (!logo?.data || !Array.isArray(logo.data) || logo.data.length === 0) {
     return null;
   }
