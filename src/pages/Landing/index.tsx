@@ -142,12 +142,13 @@ const injectStyles = () => {
     }
     .lp-nav-link:hover { color: ${tokens.text1}; background: ${tokens.bg2}; }
     .lp-nav-login-btn {
-      margin-left: 12px; padding: .625rem 1.25rem; border-radius: ${tokens.radiusSm}; border: 1.5px solid ${tokens.blue};
+      margin-left: 12px; padding: .8rem 1.25rem; border-radius: ${tokens.radiusSm}; border: 1.5px solid ${tokens.blue};
       background: ${tokens.blue}; color: #fff; font-size: .85rem; font-weight: 600;
       cursor: pointer; transition: all .25s ease;
     }
     .lp-nav-login-btn:hover { background: ${tokens.blueDark}; border-color: ${tokens.blueDark}; }
     @media (max-width: 768px) { .lp-nav-links > .lp-nav-link { display: none; } }
+    @media (max-width: 480px) { .lp-nav { padding: 0 16px; } }
 
     /* ── Hero ── */
     .lp-hero {
@@ -185,7 +186,7 @@ const injectStyles = () => {
     .lp-hero-eyebrow-dot { width: 6px; height: 6px; background: ${tokens.blue}; border-radius: 50%; animation: lpPulse 2s infinite; }
     @keyframes lpPulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
     .lp-hero-title {
-      font-family: ${tokens.fontHeading}; font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 800;
+      font-family: ${tokens.fontHeading}; font-size: clamp(2rem, 8vw, 4.6rem); font-weight: 800;
       line-height: 1.06; letter-spacing: -.03em; margin: 0 0 1.4rem; color: ${tokens.text1};
     }
     .lp-hero-title-accent {
@@ -218,7 +219,7 @@ const injectStyles = () => {
     .lp-stat:last-child { border-right: none; }
     .lp-stat-value { font-family: ${tokens.fontHeading}; font-size: 2.2rem; font-weight: 800; color: ${tokens.text1}; line-height: 1; margin-bottom: .3rem; }
     .lp-stat-label { font-size: .75rem; color: ${tokens.text4}; text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
-    @media (max-width: 640px) {
+    @media (max-width: 900px) {
       .lp-stats { grid-template-columns: repeat(2, 1fr); }
       .lp-stat:nth-child(2) { border-right: none; }
       .lp-stat:nth-child(3), .lp-stat:nth-child(4) { border-top: 1px solid ${tokens.borderSubtle}; }
@@ -304,7 +305,11 @@ const injectStyles = () => {
     }
     .lp-form-success h3 { font-size: 1.1rem; font-weight: 700; color: ${tokens.text1}; margin: 0 0 .4rem; }
     .lp-form-success p { font-size: .85rem; color: ${tokens.text3}; margin: 0 0 1.25rem; }
-    @media (max-width: 560px) { .lp-form-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) {
+      .lp-form-grid { grid-template-columns: 1fr; }
+      .lp-contact-section { padding: 3rem 16px; }
+      .lp-cta-banner { padding: 1.5rem; }
+    }
 
     /* ── Footer ── */
     .lp-footer { background: ${tokens.bg1}; border-top: 1px solid ${tokens.borderSubtle}; padding: 3rem 32px 1.5rem; text-align: center; }

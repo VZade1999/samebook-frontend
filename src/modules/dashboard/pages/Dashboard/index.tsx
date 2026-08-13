@@ -12,7 +12,7 @@ const DashboardPage = () => {
       </div>
 
       <Row gutter={[20, 20]}>
-        <Col xs={24} md={8}>
+        <Col xs={24} sm={12} md={8}>
           <Card>
             <h3>Total Revenue</h3>
 
@@ -20,7 +20,7 @@ const DashboardPage = () => {
           </Card>
         </Col>
 
-        <Col xs={24} md={8}>
+        <Col xs={24} sm={12} md={8}>
           <Card>
             <h3>Total Customers</h3>
 
@@ -28,7 +28,7 @@ const DashboardPage = () => {
           </Card>
         </Col>
 
-        <Col xs={24} md={8}>
+        <Col xs={24} sm={12} md={8}>
           <Card>
             <h3>Pending quotation</h3>
 

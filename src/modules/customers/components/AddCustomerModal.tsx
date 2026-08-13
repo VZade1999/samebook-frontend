@@ -298,6 +298,8 @@ const ModalStyles = () => (
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
       gap: 12px;
     }
     .acm-footer-hint { font-size: 11px; color: var(--muted-foreground); }

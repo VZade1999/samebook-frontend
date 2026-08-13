@@ -191,7 +191,9 @@ $lgn-shadow-lg   : 0 8px 32px rgba(30, 27, 75, 0.12), 0 2px 8px rgba(30, 27, 75,
   padding: 10px 40px 10px 38px;
   border: 1px solid $lgn-border;
   border-radius: $lgn-radius-sm;
-  font-size: 13px;
+  // 16px, not 13px — anything smaller triggers iOS Safari's automatic
+  // pinch-zoom on focus, a well-known mobile input bug.
+  font-size: 16px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: $lgn-text;
   background: #FAFAFA;
@@ -224,12 +226,12 @@ border-color: color.adjust($lgn-border, $lightness: -8%);
 // ─── Eye toggle ───────────────────────────────────────────────────────────────
 .lgn-eye-btn {
   position: absolute;
-  right: 10px;
+  right: 4px;
   top: 50%;
   transform: translateY(-50%);
   border: none;
   background: none;
-  padding: 4px;
+  padding: 8px;
   cursor: pointer;
   color: $lgn-muted;
   display: flex;

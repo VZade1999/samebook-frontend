@@ -227,7 +227,7 @@ const ModalStyles = () => (
     .ecm-footer {
       padding: 16px 24px;
       border-top: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
       background: var(--card);
       position: sticky; bottom: 0;
     }

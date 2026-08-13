@@ -1127,10 +1127,11 @@ const InvoiceDetails = () => {
               </span>
             )}
           </div>
-          <div className="id-pay-table-wrap">
+          <div className="id-pay-table-wrap" style={{ overflowX: "auto" }}>
             <Table
               rowKey="id"
               pagination={false}
+              scroll={{ x: "max-content" }}
               columns={paymentColumns}
               dataSource={inv.payments || []}
               locale={{

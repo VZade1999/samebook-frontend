@@ -196,7 +196,7 @@ const ModalStyles = () => (
       grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
-    @media (max-width: 400px) {
+    @media (max-width: 480px) {
       .igm-date-row { grid-template-columns: 1fr; }
     }
 

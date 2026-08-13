@@ -252,7 +252,7 @@ const CustomerDetails = () => {
         </div>
       </div>
       <AutoComplete
-        className=""
+        className="cd-header-search"
         style={{ width: 280, flexShrink: 0 }}
         options={customerOptions}
         onSearch={handleCustomerSearch}

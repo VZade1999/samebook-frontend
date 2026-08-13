@@ -1,5 +1,7 @@
 import React from "react";
-import { Drawer, Empty } from "antd";
+import { Drawer, Empty, Grid } from "antd";
+
+const { useBreakpoint } = Grid;
 import {
   BankOutlined,
   UserOutlined,
@@ -377,6 +379,9 @@ const CustomerDetailsDrawer: React.FC<CustomerDetailsDrawerProps> = ({
   onClose,
   customer,
 }) => {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   return (
     <>
       <DrawerStyles />
@@ -389,7 +394,7 @@ const CustomerDetailsDrawer: React.FC<CustomerDetailsDrawerProps> = ({
           </span>
         }
         placement="right"
-        width={560}
+        width={isMobile ? "100%" : 560}
         open={open}
         onClose={onClose}
       >

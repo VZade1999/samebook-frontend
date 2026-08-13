@@ -180,7 +180,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
             children: (
               <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col xs={24} md={12}>
                     <Form.Item
                       label="Product Name"
                       name="name"
@@ -193,7 +193,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                       <Input placeholder="Enter product name" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} md={12}>
                     <Form.Item
                       label="Product Code"
                       name="product_code"
@@ -207,7 +207,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                 </Row>
 
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col xs={24} md={12}>
                     <Form.Item
                       label="SKU"
                       name="sku"
@@ -219,7 +219,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                       <Input placeholder="Enter SKU" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} md={12}>
                     <Form.Item
                       label="Barcode"
                       name="barcode"
@@ -233,7 +233,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                 </Row>
 
                 <Row gutter={16}>
-                  <Col span={8}>
+                  <Col xs={24} sm={12} md={8}>
                     <Form.Item label="Price" name="price" rules={[{ required: true }]}>
                       <InputNumber
                         style={{ width: "100%" }}
@@ -243,7 +243,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={8}>
+                  <Col xs={24} sm={12} md={8}>
                     <Form.Item label="Cost Price" name="cost_price">
                       <InputNumber
                         style={{ width: "100%" }}
@@ -253,7 +253,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={8}>
+                  <Col xs={24} sm={12} md={8}>
                     <Form.Item label="Tax %" name="tax_percentage">
                       <InputNumber
                         style={{ width: "100%" }}
@@ -267,7 +267,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                 </Row>
 
                 <Row gutter={16}>
-                  <Col span={8}>
+                  <Col xs={24} sm={12} md={8}>
                     <Form.Item label="Stock Quantity" name="stock_quantity">
                       <InputNumber
                         style={{ width: "100%" }}
@@ -276,7 +276,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={8}>
+                  <Col xs={24} sm={12} md={8}>
                     <Form.Item label="Minimum Stock" name="minimum_stock">
                       <InputNumber
                         style={{ width: "100%" }}
@@ -285,7 +285,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={8}>
+                  <Col xs={24} sm={12} md={8}>
                     <Form.Item label="Unit" name="unit">
                       <Input placeholder="e.g., pcs, box, unit" />
                     </Form.Item>
@@ -293,7 +293,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                 </Row>
 
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col xs={24} md={12}>
                     <Form.Item label="Category ID" name="category_id">
                       <InputNumber
                         style={{ width: "100%" }}
@@ -301,7 +301,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} md={12}>
                     <Form.Item label="Image URL" name="image_url">
                       <Input placeholder="https://..." />
                     </Form.Item>
@@ -411,6 +411,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                     ]}
                     pagination={false}
                     rowKey="id"
+                    scroll={{ x: "max-content" }}
                   />
                 ) : (
                   <Card style={{ textAlign: "center", color: "#999" }}>
@@ -485,6 +486,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                     ]}
                     pagination={false}
                     rowKey="id"
+                    scroll={{ x: "max-content" }}
                   />
                 ) : (
                   <Card style={{ textAlign: "center", color: "#999" }}>
@@ -571,6 +573,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                     ]}
                     pagination={false}
                     rowKey="id"
+                    scroll={{ x: "max-content" }}
                   />
                 ) : (
                   <Card style={{ textAlign: "center", color: "#999" }}>
@@ -645,6 +648,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                     ]}
                     pagination={false}
                     rowKey="id"
+                    scroll={{ x: "max-content" }}
                   />
                 ) : (
                   <Card style={{ textAlign: "center", color: "#999" }}>

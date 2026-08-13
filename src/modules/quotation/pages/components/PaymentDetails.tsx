@@ -117,7 +117,7 @@ const injectStyles = () => {
       border-radius: 5px;
       letter-spacing: 0.5px;
     }
-    @media (max-width: 480px) {
+    @media (max-width: 575px) {
       .pd-bank-grid { grid-template-columns: 1fr; }
       .pd-card .ant-card-body { padding: 20px 16px 14px !important; }
     }

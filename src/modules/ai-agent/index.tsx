@@ -112,6 +112,12 @@ const AiAgentChat: React.FC = () => {
 
   return (
     <div style={styles.root}>
+      <style>{`
+        @media (max-width: 480px) {
+          .aiagent-msg-avatar { width: 24px !important; height: 24px !important; }
+          .aiagent-bubble { font-size: 13px !important; padding: 8px 12px !important; }
+        }
+      `}</style>
       {/* ── Header ── */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
@@ -149,7 +155,7 @@ const AiAgentChat: React.FC = () => {
           return (
             <div key={i} style={{ ...styles.msgRow, ...(isUser ? styles.msgRowUser : {}) }}>
               {!isUser && (
-                <div style={{ ...styles.msgAvatar, background: "#1677ff" }}>
+                <div className="aiagent-msg-avatar" style={{ ...styles.msgAvatar, background: "#1677ff" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="11" width="18" height="10" rx="2" />
                     <circle cx="12" cy="5" r="2" />
@@ -159,6 +165,7 @@ const AiAgentChat: React.FC = () => {
               )}
               <div style={{ ...styles.bubbleWrap, ...(isUser ? styles.bubbleWrapUser : {}) }}>
                 <div
+                  className="aiagent-bubble"
                   style={{
                     ...styles.bubble,
                     ...(isUser ? styles.bubbleUser : styles.bubbleAi),
@@ -171,7 +178,7 @@ const AiAgentChat: React.FC = () => {
                 </div>
               </div>
               {isUser && (
-                <div style={{ ...styles.msgAvatar, background: "#22c55e" }}>
+                <div className="aiagent-msg-avatar" style={{ ...styles.msgAvatar, background: "#22c55e" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
