@@ -13,7 +13,7 @@ import {
   Popconfirm,
 } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { createProduct } from "../../redux/productActions";
 import { StorageService } from "@/storage";
 
@@ -38,6 +38,20 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
     setInventory([]);
     setMetadata([]);
   };
+
+  const productState = useSelector((state: any) => state.products);
+  const createLoading = productState?.createLoading || false;
+  const error = productState?.error;
+
+  const prevCreateLoadingRef = React.useRef<boolean>(createLoading);
+
+  React.useEffect(() => {
+    if (prevCreateLoadingRef.current && !createLoading && !error) {
+      handleClear();
+      onClose();
+    }
+    prevCreateLoadingRef.current = createLoading;
+  }, [createLoading, error]);
 
   const handleSave = async () => {
     try {
@@ -77,8 +91,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
       }
 
       dispatch(createProduct(payload));
-      handleClear();
-      onClose();
     } catch {
       // Ant Design handles field validation feedback
     }
@@ -165,8 +177,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
       style={{ maxWidth: 1000 }}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={handleClear}>Clear</Button>
-          <Button type="primary" onClick={handleSave}>
+          <Button onClick={handleClear} disabled={createLoading}>Clear</Button>
+          <Button type="primary" onClick={handleSave} loading={createLoading}>
             Save
           </Button>
         </div>

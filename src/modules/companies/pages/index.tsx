@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Table, Input, Pagination, Card, Space, Empty, Button, Popconfirm,
   Drawer, Divider, Typography, Tag, Grid
@@ -51,7 +51,8 @@ const CompanyCard: React.FC<{
   onView: (c: Company) => void;
   onEdit: (c: Company) => void;
   onDelete: (c: Company) => void;
-}> = ({ company, canEdit, canDelete, onView, onEdit, onDelete }) => {
+  deletingId: number | null;
+}> = ({ company, canEdit, canDelete, onView, onEdit, onDelete, deletingId }) => {
   const status = company.status || "active";
   const addr = (company.addresses || []).at(-1);
   const addrStr = addr
@@ -138,7 +139,13 @@ const CompanyCard: React.FC<{
             cancelText="No"
             okButtonProps={{ danger: true }}
           >
-            <Button size="small" danger icon={<DeleteOutlined />} style={styles.actionBtn}>
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deletingId === company.id}
+              style={styles.actionBtn}
+            >
               Delete
             </Button>
           </Popconfirm>
@@ -164,6 +171,8 @@ const CompanyPage: React.FC = () => {
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsCompany, setDetailsCompany] = useState<any | null>(null);
 
+  const [deletingCompanyId, setDeletingCompanyId] = useState<number | null>(null);
+
   const companyState = useSelector((state: any) => state.companies);
   const companies = companyState?.companies || { companies: [], pagination: {} };
   const pagination = companies?.pagination || {};
@@ -180,7 +189,20 @@ const CompanyPage: React.FC = () => {
     setPage(1);
   };
 
-  const handleDelete = (record: Company) => dispatch(deleteCompany(record.id));
+  const deleteLoading = companyState?.deleteLoading || false;
+  const prevDeleteLoadingRef = useRef<boolean>(deleteLoading);
+
+  useEffect(() => {
+    if (prevDeleteLoadingRef.current && !deleteLoading) {
+      setDeletingCompanyId(null);
+    }
+    prevDeleteLoadingRef.current = deleteLoading;
+  }, [deleteLoading]);
+
+  const handleDelete = (record: Company) => {
+    setDeletingCompanyId(record.id);
+    dispatch(deleteCompany(record.id));
+  };
   const handleEdit = (record: Company) => { setSelectedCompany(record); setIsEditModalOpen(true); };
   const openDetails = (record: any) => { setDetailsCompany(record); setDetailsVisible(true); };
   const closeDetails = () => { setDetailsVisible(false); setDetailsCompany(null); };
@@ -246,7 +268,7 @@ const CompanyPage: React.FC = () => {
           {can("companies.delete") && (
             <Popconfirm title="Delete Company" description="Are you sure?" onConfirm={() => handleDelete(r)}
               okText="Yes" cancelText="No" okButtonProps={{ danger: true }}>
-              <Button type="text" danger icon={<DeleteOutlined />} />
+              <Button type="text" danger icon={<DeleteOutlined />} loading={deletingCompanyId === r.id} />
             </Popconfirm>
           )}
         </Space>
@@ -300,6 +322,7 @@ const CompanyPage: React.FC = () => {
                 onView={openDetails}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                deletingId={deletingCompanyId}
               />
             ))
           )}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Table, Spin, Pagination, Popconfirm } from 'antd';
 import {
   PlusOutlined,
@@ -531,7 +531,7 @@ const Avatar = ({ name, type }: { name: string; type: string }) => (
 const CustomerListPage: React.FC = () => {
   const dispatch = useDispatch();
 
-  const { list, loading, pagination, stats } = useSelector((state: any) => state.customers);
+  const { list, loading, pagination, stats, deleteLoading } = useSelector((state: any) => state.customers);
 
   const [searchInput, setSearchInput]           = useState('');
   const [search, setSearch]                     = useState('');
@@ -570,9 +570,19 @@ const CustomerListPage: React.FC = () => {
     fetchCustomers();
   }, [fetchCustomers]);
 
+  const [deletingCustomerId, setDeletingCustomerId] = useState<number | null>(null);
+  const prevDeleteLoadingRef = useRef<boolean>(deleteLoading);
+
+  useEffect(() => {
+    if (prevDeleteLoadingRef.current && !deleteLoading) {
+      setDeletingCustomerId(null);
+    }
+    prevDeleteLoadingRef.current = deleteLoading;
+  }, [deleteLoading]);
+
   const handleView   = (c: any) => { setSelectedCustomer(c); setDetailsOpen(true); };
   const handleEdit   = (c: any) => { setSelectedCustomer(c); setEditOpen(true); };
-  const handleDelete = (c: any) => { dispatch(deleteCustomer(c.id)); };
+  const handleDelete = (c: any) => { setDeletingCustomerId(c.id); dispatch(deleteCustomer(c.id)); };
 
   // ─── Derived stats ──────────────────────────────────────────────────────────
   // Use API-provided stats if available (see updated BE), else derive from current page
@@ -712,8 +722,8 @@ const CustomerListPage: React.FC = () => {
             okButtonProps={{ danger: true }}
             onConfirm={() => handleDelete(record)}
           >
-            <button className="cusl-action-btn del">
-              <DeleteOutlined />
+            <button className="cusl-action-btn del" disabled={deletingCustomerId === record.id}>
+              {deletingCustomerId === record.id ? <Spin size="small" /> : <DeleteOutlined />}
             </button>
           </Popconfirm>
         </div>
@@ -960,8 +970,8 @@ const CustomerListPage: React.FC = () => {
                               okButtonProps={{ danger: true }}
                               onConfirm={() => handleDelete(customer)}
                             >
-                              <button className="cusl-action-btn del">
-                                <DeleteOutlined />
+                              <button className="cusl-action-btn del" disabled={deletingCustomerId === customer.id}>
+                                {deletingCustomerId === customer.id ? <Spin size="small" /> : <DeleteOutlined />}
                               </button>
                             </Popconfirm>
                           </div>

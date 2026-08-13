@@ -27,6 +27,7 @@ export const productReducer = (state = initialState, action: any) => {
       return {
         ...state,
         loading: true,
+        deleteLoading: false,
         error: null,
       };
 

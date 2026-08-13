@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Spin, Table, Tooltip } from "antd";
 import {
   ArrowLeftOutlined,
@@ -763,8 +763,9 @@ const InvoiceDetails = () => {
   const dispatch = useDispatch();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  const { selectedInvoice, invoiceTimeline, detailsLoading } = useSelector(
+  const { selectedInvoice, invoiceTimeline, detailsLoading, actionLoading, error } = useSelector(
     (state: any) => state.invoice,
   );
 
@@ -775,12 +776,29 @@ const InvoiceDetails = () => {
     }
   }, [id]);
 
+  const prevActionLoadingRef = useRef<boolean>(actionLoading);
+
+  useEffect(() => {
+    if (prevActionLoadingRef.current && !actionLoading && !error) {
+      setPaymentModalOpen(false);
+    }
+    prevActionLoadingRef.current = actionLoading;
+  }, [actionLoading, error]);
+
   const handleAddPayment = (values: any) => {
     dispatch(addPayment({
       id: Number(id), ...values,
       payment_date: values.payment_date.format("YYYY-MM-DD"),
     }));
-    setPaymentModalOpen(false);
+  };
+
+  const handleDownloadPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      await downloadInvoicePDF(inv);
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const inv = selectedInvoice || {};
@@ -938,8 +956,8 @@ const InvoiceDetails = () => {
         <button className="id-btn id-btn-success" onClick={() => setPaymentModalOpen(true)}>
           <DollarOutlined />Add Payment
         </button>
-        <button className="id-btn id-btn-ghost" onClick={() => downloadInvoicePDF(inv)}>
-          <DownloadOutlined />Download PDF
+        <button className="id-btn id-btn-ghost" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+          {downloadingPdf ? <Spin size="small" /> : <DownloadOutlined />}Download PDF
         </button>
       </div>
 
@@ -1182,6 +1200,7 @@ const InvoiceDetails = () => {
         visible={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         onSubmit={handleAddPayment}
+        loading={actionLoading}
       />
     </div>
   );

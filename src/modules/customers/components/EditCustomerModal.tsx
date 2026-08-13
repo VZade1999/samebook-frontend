@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
-import { Form, Input, Modal, Select, Switch, message } from "antd";
+import React, { useEffect, useRef } from "react";
+import { Form, Input, Modal, Select, Switch, message, Spin } from "antd";
 import { DeleteOutlined, PlusOutlined, LockOutlined, BankOutlined, UserOutlined, EditOutlined } from "@ant-design/icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { updateCustomer } from "../redux/customerActions";
 import { indianStates } from "@/utils/masterData/stata";
 
@@ -292,6 +292,20 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ open, onClose, cu
     }
   }, [open, customer, form]);
 
+  const customerState = useSelector((state: any) => state.customers);
+  const updateLoading = customerState?.updateLoading || false;
+  const updateError = customerState?.updateError;
+
+  const prevUpdateLoadingRef = useRef<boolean>(updateLoading);
+
+  useEffect(() => {
+    if (prevUpdateLoadingRef.current && !updateLoading && !updateError) {
+      form.resetFields();
+      onClose();
+    }
+    prevUpdateLoadingRef.current = updateLoading;
+  }, [updateLoading, updateError]);
+
   // ─── Close ─────────────────────────────────────────────────────────────────
   const handleClose = () => {
     form.resetFields();
@@ -325,7 +339,6 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ open, onClose, cu
         return message.error("Individual customer can only have 2 addresses");
 
       dispatch(updateCustomer({ id: customer.id, ...values }));
-      handleClose();
     } catch (error) {
       console.log("Validation failed", error);
     }
@@ -688,8 +701,8 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ open, onClose, cu
             </div>
             <div className="ecm-footer-btns">
               <button className="ecm-cancel-btn" onClick={handleClose}>Cancel</button>
-              <button className="ecm-save-btn" onClick={handleUpdate}>
-                ✓ Update Customer
+              <button className="ecm-save-btn" onClick={handleUpdate} disabled={updateLoading}>
+                {updateLoading ? <Spin size="small" /> : "✓"} {updateLoading ? "Updating…" : "Update Customer"}
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Modal, Form, Input, Button, Row, Col, Space, Checkbox, Divider, InputNumber, notification } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { createCompany } from "../../redux/companyActions";
 import { generateCompanyPrefixSuggestion } from "../../utils/companyPrefix.helper";
 
@@ -80,12 +80,25 @@ const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ open, onClose }) => {
     }
   };
 
+  const companyState = useSelector((state: any) => state.companies);
+  const createLoading = companyState?.createLoading || false;
+  const error = companyState?.error;
+
+  const prevCreateLoadingRef = useRef<boolean>(createLoading);
+
+  useEffect(() => {
+    if (prevCreateLoadingRef.current && !createLoading && !error) {
+      form.resetFields();
+      setLogoPreview(null);
+      onClose();
+    }
+    prevCreateLoadingRef.current = createLoading;
+  }, [createLoading, error]);
+
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
       dispatch(createCompany(values));
-      form.resetFields();
-      onClose();
     } catch {
       // validation handled by Ant Design
     }
@@ -106,8 +119,8 @@ const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ open, onClose }) => {
       style={{ maxWidth: 720 }}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="primary" onClick={handleSave}>
+          <Button onClick={handleClose} disabled={createLoading}>Cancel</Button>
+          <Button type="primary" onClick={handleSave} loading={createLoading}>
             Save
           </Button>
         </div>

@@ -142,13 +142,18 @@ const RolesPage = () => {
     [],
   );
 
+  const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
+
   const handleDelete = async (id: number) => {
+    setDeletingRoleId(id);
     try {
-      await dispatch(deleteRole(id) as any);
+      await (dispatch(deleteRole(id) as any)).unwrap();
       message.success('Role deleted');
       fetchRoles();
     } catch {
       message.error('Delete failed');
+    } finally {
+      setDeletingRoleId(null);
     }
   };
 
@@ -206,6 +211,7 @@ const RolesPage = () => {
           danger
           size="small"
           icon={<DeleteOutlined />}
+          loading={deletingRoleId === record.id}
           style={block ? { flex: 1 } : {}}
         >
           {block ? 'Delete' : ''}

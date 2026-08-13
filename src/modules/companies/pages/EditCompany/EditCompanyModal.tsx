@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Modal, Form, Input, Button, Row, Col, Space, Checkbox, Divider, InputNumber, notification } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { updateCompany } from "../../redux/companyActions";
 
 interface EditCompanyModalProps {
@@ -91,13 +91,25 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
     }
   }, [company, form]);
 
+  const companyState = useSelector((state: any) => state.companies);
+  const updateLoading = companyState?.updateLoading || false;
+  const error = companyState?.error;
+
+  const prevUpdateLoadingRef = useRef<boolean>(updateLoading);
+
+  useEffect(() => {
+    if (prevUpdateLoadingRef.current && !updateLoading && !error) {
+      form.resetFields();
+      setLogoPreview(null);
+      onClose();
+    }
+    prevUpdateLoadingRef.current = updateLoading;
+  }, [updateLoading, error]);
+
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
       dispatch(updateCompany({ id: company?.id, ...values }));
-      form.resetFields();
-      setLogoPreview(null);
-      onClose();
     } catch {
       // validation handled by Ant Design
     }
@@ -118,8 +130,8 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
       style={{ maxWidth: 720 }}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="primary" onClick={handleSave}>
+          <Button onClick={handleClose} disabled={updateLoading}>Cancel</Button>
+          <Button type="primary" onClick={handleSave} loading={updateLoading}>
             Update
           </Button>
         </div>

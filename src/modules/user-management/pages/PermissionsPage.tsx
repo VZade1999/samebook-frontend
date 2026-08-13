@@ -140,10 +140,19 @@ const PermissionsPage = () => {
 
   const openEdit = (record: any) => { setSelectedPermission(record); setEditOpen(true); };
 
+  const [deletingPermissionId, setDeletingPermissionId] = useState<number | null>(null);
+
   const handleDelete = async (id: number) => {
-    await dispatch(deletePermission(id) as any);
-    message.success('Permission deleted');
-    fetchPermissions();
+    setDeletingPermissionId(id);
+    try {
+      await (dispatch(deletePermission(id) as any)).unwrap();
+      message.success('Permission deleted');
+      fetchPermissions();
+    } catch {
+      message.error('Delete failed');
+    } finally {
+      setDeletingPermissionId(null);
+    }
   };
 
   // ─── Shared actions ───────────────────────────────────────────────────────
@@ -170,6 +179,7 @@ const PermissionsPage = () => {
           danger
           size="small"
           icon={<DeleteOutlined />}
+          loading={deletingPermissionId === record.id}
           style={block ? { flex: 1 } : {}}
         >
           {block ? 'Delete' : ''}

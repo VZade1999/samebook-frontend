@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table, Input, Pagination, Space, Empty, Button, Popconfirm, Tag, Grid,
 } from "antd";
@@ -44,7 +44,8 @@ const ProductCard: React.FC<{
   onView: (p: Product) => void;
   onEdit: (p: Product) => void;
   onDelete: (p: Product) => void;
-}> = ({ product, canEdit, canDelete, onView, onEdit, onDelete }) => {
+  deletingId: number | null;
+}> = ({ product, canEdit, canDelete, onView, onEdit, onDelete, deletingId }) => {
   const price = Number(product.price);
   const priceStr = Number.isFinite(price) ? `$${price.toFixed(2)}` : "—";
 
@@ -103,7 +104,13 @@ const ProductCard: React.FC<{
             okText="Yes" cancelText="No"
             okButtonProps={{ danger: true }}
           >
-            <Button size="small" danger icon={<DeleteOutlined />} style={styles.actionBtn}>
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deletingId === product.id}
+              style={styles.actionBtn}
+            >
               Delete
             </Button>
           </Popconfirm>
@@ -173,7 +180,21 @@ const ProductListPage: React.FC = () => {
     </div>
   );
 
-  const handleDelete = (record: Product) => dispatch(deleteProduct(record.id));
+  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const deleteLoading = productState?.deleteLoading || false;
+  const prevDeleteLoadingRef = useRef<boolean>(deleteLoading);
+
+  useEffect(() => {
+    if (prevDeleteLoadingRef.current && !deleteLoading) {
+      setDeletingProductId(null);
+    }
+    prevDeleteLoadingRef.current = deleteLoading;
+  }, [deleteLoading]);
+
+  const handleDelete = (record: Product) => {
+    setDeletingProductId(record.id);
+    dispatch(deleteProduct(record.id));
+  };
   const handleEdit = (record: Product) => { setSelectedProduct(record); setIsEditModalOpen(true); };
   const handleView = (record: Product) => { setSelectedProductId(record.id); setIsDetailOpen(true); };
 
@@ -230,7 +251,7 @@ const ProductListPage: React.FC = () => {
               onConfirm={() => handleDelete(record)}
               okText="Yes" cancelText="No" okButtonProps={{ danger: true }}
             >
-              <Button type="text" danger icon={<DeleteOutlined />} />
+              <Button type="text" danger icon={<DeleteOutlined />} loading={deletingProductId === record.id} />
             </Popconfirm>
           )}
         </Space>
@@ -285,6 +306,7 @@ const ProductListPage: React.FC = () => {
                 onView={handleView}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                deletingId={deletingProductId}
               />
             ))
           )}

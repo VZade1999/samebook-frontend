@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Modal,
   Form,
@@ -13,7 +13,7 @@ import {
   Popconfirm,
 } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { updateProduct } from "../../redux/productActions";
 import ProductService from "../../redux";
 
@@ -173,6 +173,19 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     }
   };
 
+  const productState = useSelector((state: any) => state.products);
+  const updateLoading = productState?.createLoading || false;
+  const error = productState?.error;
+
+  const prevUpdateLoadingRef = useRef<boolean>(updateLoading);
+
+  useEffect(() => {
+    if (prevUpdateLoadingRef.current && !updateLoading && !error) {
+      handleClose();
+    }
+    prevUpdateLoadingRef.current = updateLoading;
+  }, [updateLoading, error]);
+
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
@@ -207,7 +220,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }
 
       dispatch(updateProduct(payload));
-      handleClose();
     } catch {
       // Ant Design handles validation feedback
     }
@@ -312,8 +324,8 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       style={{ maxWidth: 1000 }}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={handleClear}>Reset</Button>
-          <Button type="primary" onClick={handleSave}>
+          <Button onClick={handleClear} disabled={updateLoading}>Reset</Button>
+          <Button type="primary" onClick={handleSave} loading={updateLoading}>
             Update
           </Button>
         </div>

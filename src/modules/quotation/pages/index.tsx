@@ -1042,6 +1042,7 @@ const MobileCard: React.FC<{
   canEdit: boolean;
   canDelete: boolean;
   canExport: boolean;
+  deletingId: number | null;
 }> = ({
   record,
   downloadingId,
@@ -1052,6 +1053,7 @@ const MobileCard: React.FC<{
   canEdit,
   canDelete,
   canExport,
+  deletingId,
 }) => (
   <div className="qt-mobile-card" onClick={() => onView(record)}>
     <div className="qt-mobile-card-top">
@@ -1134,8 +1136,11 @@ const MobileCard: React.FC<{
             okText="Delete"
             okButtonProps={{ danger: true }}
           >
-            <button className="qt-btn qt-btn-danger qt-btn-sm">
-              <DeleteOutlined />
+            <button
+              className="qt-btn qt-btn-danger qt-btn-sm"
+              disabled={deletingId === record.id}
+            >
+              {deletingId === record.id ? <Spin size="small" /> : <DeleteOutlined />}
             </button>
           </Popconfirm>
         )}
@@ -1187,6 +1192,9 @@ const QuotationPage = () => {
   const [downloadingQuotationId, setDownloadingQuotationId] = useState<
     number | null
   >(null);
+  const [deletingQuotationId, setDeletingQuotationId] = useState<
+    number | null
+  >(null);
 
   const quotationState = useSelector((state: any) => state.quotations);
   const authState = useSelector((state: any) => state.authn);
@@ -1203,7 +1211,17 @@ const QuotationPage = () => {
   const quotationHistory = quotationState?.quotationHistory || [];
   const quotationTimeline = quotationState?.quotationTimeline || [];
 
+  const deleteLoading = quotationState?.deleteLoading || false;
+
   const prevCreateLoadingRef = useRef<boolean>(createLoading);
+  const prevDeleteLoadingRef = useRef<boolean>(deleteLoading);
+
+  useEffect(() => {
+    if (prevDeleteLoadingRef.current && !deleteLoading) {
+      setDeletingQuotationId(null);
+    }
+    prevDeleteLoadingRef.current = deleteLoading;
+  }, [deleteLoading]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -1545,7 +1563,10 @@ const QuotationPage = () => {
     });
   };
 
-  const handleDelete = (record: any) => dispatch(deleteQuotation(record.id));
+  const handleDelete = (record: any) => {
+    setDeletingQuotationId(record.id);
+    dispatch(deleteQuotation(record.id));
+  };
   const handleView = (record: any) => {
     setSelectedQuotationId(record.id);
     setDetailsVisible(true);
@@ -1735,7 +1756,9 @@ const columns = [
         )}
         {can("quotations.delete") && record.status === "DRAFT" && (
           <Popconfirm title="Delete this quotation?" onConfirm={() => handleDelete(record)} okText="Delete" okButtonProps={{ danger: true }}>
-            <button className="qt-btn qt-btn-danger qt-btn-icon" title="Delete"><DeleteOutlined /></button>
+            <button className="qt-btn qt-btn-danger qt-btn-icon" title="Delete" disabled={deletingQuotationId === record.id}>
+              {deletingQuotationId === record.id ? <Spin size="small" /> : <DeleteOutlined />}
+            </button>
           </Popconfirm>
         )}
       </div>
@@ -2000,6 +2023,7 @@ const columns = [
                   key={q.id}
                   record={q}
                   downloadingId={downloadingQuotationId}
+                  deletingId={deletingQuotationId}
                   onView={handleView}
                   onEdit={handleEdit}
                   onDelete={handleDelete}

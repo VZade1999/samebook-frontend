@@ -1,7 +1,7 @@
-import React from "react";
-import { Form, Input, Modal, Select, Switch, Popconfirm } from "antd";
+import React, { useEffect, useRef } from "react";
+import { Form, Input, Modal, Select, Switch, Popconfirm, Spin } from "antd";
 import { DeleteOutlined, PlusOutlined, BankOutlined, UserOutlined } from "@ant-design/icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { createCustomer } from "../redux/customerActions";
 import { indianStates } from "@/utils/masterData/stata";
 
@@ -364,6 +364,20 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ open, onClose }) =>
 
   const customerType = Form.useWatch("customer_type", form) || "INDIVIDUAL";
 
+  const customerState = useSelector((state: any) => state.customers);
+  const createLoading = customerState?.createLoading || false;
+  const createError = customerState?.createError;
+
+  const prevCreateLoadingRef = useRef<boolean>(createLoading);
+
+  useEffect(() => {
+    if (prevCreateLoadingRef.current && !createLoading && !createError) {
+      form.resetFields();
+      onClose();
+    }
+    prevCreateLoadingRef.current = createLoading;
+  }, [createLoading, createError]);
+
   // ─── Close ────────────────────────────────────────────────────────────────
   const handleClose = () => {
     form.resetFields();
@@ -394,8 +408,6 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ open, onClose }) =>
       if (primaryAddresses.length > 1) return alert("Only one primary address allowed");
 
       dispatch(createCustomer(values));
-      form.resetFields();
-      onClose();
     } catch (error) {
       console.log("Validation Failed", error);
     }
@@ -853,9 +865,9 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ open, onClose }) =>
               <button className="acm-cancel-btn" type="button" onClick={handleClose}>
                 Cancel
               </button>
-              <button className="acm-save-btn" type="button" onClick={handleSave}>
-                <PlusOutlined style={{ fontSize: 12 }} />
-                Save Customer
+              <button className="acm-save-btn" type="button" onClick={handleSave} disabled={createLoading}>
+                {createLoading ? <Spin size="small" /> : <PlusOutlined style={{ fontSize: 12 }} />}
+                {createLoading ? "Saving…" : "Save Customer"}
               </button>
             </div>
           </div>

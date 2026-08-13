@@ -161,13 +161,18 @@ const UsersPage = () => {
     debouncedSearch(value);
   };
 
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
+
   const handleDeleteUser = async (userId: number) => {
+    setDeletingUserId(userId);
     try {
-      await dispatch(deleteUser(userId) as any);
+      await (dispatch(deleteUser(userId) as any)).unwrap();
       message.success("User deleted successfully");
       fetchUsers();
     } catch {
       message.error("Failed to delete user");
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -230,7 +235,7 @@ const UsersPage = () => {
         okText="Yes"
         cancelText="No"
       >
-        <Button danger size="small" icon={<DeleteOutlined />} />
+        <Button danger size="small" icon={<DeleteOutlined />} loading={deletingUserId === record.id} />
       </Popconfirm>
       <Button
         size="small"
@@ -298,7 +303,7 @@ const UsersPage = () => {
           okText="Yes"
           cancelText="No"
         >
-          <Button danger size="small" icon={<DeleteOutlined />}>
+          <Button danger size="small" icon={<DeleteOutlined />} loading={deletingUserId === record.id}>
             Delete
           </Button>
         </Popconfirm>

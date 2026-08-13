@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Table, Spin, Pagination, Tooltip, Popconfirm } from 'antd';
 import {
   EyeOutlined,
@@ -371,13 +371,14 @@ const InvoiceList = () => {
   const dispatch = useDispatch();
   const { can } = useAccess();
 
-  const { invoices, loading } = useSelector((state: any) => state.invoice);
+  const { invoices, loading, actionLoading } = useSelector((state: any) => state.invoice);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch]           = useState('');
   const [page, setPage]               = useState(1);
   const [pageSize]                    = useState(10);
   const [status, setStatus]           = useState('');
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<number | null>(null);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -404,8 +405,18 @@ const InvoiceList = () => {
     dispatch(getQuotations({ page: 1, limit: 100 }));
   }, [dispatch]);
 
+  const prevActionLoadingRef = useRef<boolean>(actionLoading);
+
+  useEffect(() => {
+    if (prevActionLoadingRef.current && !actionLoading) {
+      setSendingInvoiceId(null);
+    }
+    prevActionLoadingRef.current = actionLoading;
+  }, [actionLoading]);
+
   const handleSend = (e: React.MouseEvent, invoiceId: number) => {
     e.stopPropagation();
+    setSendingInvoiceId(invoiceId);
     dispatch(sendInvoice(invoiceId));
   };
 
@@ -578,8 +589,9 @@ const InvoiceList = () => {
             className="invl-btn invl-btn-send invl-btn-sm"
             onClick={(e) => handleSend(e, record.id)}
             title="Send Invoice"
+            disabled={sendingInvoiceId === record.id}
           >
-            <MailOutlined />
+            {sendingInvoiceId === record.id ? <Spin size="small" /> : <MailOutlined />}
             Send
           </button>
         </div>

@@ -34,6 +34,7 @@ export const companyReducer = (state = initialState, action: any) => {
       return {
         ...state,
         loading: true,
+        deleteLoading: false,
         error: null,
       };
     case ASYNC_GET_COMPANIES_SUCCESS:
