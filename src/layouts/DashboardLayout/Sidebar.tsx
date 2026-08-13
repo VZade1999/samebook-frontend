@@ -50,7 +50,7 @@ const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
     can("companies.view") && {
       key: "/app/companies",
       icon: <BankOutlined />,
-      label: "Companies",
+      label: "My Company",
     },
     can("customers.view") && {
       key: "/app/customers",
