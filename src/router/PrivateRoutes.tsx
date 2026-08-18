@@ -15,6 +15,7 @@ import PermissionsPage from "../modules/user-management/pages/PermissionsPage";
 import CategoriesPage from "../modules/categories/pages/CategoriesPage";
 import WarehousesPage from "../modules/warehouses/pages/WarehousesPage";
 import AttendancePage from "../modules/attendance/pages/AttendancePage";
+import TeamAttendancePage from "../modules/attendance/pages/TeamAttendancePage";
 // import RolesList from "../modules/user-management/pages/RolesList";
 // import PermissionsList from "../modules/user-management/pages/PermissionsList";
 
@@ -68,6 +69,15 @@ const PrivateRoutes = () => {
           element={
             <ProtectedRoute permission="attendance.view">
               <AttendancePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/attendance/team"
+          element={
+            <ProtectedRoute permission="attendance.manage">
+              <TeamAttendancePage />
             </ProtectedRoute>
           }
         />

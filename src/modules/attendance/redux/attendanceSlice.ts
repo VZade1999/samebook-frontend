@@ -4,6 +4,7 @@ import {
   punchOut,
   getTodayAttendance,
   getAttendanceHistory,
+  getTeamAttendance,
 } from "./attendanceActions";
 
 const initialState = {
@@ -13,6 +14,8 @@ const initialState = {
   history: [] as any[],
   historyPagination: { total: 0, page: 1, limit: 20, pages: 0 },
   historyLoading: false,
+  team: [] as any[],
+  teamLoading: false,
   error: null as any,
 };
 
@@ -70,6 +73,18 @@ const attendanceSlice = createSlice({
     });
     builder.addCase(getAttendanceHistory.rejected, (state, action) => {
       state.historyLoading = false;
+      state.error = action.payload as any;
+    });
+
+    builder.addCase(getTeamAttendance.pending, (state) => {
+      state.teamLoading = true;
+    });
+    builder.addCase(getTeamAttendance.fulfilled, (state, action) => {
+      state.teamLoading = false;
+      state.team = action.payload;
+    });
+    builder.addCase(getTeamAttendance.rejected, (state, action) => {
+      state.teamLoading = false;
       state.error = action.payload as any;
     });
   },

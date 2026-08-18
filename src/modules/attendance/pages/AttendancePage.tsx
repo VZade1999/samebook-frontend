@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Empty, Spin } from "antd";
+import { Empty, Spin, Tag } from "antd";
 import {
   ClockCircleOutlined,
   LoginOutlined,
   LogoutOutlined,
   CalendarOutlined,
   HistoryOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -14,6 +15,8 @@ import {
   getTodayAttendance,
   getAttendanceHistory,
 } from "../redux/attendanceActions";
+import { getMyLeaves } from "@/modules/leave/redux/leaveActions";
+import RequestLeaveModal from "@/modules/leave/components/RequestLeaveModal";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 // Same elevated-indigo system as Company/Profile pages (--comp-*/--prof-*),
@@ -114,6 +117,14 @@ const GlobalStyles = () => (
       50% { transform: scale(1.08); opacity: 0; }
     }
 
+    .att-leave-btn {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 20px;
+      padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.08); color: #fff; font-size: 12.5px; font-weight: 700;
+      cursor: pointer; font-family: 'Inter', sans-serif; backdrop-filter: blur(10px); transition: all .15s;
+    }
+    .att-leave-btn:hover { background: rgba(255,255,255,.16); }
+
     /* ── Today summary chips ── */
     .att-summary-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
     .att-summary-chip {
@@ -166,6 +177,14 @@ const GlobalStyles = () => (
     .att-load-more:hover { background: var(--att-accent-light); }
     .att-load-more:disabled { opacity: .6; cursor: not-allowed; }
 
+    .att-leave-row {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+      padding: 10px; border-radius: var(--att-radius-sm); background: var(--muted); margin-bottom: 8px; font-size: 12.5px;
+    }
+    .att-leave-row:last-child { margin-bottom: 0; }
+    .att-leave-dates { font-weight: 700; color: var(--att-text); }
+    .att-leave-reason { color: var(--att-muted); margin-top: 2px; }
+
     @media (max-width: 640px) {
       .att-hero { padding: 28px 16px 48px; }
       .att-body { padding: 0 16px 40px; }
@@ -198,12 +217,15 @@ const AttendancePage: React.FC = () => {
   const dispatch = useDispatch();
   const { today, todayLoading, punching, history, historyPagination, historyLoading } =
     useSelector((state: any) => state.attendance);
+  const { myLeaves, myLeavesLoading } = useSelector((state: any) => state.leave);
 
   const [now, setNow] = useState(new Date());
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
 
   useEffect(() => {
     dispatch(getTodayAttendance() as any);
     dispatch(getAttendanceHistory({ page: 1 }) as any);
+    dispatch(getMyLeaves() as any);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -316,10 +338,47 @@ const AttendancePage: React.FC = () => {
               </div>
             </div>
           )}
+
+          <button className="att-leave-btn" onClick={() => setLeaveModalOpen(true)}>
+            <FileTextOutlined /> Request Leave
+          </button>
         </div>
       </div>
 
       <div className="att-body">
+        <div className="att-card" style={{ marginBottom: 16 }}>
+          <div className="att-card-header">
+            <span className="icon"><FileTextOutlined /></span>
+            My Leave Requests
+          </div>
+          <div className="att-card-body">
+            {myLeavesLoading && myLeaves.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "24px 0" }}><Spin /></div>
+            ) : myLeaves.length === 0 ? (
+              <Empty description="No leave requests yet" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ padding: "20px 0" }} />
+            ) : (
+              myLeaves.map((leave: any) => (
+                <div className="att-leave-row" key={leave.id}>
+                  <div>
+                    <div className="att-leave-dates">
+                      {new Date(leave.from_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      {leave.from_date !== leave.to_date &&
+                        ` – ${new Date(leave.to_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+                    </div>
+                    <div className="att-leave-reason">{leave.reason}</div>
+                  </div>
+                  <Tag
+                    color={leave.status === "approved" ? "success" : leave.status === "rejected" ? "error" : "warning"}
+                    style={{ textTransform: "capitalize", flexShrink: 0 }}
+                  >
+                    {leave.status}
+                  </Tag>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="att-card">
           <div className="att-card-header">
             <span className="icon"><HistoryOutlined /></span>
@@ -358,6 +417,12 @@ const AttendancePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <RequestLeaveModal
+        visible={leaveModalOpen}
+        onClose={() => setLeaveModalOpen(false)}
+        onSuccess={() => dispatch(getMyLeaves() as any)}
+      />
     </div>
   );
 };

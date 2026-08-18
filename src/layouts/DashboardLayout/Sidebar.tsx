@@ -40,10 +40,14 @@ const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
       icon: <DashboardOutlined />,
       label: "Dashboard",
     },
-    can("attendance.view") && {
-      key: "/app/attendance",
+    (can("attendance.view") || can("attendance.manage")) && {
+      key: "attendance-management",
       icon: <FieldTimeOutlined />,
       label: "Attendance",
+      children: [
+        can("attendance.view") && { key: "/app/attendance", icon: <FieldTimeOutlined />, label: "My Attendance" },
+        can("attendance.manage") && { key: "/app/attendance/team", icon: <TeamOutlined />, label: "Team Attendance" },
+      ].filter(Boolean),
     },
     (can("users.view") || can("roles.view") || can("permissions.view")) && {
       key: "user-management",

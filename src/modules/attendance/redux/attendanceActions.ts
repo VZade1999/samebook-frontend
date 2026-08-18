@@ -37,6 +37,18 @@ export const getTodayAttendance = createAsyncThunk(
   },
 );
 
+export const getTeamAttendance = createAsyncThunk(
+  "attendance/getTeam",
+  async (month: string, { rejectWithValue }) => {
+    try {
+      const response = await attendanceService.getTeam(month);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data);
+    }
+  },
+);
+
 export const getAttendanceHistory = createAsyncThunk(
   "attendance/getHistory",
   async (

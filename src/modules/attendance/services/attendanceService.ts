@@ -9,4 +9,6 @@ export const attendanceService = {
 
   getHistory: (page: number = 1, limit: number = 20) =>
     api.get(`/attendance/history?page=${page}&limit=${limit}`),
+
+  getTeam: (month: string) => api.get(`/attendance/team?month=${month}`),
 };

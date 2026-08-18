@@ -14,6 +14,7 @@ import categoriesReducer from "@/modules/categories/redux/categoriesSlice";
 import warehousesReducer from "@/modules/warehouses/redux/warehousesSlice";
 import profileReducer from "@/modules/auth/profile/redux/profileSlice";
 import attendanceReducer from "@/modules/attendance/redux/attendanceSlice";
+import leaveReducer from "@/modules/leave/redux/leaveSlice";
 const rootReducer = combineReducers({
   authn: authReducer,
   customers: customerReducer,
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
   warehouses: warehousesReducer,
   profile: profileReducer,
   attendance: attendanceReducer,
+  leave: leaveReducer,
 });
 
 export default rootReducer;
