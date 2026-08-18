@@ -332,6 +332,53 @@ const toServerPayload = (draft: Partial<UserDetails>, keys: (keyof UserDetails)[
   return payload;
 };
 
+/* ─── Field components ──────────────────────────────────────────────────────
+   Hoisted to module scope (not defined inside Profile's render body) — a
+   component defined inside another component's function body is recreated
+   as a brand-new type on every render, so React unmounts/remounts the
+   underlying <Input> DOM node on every keystroke, dropping focus after each
+   character typed. Hoisting fixes that; state is passed in explicitly. ── */
+const Field = ({ label, value, icon }: { label: string; value?: string; icon?: React.ReactNode }) => (
+  <div>
+    <div className="prof-field-label">{icon}{label}</div>
+    <div className={value ? "prof-field-value" : "prof-field-empty"}>{value || "Not set"}</div>
+  </div>
+);
+
+const EditField = ({
+  label,
+  field,
+  full,
+  type = "text",
+  draft,
+  setDraft,
+}: {
+  label: string;
+  field: keyof UserDetails;
+  full?: boolean;
+  type?: string;
+  draft: Partial<UserDetails>;
+  setDraft: React.Dispatch<React.SetStateAction<Partial<UserDetails>>>;
+}) => (
+  <div className={full ? "full" : ""}>
+    <div className="prof-field-label">{label}</div>
+    {type === "textarea" ? (
+      <Input.TextArea
+        rows={3}
+        value={(draft[field] as string) || ""}
+        onChange={(e) => setDraft((d) => ({ ...d, [field]: e.target.value }))}
+      />
+    ) : (
+      <Input
+        type={type}
+        value={(draft[field] as string) || ""}
+        onChange={(e) => setDraft((d) => ({ ...d, [field]: e.target.value }))}
+        placeholder={label}
+      />
+    )}
+  </div>
+);
+
 /* ─── Component ─────────────────────────────────────────────────────────── */
 const Profile = () => {
   const dispatch = useDispatch();
@@ -450,43 +497,6 @@ const Profile = () => {
   };
 
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "—";
-
-  const Field = ({ label, value, icon }: { label: string; value?: string; icon?: React.ReactNode }) => (
-    <div>
-      <div className="prof-field-label">{icon}{label}</div>
-      <div className={value ? "prof-field-value" : "prof-field-empty"}>{value || "Not set"}</div>
-    </div>
-  );
-
-  const EditField = ({
-    label,
-    field,
-    full,
-    type = "text",
-  }: {
-    label: string;
-    field: keyof UserDetails;
-    full?: boolean;
-    type?: string;
-  }) => (
-    <div className={full ? "full" : ""}>
-      <div className="prof-field-label">{label}</div>
-      {type === "textarea" ? (
-        <Input.TextArea
-          rows={3}
-          value={(draft[field] as string) || ""}
-          onChange={(e) => setDraft((d) => ({ ...d, [field]: e.target.value }))}
-        />
-      ) : (
-        <Input
-          type={type}
-          value={(draft[field] as string) || ""}
-          onChange={(e) => setDraft((d) => ({ ...d, [field]: e.target.value }))}
-          placeholder={label}
-        />
-      )}
-    </div>
-  );
 
   if (loading && !profileState?.data) {
     return (
@@ -612,17 +622,17 @@ const Profile = () => {
               {editing === "personal" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div className="prof-edit-grid">
-                    <EditField label="First Name" field="firstName" />
-                    <EditField label="Last Name" field="lastName" />
-                    <EditField label="Phone" field="phone" />
-                    <EditField label="Date of Birth" field="dateOfBirth" type="date" />
-                    <EditField label="Gender" field="gender" />
-                    <EditField label="Marital Status" field="maritalStatus" />
-                    <EditField label="Blood Group" field="bloodGroup" />
-                    <EditField label="Aadhar Number" field="aadharNo" />
-                    <EditField label="PAN Number" field="panNo" />
-                    <EditField label="Emergency Contact" field="emergencyContact" />
-                    <EditField label="Permanent Address" field="permanentAddress" type="textarea" full />
+                    <EditField label="First Name" field="firstName" draft={draft} setDraft={setDraft} />
+                    <EditField label="Last Name" field="lastName" draft={draft} setDraft={setDraft} />
+                    <EditField label="Phone" field="phone" draft={draft} setDraft={setDraft} />
+                    <EditField label="Date of Birth" field="dateOfBirth" type="date" draft={draft} setDraft={setDraft} />
+                    <EditField label="Gender" field="gender" draft={draft} setDraft={setDraft} />
+                    <EditField label="Marital Status" field="maritalStatus" draft={draft} setDraft={setDraft} />
+                    <EditField label="Blood Group" field="bloodGroup" draft={draft} setDraft={setDraft} />
+                    <EditField label="Aadhar Number" field="aadharNo" draft={draft} setDraft={setDraft} />
+                    <EditField label="PAN Number" field="panNo" draft={draft} setDraft={setDraft} />
+                    <EditField label="Emergency Contact" field="emergencyContact" draft={draft} setDraft={setDraft} />
+                    <EditField label="Permanent Address" field="permanentAddress" type="textarea" full draft={draft} setDraft={setDraft} />
                   </div>
                   <div>
                     <button className="prof-save-btn" disabled={saving} onClick={() => saveSection("personal")}>
@@ -664,13 +674,13 @@ const Profile = () => {
               {editing === "bank" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div className="prof-edit-grid">
-                    <EditField label="Bank Name" field="bankName" />
-                    <EditField label="Branch Name" field="branchName" />
-                    <EditField label="Account Number" field="accountNumber" />
-                    <EditField label="Account Type" field="accountType" />
-                    <EditField label="IFSC Code" field="ifscCode" />
-                    <EditField label="MICR Code" field="micrCode" />
-                    <EditField label="Salary Payment Mode" field="salaryPaymentMode" />
+                    <EditField label="Bank Name" field="bankName" draft={draft} setDraft={setDraft} />
+                    <EditField label="Branch Name" field="branchName" draft={draft} setDraft={setDraft} />
+                    <EditField label="Account Number" field="accountNumber" draft={draft} setDraft={setDraft} />
+                    <EditField label="Account Type" field="accountType" draft={draft} setDraft={setDraft} />
+                    <EditField label="IFSC Code" field="ifscCode" draft={draft} setDraft={setDraft} />
+                    <EditField label="MICR Code" field="micrCode" draft={draft} setDraft={setDraft} />
+                    <EditField label="Salary Payment Mode" field="salaryPaymentMode" draft={draft} setDraft={setDraft} />
                   </div>
                   <div>
                     <button className="prof-save-btn" disabled={saving} onClick={() => saveSection("bank")}>
