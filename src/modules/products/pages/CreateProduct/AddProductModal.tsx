@@ -4,6 +4,7 @@ import {
   Form,
   Input,
   InputNumber,
+  Select,
   Button,
   Row,
   Col,
@@ -16,6 +17,10 @@ import {
 import { DeleteOutlined, PlusOutlined, ShopOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { createProduct } from "../../redux/productActions";
+import { getCategories } from "@/modules/categories/redux/categoriesActions";
+import AddCategoryModal from "@/modules/categories/components/AddCategoryModal";
+import { getWarehouses } from "@/modules/warehouses/redux/warehousesActions";
+import AddWarehouseModal from "@/modules/warehouses/components/AddWarehouseModal";
 import { StorageService } from "@/storage";
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
@@ -141,6 +146,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
   const productState = useSelector((state: any) => state.products);
   const createLoading = productState?.createLoading || false;
   const error = productState?.error;
+  const categories = useSelector((state: any) => state.categories?.list) || [];
+  const warehouses = useSelector((state: any) => state.warehouses?.list) || [];
+  const [quickAddCategoryOpen, setQuickAddCategoryOpen] = React.useState(false);
+  const [quickAddWarehouseOpen, setQuickAddWarehouseOpen] = React.useState(false);
 
   const prevCreateLoadingRef = React.useRef<boolean>(createLoading);
 
@@ -151,6 +160,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
     }
     prevCreateLoadingRef.current = createLoading;
   }, [createLoading, error]);
+
+  React.useEffect(() => {
+    if (open) {
+      dispatch(getCategories() as any);
+      dispatch(getWarehouses() as any);
+    }
+  }, [open]);
 
   const handleSave = async () => {
     try {
@@ -417,10 +433,29 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
 
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
-                    <Form.Item label="Category ID" name="category_id">
-                      <InputNumber
-                        style={{ width: "100%" }}
-                        placeholder="Category ID"
+                    <Form.Item label="Category" name="category_id">
+                      <Select
+                        allowClear
+                        showSearch
+                        placeholder="Select a category"
+                        optionFilterProp="label"
+                        options={categories.map((c: any) => ({ value: c.id, label: c.name }))}
+                        popupRender={(menu) => (
+                          <>
+                            {menu}
+                            <div style={{ borderTop: "1px solid var(--border)", padding: 6 }}>
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<PlusOutlined />}
+                                style={{ width: "100%", textAlign: "left" }}
+                                onClick={() => setQuickAddCategoryOpen(true)}
+                              >
+                                Add new category
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       />
                     </Form.Item>
                   </Col>
@@ -665,15 +700,37 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
                         ),
                       },
                       {
-                        title: "Warehouse ID",
+                        title: "Warehouse",
                         dataIndex: "warehouse_id",
                         key: "warehouse_id",
                         render: (_, record) => (
-                          <InputNumber
-                            value={record.warehouse_id}
+                          <Select
+                            style={{ minWidth: 160 }}
+                            allowClear
+                            showSearch
+                            placeholder="Select warehouse"
+                            optionFilterProp="label"
+                            value={record.warehouse_id ?? undefined}
                             onChange={(val) =>
-                              updateInventory(record.id, "warehouse_id", val)
+                              updateInventory(record.id, "warehouse_id", val ?? null)
                             }
+                            options={warehouses.map((w: any) => ({ value: w.id, label: w.name }))}
+                            popupRender={(menu) => (
+                              <>
+                                {menu}
+                                <div style={{ borderTop: "1px solid var(--border)", padding: 6 }}>
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<PlusOutlined />}
+                                    style={{ width: "100%", textAlign: "left" }}
+                                    onClick={() => setQuickAddWarehouseOpen(true)}
+                                  >
+                                    Add new warehouse
+                                  </Button>
+                                </div>
+                              </>
+                            )}
                           />
                         ),
                       },
@@ -795,6 +852,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
           </div>
         </div>
       </Modal>
+
+      <AddCategoryModal
+        visible={quickAddCategoryOpen}
+        categories={categories}
+        onClose={() => setQuickAddCategoryOpen(false)}
+        onSuccess={() => dispatch(getCategories() as any)}
+      />
+      <AddWarehouseModal
+        visible={quickAddWarehouseOpen}
+        onClose={() => setQuickAddWarehouseOpen(false)}
+        onSuccess={() => dispatch(getWarehouses() as any)}
+      />
     </>
   );
 };

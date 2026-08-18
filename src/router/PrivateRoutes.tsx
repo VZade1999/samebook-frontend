@@ -12,6 +12,8 @@ import UsersPage from "@/modules/users/pages";
 // import UsersList from "../modules/users/pages/UsersList";
 import RolesPage from "../modules/user-management/pages/RolesPage";
 import PermissionsPage from "../modules/user-management/pages/PermissionsPage";
+import CategoriesPage from "../modules/categories/pages/CategoriesPage";
+import WarehousesPage from "../modules/warehouses/pages/WarehousesPage";
 // import RolesList from "../modules/user-management/pages/RolesList";
 // import PermissionsList from "../modules/user-management/pages/PermissionsList";
 
@@ -56,6 +58,24 @@ const PrivateRoutes = () => {
           element={
             <ProtectedRoute permission="products.view">
               <ProductPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/categories"
+          element={
+            <ProtectedRoute permission="categories.view">
+              <CategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/warehouses"
+          element={
+            <ProtectedRoute permission="warehouses.view">
+              <WarehousesPage />
             </ProtectedRoute>
           }
         />

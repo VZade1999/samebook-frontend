@@ -10,6 +10,8 @@ import usersReducer from "@/modules/users/redux/usersSlice";
 import rolesReducer from "@/modules/user-management/redux/rolesSlice";
 import permissionsReducer from "@/modules/user-management/redux/permissionsSlice";
 import { invoiceReducer } from "@/modules/invoice/redux/invoiceReducer";
+import categoriesReducer from "@/modules/categories/redux/categoriesSlice";
+import warehousesReducer from "@/modules/warehouses/redux/warehousesSlice";
 const rootReducer = combineReducers({
   authn: authReducer,
   customers: customerReducer,
@@ -21,6 +23,8 @@ const rootReducer = combineReducers({
   roles: rolesReducer,
   permissions: permissionsReducer,
   invoice: invoiceReducer,
+  categories: categoriesReducer,
+  warehouses: warehousesReducer,
 });
 
 export default rootReducer;

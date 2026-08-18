@@ -12,6 +12,8 @@ import {
   DownOutlined,
   SafetyOutlined,
   UsergroupDeleteOutlined,
+  AppstoreOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAccess } from "../../permissions/useAccess";
@@ -57,10 +59,15 @@ const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
       icon: <UserOutlined />,
       label: "Customers",
     },
-    can("products.view") && {
-      key: "/app/products",
+    (can("products.view") || can("categories.view") || can("warehouses.view")) && {
+      key: "products-management",
       icon: <ShoppingOutlined />,
       label: "Products",
+      children: [
+        can("products.view") && { key: "/app/products", icon: <ShoppingOutlined />, label: "Products" },
+        can("categories.view") && { key: "/app/categories", icon: <AppstoreOutlined />, label: "Categories" },
+        can("warehouses.view") && { key: "/app/warehouses", icon: <ShopOutlined />, label: "Warehouses" },
+      ].filter(Boolean),
     },
     can("ai_agent.view") && {
       key: "/app/ai-agent",
