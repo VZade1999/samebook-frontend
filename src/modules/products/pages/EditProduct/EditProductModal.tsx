@@ -11,11 +11,111 @@ import {
   Card,
   Table,
   Popconfirm,
+  notification,
+  Spin,
 } from "antd";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { updateProduct } from "../../redux/productActions";
 import ProductService from "../../redux";
+
+// ─── Global Styles ────────────────────────────────────────────────────────────
+// Same chrome as AddProductModal (.prdm-*) so both product modals — and the
+// rest of the app's "premium" modals — read as one consistent design system.
+const ModalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    .prdm-root { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--foreground); }
+
+    .prdm-modal .ant-modal-content { border-radius: 16px !important; overflow: hidden !important; padding: 0 !important; box-shadow: 0 20px 60px rgba(0,0,0,.22) !important; }
+    .prdm-modal .ant-modal-header { display: none !important; }
+    .prdm-modal .ant-modal-body   { padding: 0 !important; }
+    .prdm-modal .ant-modal-close  { display: none !important; }
+
+    .prdm-header {
+      background: #1E1B4B; padding: 20px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: relative; overflow: hidden;
+    }
+    .prdm-header::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 16px;
+      background: var(--card); border-radius: 16px 16px 0 0;
+    }
+    .prdm-header-noise {
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+    .prdm-header-left { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
+    .prdm-header-icon {
+      width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px;
+    }
+    .prdm-header-title { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+    .prdm-header-sub    { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+    .prdm-close-btn {
+      position: relative; z-index: 1;
+      width: 32px; height: 32px; border-radius: 8px; border: none;
+      background: rgba(255,255,255,0.12); color: #fff; font-size: 16px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s; font-family: 'Inter', sans-serif;
+    }
+    .prdm-close-btn:hover { background: rgba(255,255,255,0.22); }
+
+    .prdm-body { padding: 16px 24px 0; max-height: 66vh; overflow-y: auto; }
+    .prdm-body::-webkit-scrollbar { width: 5px; }
+    .prdm-body::-webkit-scrollbar-track { background: transparent; }
+    .prdm-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    .prdm-root .ant-tabs-nav::before { border-color: var(--border) !important; }
+    .prdm-root .ant-tabs-tab { font-size: 12.5px !important; font-weight: 600 !important; }
+    .prdm-root .ant-tabs-tab-active .ant-tabs-tab-btn { color: #4F46E5 !important; }
+    .prdm-root .ant-tabs-ink-bar { background: #4F46E5 !important; }
+
+    .prdm-root .ant-form-item-label > label {
+      font-size: 11px !important; font-weight: 600 !important; letter-spacing: 0.3px !important;
+      color: var(--muted-foreground) !important; text-transform: uppercase !important;
+    }
+    .prdm-root .ant-input,
+    .prdm-root .ant-input-number,
+    .prdm-root .ant-input-affix-wrapper {
+      border-radius: 8px !important; font-size: 13px !important; font-family: 'Inter', sans-serif !important;
+      background: var(--muted) !important; border-color: var(--border) !important;
+    }
+    .prdm-root .ant-input-number { width: 100% !important; }
+    .prdm-root .ant-input:focus,
+    .prdm-root .ant-input-number-focused {
+      border-color: #4F46E5 !important; box-shadow: 0 0 0 3px rgba(79,70,229,.1) !important; background: var(--card) !important;
+    }
+
+    .prdm-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+      background: var(--card); position: sticky; bottom: 0;
+    }
+    .prdm-cancel-btn {
+      padding: 9px 20px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--card); color: var(--foreground); font-size: 13px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s;
+    }
+    .prdm-cancel-btn:hover { background: var(--muted); }
+    .prdm-cancel-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .prdm-save-btn {
+      padding: 9px 22px; border: none; border-radius: 8px;
+      background: #4F46E5; color: #fff; font-size: 13px; font-weight: 700;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .prdm-save-btn:hover:not(:disabled) { background: #4338CA; transform: translateY(-1px); }
+    .prdm-save-btn:disabled { opacity: .75; cursor: not-allowed; transform: none; }
+
+    @media (max-width: 640px) {
+      .prdm-body { padding: 16px 16px 0; }
+      .prdm-header, .prdm-footer { padding: 16px; }
+    }
+  `}</style>
+);
 
 interface Product {
   id: number;
@@ -84,6 +184,10 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         }
       })
       .catch(() => {
+        notification.error({
+          message: "Couldn't load full product details",
+          description: "Showing the summary from the list instead — variants, images, and inventory may be incomplete. Try reopening this modal.",
+        });
         setDetailProduct(product);
       });
   }, [open, product?.id]);
@@ -174,7 +278,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   };
 
   const productState = useSelector((state: any) => state.products);
-  const updateLoading = productState?.createLoading || false;
+  const updateLoading = productState?.updateLoading || false;
   const error = productState?.error;
 
   const prevUpdateLoadingRef = useRef<boolean>(updateLoading);
@@ -194,30 +298,26 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         ...values,
       };
 
-      if (variants.length > 0) {
-        payload.variants = variants.map((v) => {
-          const { id, tempId, isNew, ...rest } = v;
-          return isNew ? rest : { ...rest, id };
-        });
-      }
-      if (images.length > 0) {
-        payload.images = images.map((i) => {
-          const { id, tempId, isNew, ...rest } = i;
-          return isNew ? rest : { ...rest, id };
-        });
-      }
-      if (inventory.length > 0) {
-        payload.inventory = inventory.map((inv) => {
-          const { id, tempId, isNew, ...rest } = inv;
-          return isNew ? rest : { ...rest, id };
-        });
-      }
-      if (metadata.length > 0) {
-        payload.metadata = metadata.map((m) => {
-          const { id, tempId, isNew, ...rest } = m;
-          return isNew ? rest : { ...rest, id };
-        });
-      }
+      // Always send these (even as []), not just when non-empty — omitting
+      // the field entirely (the old `if (list.length > 0)` guard) meant the
+      // backend never learned a section had been cleared out completely, so
+      // removing every variant/image/etc. silently failed to delete them.
+      payload.variants = variants.map((v) => {
+        const { id, tempId, isNew, ...rest } = v;
+        return isNew ? rest : { ...rest, id };
+      });
+      payload.images = images.map((i) => {
+        const { id, tempId, isNew, ...rest } = i;
+        return isNew ? rest : { ...rest, id };
+      });
+      payload.inventory = inventory.map((inv) => {
+        const { id, tempId, isNew, ...rest } = inv;
+        return isNew ? rest : { ...rest, id };
+      });
+      payload.metadata = metadata.map((m) => {
+        const { id, tempId, isNew, ...rest } = m;
+        return isNew ? rest : { ...rest, id };
+      });
 
       dispatch(updateProduct(payload));
     } catch {
@@ -316,21 +416,33 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   };
 
   return (
-    <Modal
-      title="Edit Product"
-      open={open}
-      onCancel={handleClose}
-      width={"95%"}
-      style={{ maxWidth: 1000 }}
-      footer={
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={handleClear} disabled={updateLoading}>Reset</Button>
-          <Button type="primary" onClick={handleSave} loading={updateLoading}>
-            Update
-          </Button>
-        </div>
-      }
-    >
+    <>
+      <ModalStyles />
+      <Modal
+        open={open}
+        onCancel={handleClose}
+        width="95%"
+        style={{ maxWidth: 1000, top: 20 }}
+        footer={null}
+        destroyOnClose
+        className="prdm-modal"
+      >
+        <div className="prdm-root">
+          {/* ── Header ── */}
+          <div className="prdm-header">
+            <div className="prdm-header-noise" />
+            <div className="prdm-header-left">
+              <div className="prdm-header-icon"><EditOutlined /></div>
+              <div>
+                <div className="prdm-header-title">Edit Product</div>
+                <div className="prdm-header-sub">{currentProduct?.name || "Update product details"}</div>
+              </div>
+            </div>
+            <button className="prdm-close-btn" onClick={handleClose}>✕</button>
+          </div>
+
+          {/* ── Body ── */}
+          <div className="prdm-body">
       <Tabs
         items={[
           {
@@ -819,7 +931,19 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
           },
         ]}
       />
-    </Modal>
+          </div>
+
+          {/* ── Footer ── */}
+          <div className="prdm-footer">
+            <button className="prdm-cancel-btn" onClick={handleClear} disabled={updateLoading}>Reset</button>
+            <button className="prdm-save-btn" onClick={handleSave} disabled={updateLoading}>
+              {updateLoading ? <Spin size="small" /> : null}
+              {updateLoading ? "Updating…" : "Update"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 };
 

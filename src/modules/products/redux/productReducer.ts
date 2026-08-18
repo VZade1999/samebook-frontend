@@ -16,6 +16,7 @@ const initialState = {
   products: [],
   loading: false,
   createLoading: false,
+  updateLoading: false,
   deleteLoading: false,
   deleteError: null,
   error: null,
@@ -71,14 +72,14 @@ export const productReducer = (state = initialState, action: any) => {
     case ASYNC_UPDATE_PRODUCT:
       return {
         ...state,
-        createLoading: true,
+        updateLoading: true,
         error: null,
       };
 
     case ASYNC_UPDATE_PRODUCT_SUCCESS:
       return {
         ...state,
-        createLoading: false,
+        updateLoading: false,
         products: state.products,
         error: null,
       };
@@ -86,7 +87,7 @@ export const productReducer = (state = initialState, action: any) => {
     case ASYNC_UPDATE_PRODUCT_FAILED:
       return {
         ...state,
-        createLoading: false,
+        updateLoading: false,
         error: action.error,
       };
 
