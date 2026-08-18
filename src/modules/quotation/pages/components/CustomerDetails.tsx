@@ -87,6 +87,19 @@ const injectStyles = () => {
     .cd-header-search .ant-input::placeholder,
     .cd-header-search .ant-select-selection-placeholder { color: rgba(255,255,255,0.5) !important; }
     .cd-header-search .ant-input { color: #fff !important; }
+    /* Without this, the generic ".cd-card .ant-input:focus" rule above
+       (higher specificity: 2 classes + pseudo-class) wins on focus and
+       forces the background to solid #fff while this input's text color
+       stays forced white — invisible white-on-white exactly while typing
+       a search. Re-assert the translucent header background on focus so
+       it stays legible. */
+    .cd-header-search .ant-input:focus,
+    .cd-header-search .ant-select-focused .ant-select-selector {
+      background: rgba(255,255,255,0.18) !important;
+      border-color: rgba(255,255,255,0.4) !important;
+      color: #050505 !important;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.15) !important;
+    }
 
     /* Customer type badge */
     .cd-type-badge {
@@ -253,7 +266,7 @@ const CustomerDetails = () => {
       </div>
       <AutoComplete
         className="cd-header-search"
-        style={{ width: 280, flexShrink: 0 }}
+        style={{ background: "rgba(255,255,255,0.12)", width: 270, flexShrink: 0 }}
         options={customerOptions}
         onSearch={handleCustomerSearch}
         onSelect={handleCustomerSelect}

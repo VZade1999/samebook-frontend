@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import dayjs from "dayjs";
 import {
   Form,
@@ -54,7 +54,6 @@ import {
   sendQuotation,
   updateQuotation,
 } from "../redux/quotationActions";
-import { downloadQuotationPDF as downloadQuotationPDFHelper } from "../components/quotationPdf";
 import QuotationService from "../redux";
 import BusinessDetails from "./components/BusinessDetails";
 import CustomerDetails from "./components/CustomerDetails";
@@ -1032,6 +1031,9 @@ const TimelineTab: React.FC<{ timeline: any[] }> = ({ timeline }) => {
 // canEdit/canDelete are expected to already include the same business-rule
 // checks the desktop table applies (has_invoice / status === "DRAFT"), not
 // just raw permission flags — see how this is invoked from QuotationPage.
+// Memoized — the parent re-renders on every search keystroke, drawer
+// open/close, etc.; without this every card in the list re-rendered on any
+// of that unrelated state, not just the one card whose own props changed.
 const MobileCard: React.FC<{
   record: any;
   downloadingId: number | null;
@@ -1043,7 +1045,7 @@ const MobileCard: React.FC<{
   canDelete: boolean;
   canExport: boolean;
   deletingId: number | null;
-}> = ({
+}> = React.memo(({
   record,
   downloadingId,
   onView,
@@ -1147,7 +1149,8 @@ const MobileCard: React.FC<{
       </div>
     </div>
   </div>
-);
+));
+MobileCard.displayName = "MobileCard";
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const QuotationPage = () => {
@@ -1202,6 +1205,13 @@ const QuotationPage = () => {
 
   const quotationData = quotationState?.quotations || {};
   const quotations = quotationData?.rows || [];
+  // Memoized so the Table's dataSource array only gets a new identity when
+  // the underlying quotations actually change, not on every render — lets
+  // the memoized `columns` above actually pay off for row-level bail-outs.
+  const quotationTableData = useMemo(
+    () => quotations.map((q: any) => ({ ...q, key: q.id })),
+    [quotations],
+  );
   const pagination = quotationData?.pagination || {};
   const statusCounts = quotationData?.statusCounts || {};
   const loading = quotationState?.loading || false;
@@ -1345,18 +1355,40 @@ const QuotationPage = () => {
     });
   }, [editingQuotation, selectedQuotation, form]);
 
-  const downloadQuotationPDF = async (quotation: any) => {
+  const downloadQuotationPDF = useCallback(async (quotation: any) => {
     setDownloadingQuotationId(quotation.id);
     try {
+      // jsPDF + autoTable are only needed for this one action — loading them
+      // lazily keeps them out of the initial page bundle for users who just
+      // list/view quotations and never click "Download PDF" (meaningfully
+      // smaller first-load on mobile connections).
+      const { downloadQuotationPDF: downloadQuotationPDFHelper } = await import("../components/quotationPdf");
       await downloadQuotationPDFHelper(quotation, async (id: number) =>
         quotationService.getQuotationDetails(id),
       );
+    } catch (err: any) {
+      notification.error({
+        message: "Download Failed",
+        description: err?.message || "Unable to generate quotation PDF",
+      });
     } finally {
       setDownloadingQuotationId(null);
     }
-  };
+  }, [quotationService]);
 
   const handleFinish = (values: any) => {
+    // userDetails only populates once both COMPANY_DETAILS and USER_DETAILS
+    // exist in storage (see the effect above) — if either is missing or
+    // malformed this stays null forever, and reading `.id` off it used to
+    // throw here with zero user-visible feedback: the button just looked
+    // like it silently did nothing. Surface it instead of crashing.
+    if (!userDetails?.id) {
+      notification.error({
+        message: "Session data missing",
+        description: "Your session details couldn't be loaded. Please refresh the page and try again.",
+      });
+      return;
+    }
     const customerId = values.customerId;
     const userId = userDetails.id;
     const itemsRaw = values.items || [];
@@ -1487,7 +1519,7 @@ const QuotationPage = () => {
     }
   };
 
-  const handleEdit = (record: any) => {
+  const handleEdit = useCallback((record: any) => {
     setEditingQuotation(record);
     dispatch(
       getCustomers({ search: record.customer_name, page: 1, limit: 10 }),
@@ -1561,16 +1593,16 @@ const QuotationPage = () => {
       validity_date: getValidityDate(record.validity_date),
       notes: record.notes,
     });
-  };
+  }, [dispatch, form]);
 
-  const handleDelete = (record: any) => {
+  const handleDelete = useCallback((record: any) => {
     setDeletingQuotationId(record.id);
     dispatch(deleteQuotation(record.id));
-  };
-  const handleView = (record: any) => {
+  }, [dispatch]);
+  const handleView = useCallback((record: any) => {
     setSelectedQuotationId(record.id);
     setDetailsVisible(true);
-  };
+  }, []);
   const handleSend = () => {
     if (!selectedQuotationId) return;
     dispatch(
@@ -1599,7 +1631,12 @@ const QuotationPage = () => {
     if (companyDetails?.default_terms_conditions)
       form.setFieldsValue({ notes: companyDetails.default_terms_conditions });
   };
-const columns = [
+// Memoized — this array was previously rebuilt from scratch (new closures,
+// new object identities) on every render of QuotationPage, which meant
+// AntD's Table couldn't bail out of re-rendering any row even when the
+// state that changed had nothing to do with that row (e.g. typing in the
+// search box, opening the details drawer).
+const columns = useMemo(() => [
   {
     title: "Quotation",
     dataIndex: "quotation_number",
@@ -1764,7 +1801,7 @@ const columns = [
       </div>
     ),
   },
-];
+], [can, handleView, handleEdit, handleDelete, downloadQuotationPDF, deletingQuotationId, downloadingQuotationId]);
 
   return (
     <div className="qt-root">
@@ -1945,6 +1982,7 @@ const columns = [
               )}
               <button
                 className="qt-icon-btn"
+                disabled={loading}
                 onClick={() =>
                   dispatch(
                     getQuotations({
@@ -1955,7 +1993,7 @@ const columns = [
                   )
                 }
               >
-                <ReloadOutlined />
+                <ReloadOutlined spin={loading} />
                 Refresh
               </button>
             </div>
@@ -1980,7 +2018,7 @@ const columns = [
           <div className="qt-table-wrap">
             <Table
               columns={columns}
-              dataSource={quotations.map((q: any) => ({ ...q, key: q.id }))}
+              dataSource={quotationTableData}
               pagination={false}
               loading={loading}
               locale={{

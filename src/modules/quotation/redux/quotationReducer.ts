@@ -23,13 +23,14 @@ import {
   ASYNC_DELETE_QUOTATION,
   ASYNC_DELETE_QUOTATION_SUCCESS,
   ASYNC_DELETE_QUOTATION_FAILED,
-  ASYNC_GET_QUOTATION_LOGS_FAILED,
-  ASYNC_GET_QUOTATION_LOGS,
-  ASYNC_GET_QUOTATION_LOGS_SUCCESS,
 } from './quotationActions';
 
 const initialState = {
-  quotations: [],
+  // Shape matches what ASYNC_GET_QUOTATIONS_SUCCESS actually sets
+  // (action.data === { rows, pagination, statusCounts }) — previously this
+  // was `[]`, relying on index.tsx's `|| {}`/`|| []` fallbacks to paper
+  // over the mismatch on first render.
+  quotations: { rows: [], pagination: {}, statusCounts: {} },
   selectedQuotation: null,
   quotationHistory: [],
   quotationTimeline: [],

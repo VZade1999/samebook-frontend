@@ -13,6 +13,12 @@ const baseURL = process.env.REACT_APP_CUSTOMERS_API_URL || "/api";
 const apiClient = axios.create({
   baseURL,
   withCredentials: true,
+  // Without this, a request on a flaky mobile connection can hang
+  // indefinitely — the saga's `yield call(...)` never resolves/rejects, so
+  // loading/createLoading stay true forever with no way to recover short of
+  // a page reload. 30s gives slow connections room without leaving the UI
+  // stuck forever.
+  timeout: 30000,
 });
 
 export default apiClient;

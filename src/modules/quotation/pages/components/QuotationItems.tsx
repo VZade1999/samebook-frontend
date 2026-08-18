@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Button, Card, Form, AutoComplete, Input, InputNumber, Row, Col } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
@@ -266,12 +266,187 @@ const injectStyles = () => {
 };
 injectStyles();
 
+// ─── Memoized row components ─────────────────────────────────
+// Each row/card only re-renders when its OWN props change — editing one
+// row's price no longer forces every other row's AutoComplete/InputNumber
+// to reconcile, which is what caused visible typing lag as the item count
+// grew (worst on mobile CPUs). Props are kept to primitives + stable
+// callback refs so React.memo's default shallow comparison actually works.
+interface ItemRowProps {
+  name: number;
+  index: number;
+  itemOptions: ItemOption[];
+  onItemSelect: (value: string, option: Partial<ItemOption> | undefined, index: number) => void;
+  onItemNameSearch: (value: string) => void;
+  onQtyChange: (index: number) => void;
+  onPriceChange: (index: number) => void;
+  onDiscountChange: (index: number) => void;
+  onRemove: (name: number) => void;
+}
+
+const DesktopItemRow: React.FC<ItemRowProps> = React.memo(({
+  name, index, itemOptions, onItemSelect, onItemNameSearch, onQtyChange, onPriceChange, onDiscountChange, onRemove,
+}) => (
+  <tr>
+    <td className="qi-row-num">{index + 1}</td>
+    <td>
+      <Form.Item name={[name, "itemName"]} rules={[{ required: true, message: "Required" }]}>
+        <AutoComplete
+          placeholder="Item name"
+          size="small"
+          options={itemOptions}
+          onSearch={onItemNameSearch}
+          onSelect={(value, option) => onItemSelect(value, option as Partial<ItemOption>, index)}
+          filterOption={false}
+          style={{ width: "100%", minWidth: 140 }}
+        />
+      </Form.Item>
+    </td>
+    <td>
+      <Form.Item name={[name, "hsn_code"]} rules={[{ required: true, message: "Required" }]}>
+        <Input placeholder="HSN" size="small" />
+      </Form.Item>
+    </td>
+    <td>
+      <Form.Item name={[name, "quantity"]} rules={[{ required: true, message: "Req." }]}>
+        <InputNumber min={1} style={{ width: "100%" }} size="small" onChange={() => onQtyChange(index)} />
+      </Form.Item>
+    </td>
+    <td>
+      {/* Unit is populated exclusively from onItemSelect above. No onChange
+          here — the user can still type/edit freely, but typing never
+          re-derives the value from the catalog. */}
+      <Form.Item name={[name, "unit"]} rules={[{ required: true, message: "Required" }]}>
+        <Input placeholder="Unit (e.g. pcs)" size="small" />
+      </Form.Item>
+    </td>
+    <td>
+      <Form.Item name={[name, "price"]} rules={[{ required: true, message: "Req." }]}>
+        <InputNumber min={0} step={0.01} style={{ width: "100%" }} size="small" onChange={() => onPriceChange(index)} />
+      </Form.Item>
+    </td>
+    <td>
+      <Form.Item name={[name, "discount"]}>
+        <InputNumber min={0} max={100} step={0.01} style={{ width: "100%" }} size="small" onChange={() => onDiscountChange(index)} />
+      </Form.Item>
+    </td>
+    <td>
+      <Form.Item name={[name, "discounted_price"]}>
+        <InputNumber min={0} step={0.01} style={{ width: "100%" }} size="small" disabled />
+      </Form.Item>
+    </td>
+    <td>
+      <Form.Item name={[name, "total"]}>
+        <InputNumber min={0} step={0.01} style={{ width: "100%" }} size="small" disabled />
+      </Form.Item>
+    </td>
+    <td className="qi-action-cell">
+      <Button className="qi-delete-btn" danger size="small" icon={<DeleteOutlined />}
+        onClick={() => onRemove(name)} />
+    </td>
+  </tr>
+));
+DesktopItemRow.displayName = "DesktopItemRow";
+
+const MobileItemCard: React.FC<ItemRowProps> = React.memo(({
+  name, index, itemOptions, onItemSelect, onItemNameSearch, onQtyChange, onPriceChange, onDiscountChange, onRemove,
+}) => {
+  const form = Form.useFormInstance();
+  return (
+    <div className="qi-item-card">
+      <div className="qi-item-card-header">
+        <span className="qi-item-num">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/></svg>
+          Item {index + 1}
+        </span>
+        <Button className="qi-delete-btn" danger size="small" icon={<DeleteOutlined />}
+          onClick={() => onRemove(name)} />
+      </div>
+
+      <Form.Item label="Item Name" name={[name, "itemName"]} rules={[{ required: true, message: "Please enter item name" }]}>
+        <AutoComplete
+          placeholder="Type item name…"
+          options={itemOptions}
+          onSearch={onItemNameSearch}
+          onSelect={(value, option) => onItemSelect(value, option as Partial<ItemOption>, index)}
+          filterOption={false}
+          style={{ width: "100%" }}
+        />
+      </Form.Item>
+
+      <Row gutter={12}>
+        <Col span={10}>
+          <Form.Item label="HSN Code" name={[name, "hsn_code"]} rules={[{ required: true, message: "Required" }]}>
+            <Input placeholder="e.g. 8471" />
+          </Form.Item>
+        </Col>
+        <Col span={7}>
+          <Form.Item label="Qty" name={[name, "quantity"]} rules={[{ required: true, message: "Required" }]}>
+            <InputNumber min={1} style={{ width: "100%" }} onChange={() => onQtyChange(index)} />
+          </Form.Item>
+        </Col>
+        <Col span={7}>
+          <Form.Item label="Unit" name={[name, "unit"]} rules={[{ required: true, message: "Required" }]}>
+            <Input placeholder="Unit (e.g. pcs)" />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={12}>
+        <Col span={12}>
+          <Form.Item label="Price (₹)" name={[name, "price"]} rules={[{ required: true, message: "Required" }]}>
+            <InputNumber min={0} step={0.01} style={{ width: "100%" }} onChange={() => onPriceChange(index)} />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item label="Discount (%)" name={[name, "discount"]} rules={[{ required: true, message: "Required" }]}>
+            <InputNumber min={0} max={100} step={0.01} style={{ width: "100%" }} onChange={() => onDiscountChange(index)} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      {/* Scoped to this row's own path so it re-renders on this row's total
+          changing, without needing the parent to pass live values as props
+          (which would defeat the memoization above). */}
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev, cur) =>
+          prev.items?.[index]?.discounted_price !== cur.items?.[index]?.discounted_price ||
+          prev.items?.[index]?.total !== cur.items?.[index]?.total
+        }
+      >
+        {() => {
+          const discounted = form.getFieldValue(["items", index, "discounted_price"]) || 0;
+          const total = form.getFieldValue(["items", index, "total"]) || 0;
+          return (
+            <div className="qi-totals-strip">
+              <div className="qi-total-chip">
+                <div className="qi-total-chip-label">Net Price</div>
+                <div className="qi-total-chip-value">₹{discounted}</div>
+              </div>
+              <div className="qi-total-chip accent">
+                <div className="qi-total-chip-label">Total</div>
+                <div className="qi-total-chip-value">₹{total}</div>
+              </div>
+            </div>
+          );
+        }}
+      </Form.Item>
+
+      {/* Hidden fields keep values synced */}
+      <Form.Item name={[name, "discounted_price"]} hidden><InputNumber /></Form.Item>
+      <Form.Item name={[name, "total"]} hidden><InputNumber /></Form.Item>
+    </div>
+  );
+});
+MobileItemCard.displayName = "MobileItemCard";
+
 const QuotationItems: React.FC = () => {
   const form = Form.useFormInstance();
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([]);
 
   // ─── Search: item name -> candidate list ───────────────────
-  const handleItemNameSearch = (value: string) => {
+  const handleItemNameSearch = useCallback((value: string) => {
     if (!value.trim()) {
       setItemOptions([]);
       return;
@@ -281,7 +456,7 @@ const QuotationItems: React.FC = () => {
         .filter((item) => item.name.toLowerCase().includes(value.toLowerCase()))
         .map((item) => ({ label: item.name, value: item.name, item }))
     );
-  };
+  }, []);
 
   /**
    * Resolves the concrete Item record for a selection coming from
@@ -299,29 +474,21 @@ const QuotationItems: React.FC = () => {
    * from the catalog. It updates the specific row via form.setFieldsValue
    * and then re-runs the discount/total calculation for that row.
    */
-  const handleItemSelect = (value: string, option: Partial<ItemOption> | undefined, index: number) => {
-    const selectedItem = resolveSelectedItem(value, option);
-    if (!selectedItem) return;
-
+  // Stable across renders (only ever recreated if `form` changes, which it
+  // doesn't) — lets the memoized row components below actually bail out of
+  // re-rendering when a *different* row is edited, instead of every row's
+  // AutoComplete/InputNumber reconciling on every keystroke.
+  const calculateAndUpdateSubTotal = useCallback(() => {
     const items: QuotationLineItem[] = form.getFieldValue("items") || [];
-    const updatedItems = items.map((row, rowIndex) =>
-      rowIndex === index
-        ? {
-            ...row,
-            itemName: selectedItem.name,
-            hsn_code: selectedItem.hsn_code || "",
-            unit: selectedItem.unit || "",
-            price: selectedItem.price ?? row.price,
-          }
-        : row
-    );
+    const subTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
+    form.setFieldsValue({ subTotal: parseFloat(subTotal.toFixed(2)) });
+  }, [form]);
 
-    form.setFieldsValue({ items: updatedItems });
-    handleItemChange("price", index);
-  };
-
-  // ─── Recalculate discounted price / total for one row ──────
-  const handleItemChange = (_fieldName: string, index: number) => {
+  // Writes only the single field path that changed (rc-field-form updates
+  // just that Field's subscribers) instead of replacing the whole `items`
+  // array via setFieldsValue, which forces Form.List to re-invoke its
+  // children() render-prop and rebuild every row.
+  const handleItemChange = useCallback((_fieldName: string, index: number) => {
     const items: QuotationLineItem[] = form.getFieldValue("items") || [];
     const item = items[index];
     if (!item) return;
@@ -330,21 +497,45 @@ const QuotationItems: React.FC = () => {
     const discount = item.discount || 0;
     const discountedPrice = price - (price * discount) / 100;
     const total = quantity * discountedPrice;
-    form.setFieldsValue({
-      items: items.map((d, idx) =>
-        idx === index
-          ? { ...d, discounted_price: parseFloat(discountedPrice.toFixed(2)), total: parseFloat(total.toFixed(2)) }
-          : d
-      ),
-    });
+    form.setFields([
+      { name: ["items", index, "discounted_price"], value: parseFloat(discountedPrice.toFixed(2)) },
+      { name: ["items", index, "total"], value: parseFloat(total.toFixed(2)) },
+    ]);
     calculateAndUpdateSubTotal();
-  };
+  }, [form, calculateAndUpdateSubTotal]);
 
-  const calculateAndUpdateSubTotal = () => {
+  const handleItemSelect = useCallback((value: string, option: Partial<ItemOption> | undefined, index: number) => {
+    const selectedItem = resolveSelectedItem(value, option);
+    if (!selectedItem) return;
+
+    form.setFields([
+      { name: ["items", index, "itemName"], value: selectedItem.name },
+      { name: ["items", index, "hsn_code"], value: selectedItem.hsn_code || "" },
+      { name: ["items", index, "unit"], value: selectedItem.unit || "" },
+      ...(selectedItem.price != null ? [{ name: ["items", index, "price"], value: selectedItem.price }] : []),
+    ]);
+    handleItemChange("price", index);
+  }, [form, handleItemChange]);
+
+  const handleQtyChange = useCallback((index: number) => handleItemChange("quantity", index), [handleItemChange]);
+  const handleDiscountChange = useCallback((index: number) => handleItemChange("discount", index), [handleItemChange]);
+  const handlePriceChange = useCallback((index: number) => {
     const items: QuotationLineItem[] = form.getFieldValue("items") || [];
-    const subTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    form.setFieldsValue({ subTotal: parseFloat(subTotal.toFixed(2)) });
-  };
+    if (!items[index]?.discount) {
+      form.setFields([{ name: ["items", index, "discount"], value: 0 }]);
+    }
+    handleItemChange("price", index);
+  }, [form, handleItemChange]);
+
+  // `remove` (from Form.List's render-prop) is read via a ref so
+  // `handleRemove` itself never changes identity across renders — a fresh
+  // closure here would break the memoized rows' prop-equality check for
+  // every row, defeating the whole point of memoizing them.
+  const removeRef = useRef<(index: number | number[]) => void>(() => {});
+  const handleRemove = useCallback((name: number) => {
+    removeRef.current(name);
+    calculateAndUpdateSubTotal();
+  }, [calculateAndUpdateSubTotal]);
 
   return (
     <div className="qi-card">
@@ -365,222 +556,100 @@ const QuotationItems: React.FC = () => {
         }
       >
         <Form.List name="items">
-          {(fields, { add, remove }) => (
-            <>
-              {/* ─── DESKTOP TABLE ─── */}
-              <div className="qi-table-wrap">
-                <table className="qi-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 36 }}>#</th>
-                      <th style={{ minWidth: 160 }}>Item Name</th>
-                      <th style={{ minWidth: 110 }}>HSN Code</th>
-                      <th style={{ width: 80 }}>Qty</th>
-                      <th style={{ width: 80 }}>Unit</th>
-                      <th style={{ width: 100 }}>Price (₹)</th>
-                      <th style={{ width: 100 }}>Disc. (%)</th>
-                      <th style={{ width: 110 }}>Net Price</th>
-                      <th style={{ width: 110 }}>Total (₹)</th>
-                      <th style={{ width: 44 }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fields.length === 0 ? (
+          {(fields, { add, remove }) => {
+            removeRef.current = remove;
+            return (
+              <>
+                {/* ─── DESKTOP TABLE ─── */}
+                <div className="qi-table-wrap">
+                  <table className="qi-table">
+                    <thead>
                       <tr>
-                        <td colSpan={9}>
-                          <div className="qi-empty">
-                            <div className="qi-empty-icon">
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={tokens.textLight} strokeWidth="1.5">
-                                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-                              </svg>
-                            </div>
-                            <div style={{ fontSize: 13, fontWeight: 500 }}>No items yet</div>
-                            <div style={{ fontSize: 12, marginTop: 4 }}>Click "Add Item" below to get started</div>
-                          </div>
-                        </td>
+                        <th style={{ width: 36 }}>#</th>
+                        <th style={{ minWidth: 160 }}>Item Name</th>
+                        <th style={{ minWidth: 110 }}>HSN Code</th>
+                        <th style={{ width: 80 }}>Qty</th>
+                        <th style={{ width: 80 }}>Unit</th>
+                        <th style={{ width: 100 }}>Price (₹)</th>
+                        <th style={{ width: 100 }}>Disc. (%)</th>
+                        <th style={{ width: 110 }}>Net Price</th>
+                        <th style={{ width: 110 }}>Total (₹)</th>
+                        <th style={{ width: 44 }}></th>
                       </tr>
-                    ) : (
-                      fields.map(({ key, name, ...restField }, index) => (
-                        <tr key={key}>
-                          <td className="qi-row-num">{index + 1}</td>
-                          <td>
-                            <Form.Item {...restField} name={[name, "itemName"]} rules={[{ required: true, message: "Required" }]}>
-                              <AutoComplete
-                                placeholder="Item name"
-                                size="small"
-                                options={itemOptions}
-                                onSearch={handleItemNameSearch}
-                                onSelect={(value, option) => handleItemSelect(value, option as Partial<ItemOption>, index)}
-                                filterOption={false}
-                                style={{ width: "100%", minWidth: 140 }}
-                              />
-                            </Form.Item>
-                          </td>
-                          <td>
-                            <Form.Item {...restField} name={[name, "hsn_code"]} rules={[{ required: true, message: "Required" }]}>
-                              <Input placeholder="HSN" size="small" />
-                            </Form.Item>
-                          </td>
-                          <td>
-                            <Form.Item {...restField} name={[name, "quantity"]} rules={[{ required: true, message: "Req." }]}>
-                              <InputNumber min={1} style={{ width: "100%" }} size="small" onChange={() => handleItemChange("quantity", index)} />
-                            </Form.Item>
-                          </td>
-                          <td>
-                            {/* Unit is populated exclusively from handleItemSelect above.
-                                No onChange here — the user can still type/edit freely,
-                                but typing never re-derives the value from the catalog. */}
-                            <Form.Item {...restField} name={[name, "unit"]} rules={[{ required: true, message: "Required" }]}>
-                              <Input placeholder="Unit (e.g. pcs)" size="small" />
-                            </Form.Item>
-                          </td>
-                          <td>
-                            <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true, message: "Req." }]}>
-                              <InputNumber min={0} step={0.01} style={{ width: "100%" }} size="small"
-                                onChange={() => {
-                                  const items: QuotationLineItem[] = form.getFieldValue("items") || [];
-                                  if (!items[index]?.discount) {
-                                    form.setFieldsValue({
-                                      items: items.map((d, idx) => (idx === index ? { ...d, discount: 0 } : d)),
-                                    });
-                                  }
-                                  handleItemChange("price", index);
-                                }} />
-                            </Form.Item>
-                          </td>
-                          <td>
-                            <Form.Item {...restField} name={[name, "discount"]}>
-                              <InputNumber min={0} max={100} step={0.01} style={{ width: "100%" }} size="small" onChange={() => handleItemChange("discount", index)} />
-                            </Form.Item>
-                          </td>
-                          <td>
-                            <Form.Item {...restField} name={[name, "discounted_price"]}>
-                              <InputNumber min={0} step={0.01} style={{ width: "100%" }} size="small" disabled />
-                            </Form.Item>
-                          </td>
-                          <td>
-                            <Form.Item {...restField} name={[name, "total"]}>
-                              <InputNumber min={0} step={0.01} style={{ width: "100%" }} size="small" disabled />
-                            </Form.Item>
-                          </td>
-                          <td className="qi-action-cell">
-                            <Button className="qi-delete-btn" danger size="small" icon={<DeleteOutlined />}
-                              onClick={() => { remove(name); calculateAndUpdateSubTotal(); }} />
+                    </thead>
+                    <tbody>
+                      {fields.length === 0 ? (
+                        <tr>
+                          <td colSpan={9}>
+                            <div className="qi-empty">
+                              <div className="qi-empty-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={tokens.textLight} strokeWidth="1.5">
+                                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+                                </svg>
+                              </div>
+                              <div style={{ fontSize: 13, fontWeight: 500 }}>No items yet</div>
+                              <div style={{ fontSize: 12, marginTop: 4 }}>Click "Add Item" below to get started</div>
+                            </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ) : (
+                        fields.map(({ key, name }, index) => (
+                          <DesktopItemRow
+                            key={key}
+                            name={name}
+                            index={index}
+                            itemOptions={itemOptions}
+                            onItemSelect={handleItemSelect}
+                            onItemNameSearch={handleItemNameSearch}
+                            onQtyChange={handleQtyChange}
+                            onPriceChange={handlePriceChange}
+                            onDiscountChange={handleDiscountChange}
+                            onRemove={handleRemove}
+                          />
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-              {/* ─── MOBILE CARDS ─── */}
-              <div className="qi-cards-wrap">
-                {fields.length === 0 && (
-                  <div className="qi-empty">
-                    <div className="qi-empty-icon" style={{ margin: "0 auto 12px" }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={tokens.textLight} strokeWidth="1.5">
-                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-                      </svg>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: tokens.textMuted }}>No items added yet</div>
-                    <div style={{ fontSize: 12, color: tokens.textLight, marginTop: 4 }}>Tap "Add Item" to begin</div>
-                  </div>
-                )}
-                {fields.map(({ key, name, ...restField }, index) => {
-                  const items: QuotationLineItem[] = form.getFieldValue("items") || [];
-                  const item = items[index] || {};
-                  return (
-                    <div key={key} className="qi-item-card">
-                      <div className="qi-item-card-header">
-                        <span className="qi-item-num">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/></svg>
-                          Item {index + 1}
-                        </span>
-                        <Button className="qi-delete-btn" danger size="small" icon={<DeleteOutlined />}
-                          onClick={() => { remove(name); calculateAndUpdateSubTotal(); }} />
+                {/* ─── MOBILE CARDS ─── */}
+                <div className="qi-cards-wrap">
+                  {fields.length === 0 && (
+                    <div className="qi-empty">
+                      <div className="qi-empty-icon" style={{ margin: "0 auto 12px" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={tokens.textLight} strokeWidth="1.5">
+                          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                        </svg>
                       </div>
-
-                      <Form.Item {...restField} label="Item Name" name={[name, "itemName"]} rules={[{ required: true, message: "Please enter item name" }]}>
-                        <AutoComplete
-                          placeholder="Type item name…"
-                          options={itemOptions}
-                          onSearch={handleItemNameSearch}
-                          onSelect={(value, option) => handleItemSelect(value, option as Partial<ItemOption>, index)}
-                          filterOption={false}
-                          style={{ width: "100%" }}
-                        />
-                      </Form.Item>
-
-                      <Row gutter={12}>
-                        <Col span={10}>
-                          <Form.Item {...restField} label="HSN Code" name={[name, "hsn_code"]} rules={[{ required: true, message: "Required" }]}>
-                            <Input placeholder="e.g. 8471" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={7}>
-                          <Form.Item {...restField} label="Qty" name={[name, "quantity"]} rules={[{ required: true, message: "Required" }]}>
-                            <InputNumber min={1} style={{ width: "100%" }} onChange={() => handleItemChange("quantity", index)} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={7}>
-                          {/* Same rule as desktop: no onChange here, value only ever
-                              arrives via handleItemSelect. Manual edits remain free-form. */}
-                          <Form.Item {...restField} label="Unit" name={[name, "unit"]} rules={[{ required: true, message: "Required" }]}>
-                            <Input placeholder="Unit (e.g. pcs)" />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-
-                      <Row gutter={12}>
-                        <Col span={12}>
-                          <Form.Item {...restField} label="Price (₹)" name={[name, "price"]} rules={[{ required: true, message: "Required" }]}>
-                            <InputNumber min={0} step={0.01} style={{ width: "100%" }}
-                              onChange={() => {
-                                const rows: QuotationLineItem[] = form.getFieldValue("items") || [];
-                                if (!rows[index]?.discount) {
-                                  form.setFieldsValue({
-                                    items: rows.map((d, idx) => (idx === index ? { ...d, discount: 0 } : d)),
-                                  });
-                                }
-                                handleItemChange("price", index);
-                              }} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item {...restField} label="Discount (%)" name={[name, "discount"]} rules={[{ required: true, message: "Required" }]}>
-                            <InputNumber min={0} max={100} step={0.01} style={{ width: "100%" }} onChange={() => handleItemChange("discount", index)} />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-
-                      <div className="qi-totals-strip">
-                        <div className="qi-total-chip">
-                          <div className="qi-total-chip-label">Net Price</div>
-                          <div className="qi-total-chip-value">₹{(item.discounted_price || 0)}</div>
-                        </div>
-                        <div className="qi-total-chip accent">
-                          <div className="qi-total-chip-label">Total</div>
-                          <div className="qi-total-chip-value">₹{(item.total || 0)}</div>
-                        </div>
-                      </div>
-
-                      {/* Hidden fields keep values synced */}
-                      <Form.Item {...restField} name={[name, "discounted_price"]} hidden><InputNumber /></Form.Item>
-                      <Form.Item {...restField} name={[name, "total"]} hidden><InputNumber /></Form.Item>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: tokens.textMuted }}>No items added yet</div>
+                      <div style={{ fontSize: 12, color: tokens.textLight, marginTop: 4 }}>Tap "Add Item" to begin</div>
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                  {fields.map(({ key, name }, index) => (
+                    <MobileItemCard
+                      key={key}
+                      name={name}
+                      index={index}
+                      itemOptions={itemOptions}
+                      onItemSelect={handleItemSelect}
+                      onItemNameSearch={handleItemNameSearch}
+                      onQtyChange={handleQtyChange}
+                      onPriceChange={handlePriceChange}
+                      onDiscountChange={handleDiscountChange}
+                      onRemove={handleRemove}
+                    />
+                  ))}
+                </div>
 
-              {/* ─── Add button ─── */}
-              <div className="qi-add-btn-wrap">
-                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                  Add Item
-                </Button>
-              </div>
-            </>
-          )}
+                {/* ─── Add button ─── */}
+                <div className="qi-add-btn-wrap">
+                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                    Add Item
+                  </Button>
+                </div>
+              </>
+            );
+          }}
         </Form.List>
       </Card>
     </div>
