@@ -1,6 +1,9 @@
-import React, { useCallback, useRef, useState } from "react";
-import { Button, Card, Form, AutoComplete, Input, InputNumber, Row, Col } from "antd";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, Card, Form, AutoComplete, Input, InputNumber, Row, Col, Spin } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { useDispatch, useSelector } from "react-redux";
+import debounce from "lodash/debounce";
+import { getProducts } from "@/modules/products/redux/productActions";
 
 // ─── Types ────────────────────────────────────────────────
 interface Item {
@@ -27,19 +30,6 @@ interface QuotationLineItem {
   discounted_price?: number;
   total?: number;
 }
-
-const mockItems: Item[] = [
-  { id: 1, name: "Laptop", hsn_code: "8471", unit: "pcs", price: 65000 },
-  { id: 2, name: "Desktop Computer", hsn_code: "8471", unit: "pcs", price: 45000 },
-  { id: 3, name: "Monitor", hsn_code: "8528", unit: "pcs", price: 8000 },
-  { id: 4, name: "Keyboard", hsn_code: "8471", unit: "pcs", price: 800 },
-  { id: 5, name: "Mouse", hsn_code: "8471", unit: "pcs", price: 500 },
-  { id: 6, name: "USB Cable", hsn_code: "8544", unit: "pcs", price: 150 },
-  { id: 7, name: "HDMI Cable", hsn_code: "8544", unit: "pcs", price: 300 },
-  { id: 8, name: "Power Supply", hsn_code: "8504", unit: "pcs", price: 2500 },
-  { id: 9, name: "RAM Memory", hsn_code: "8523", unit: "pcs", price: 3500 },
-  { id: 10, name: "Hard Drive", hsn_code: "8471", unit: "pcs", price: 4500 },
-];
 
 const tokens = {
   navy: "#0F1F3D", navyMid: "#1A3560", surface: "var(--muted)", surfaceCard: "var(--card)",
@@ -276,6 +266,7 @@ interface ItemRowProps {
   name: number;
   index: number;
   itemOptions: ItemOption[];
+  searchLoading: boolean;
   onItemSelect: (value: string, option: Partial<ItemOption> | undefined, index: number) => void;
   onItemNameSearch: (value: string) => void;
   onQtyChange: (index: number) => void;
@@ -285,7 +276,7 @@ interface ItemRowProps {
 }
 
 const DesktopItemRow: React.FC<ItemRowProps> = React.memo(({
-  name, index, itemOptions, onItemSelect, onItemNameSearch, onQtyChange, onPriceChange, onDiscountChange, onRemove,
+  name, index, itemOptions, searchLoading, onItemSelect, onItemNameSearch, onQtyChange, onPriceChange, onDiscountChange, onRemove,
 }) => (
   <tr>
     <td className="qi-row-num">{index + 1}</td>
@@ -298,6 +289,7 @@ const DesktopItemRow: React.FC<ItemRowProps> = React.memo(({
           onSearch={onItemNameSearch}
           onSelect={(value, option) => onItemSelect(value, option as Partial<ItemOption>, index)}
           filterOption={false}
+          notFoundContent={searchLoading ? <Spin size="small" /> : "Type to search products"}
           style={{ width: "100%", minWidth: 140 }}
         />
       </Form.Item>
@@ -349,7 +341,7 @@ const DesktopItemRow: React.FC<ItemRowProps> = React.memo(({
 DesktopItemRow.displayName = "DesktopItemRow";
 
 const MobileItemCard: React.FC<ItemRowProps> = React.memo(({
-  name, index, itemOptions, onItemSelect, onItemNameSearch, onQtyChange, onPriceChange, onDiscountChange, onRemove,
+  name, index, itemOptions, searchLoading, onItemSelect, onItemNameSearch, onQtyChange, onPriceChange, onDiscountChange, onRemove,
 }) => {
   const form = Form.useFormInstance();
   return (
@@ -370,6 +362,7 @@ const MobileItemCard: React.FC<ItemRowProps> = React.memo(({
           onSearch={onItemNameSearch}
           onSelect={(value, option) => onItemSelect(value, option as Partial<ItemOption>, index)}
           filterOption={false}
+          notFoundContent={searchLoading ? <Spin size="small" /> : "Type to search products"}
           style={{ width: "100%" }}
         />
       </Form.Item>
@@ -443,29 +436,67 @@ MobileItemCard.displayName = "MobileItemCard";
 
 const QuotationItems: React.FC = () => {
   const form = Form.useFormInstance();
-  const [itemOptions, setItemOptions] = useState<ItemOption[]>([]);
+  const dispatch = useDispatch();
+
+  // ─── Product catalog: real server-side search-as-you-type ─────────────
+  // Replaces both the old hardcoded mock list AND the earlier "fetch 100
+  // products once, filter client-side" version — that capped out at 100
+  // products for larger catalogs. Now every keystroke (debounced) queries
+  // GET /product/list?search=... directly, same as CustomerDetails.tsx's
+  // customer search in this same module. product_code doubles as hsn_code,
+  // matching how this company treats it.
+  const [hasQuery, setHasQuery] = useState(false);
+  const rawProducts = useSelector(
+    (state: any) => state.products?.products?.products || [],
+  );
+  const searchLoading = useSelector((state: any) => state.products?.loading || false);
+
+  const catalogItems: Item[] = useMemo(
+    () =>
+      rawProducts.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        hsn_code: p.product_code || "",
+        unit: p.unit || "",
+        price: p.price != null ? parseFloat(p.price) : 0,
+      })),
+    [rawProducts],
+  );
+
+  const itemOptions: ItemOption[] = useMemo(() => {
+    if (!hasQuery) return [];
+    return catalogItems.map((item) => ({ label: item.name, value: item.name, item }));
+  }, [hasQuery, catalogItems]);
+
+  // Stable across renders (created once) — debounces the actual network
+  // call to 400ms after typing stops, without recreating the debounce
+  // timer (and losing pending calls) on every keystroke/render.
+  const debouncedFetch = useRef(
+    debounce((term: string) => {
+      dispatch(getProducts({ search: term, limit: 20, page: 1 }) as any);
+    }, 400),
+  ).current;
+
+  useEffect(() => () => debouncedFetch.cancel(), [debouncedFetch]);
 
   // ─── Search: item name -> candidate list ───────────────────
   const handleItemNameSearch = useCallback((value: string) => {
     if (!value.trim()) {
-      setItemOptions([]);
+      setHasQuery(false);
       return;
     }
-    setItemOptions(
-      mockItems
-        .filter((item) => item.name.toLowerCase().includes(value.toLowerCase()))
-        .map((item) => ({ label: item.name, value: item.name, item }))
-    );
-  }, []);
+    setHasQuery(true);
+    debouncedFetch(value.trim());
+  }, [debouncedFetch]);
 
   /**
    * Resolves the concrete Item record for a selection coming from
    * AutoComplete. Prefers the item embedded on the option (fast path,
    * no extra lookup) and falls back to a name lookup against the
-   * source list if the option didn't carry the item for any reason.
+   * catalog if the option didn't carry the item for any reason.
    */
   const resolveSelectedItem = (value: string, option: Partial<ItemOption> | undefined): Item | undefined => {
-    return option?.item ?? mockItems.find((item) => item.name === value);
+    return option?.item ?? catalogItems.find((item) => item.name === value);
   };
 
   /**
@@ -599,6 +630,7 @@ const QuotationItems: React.FC = () => {
                             name={name}
                             index={index}
                             itemOptions={itemOptions}
+                            searchLoading={searchLoading}
                             onItemSelect={handleItemSelect}
                             onItemNameSearch={handleItemNameSearch}
                             onQtyChange={handleQtyChange}
@@ -631,6 +663,7 @@ const QuotationItems: React.FC = () => {
                       name={name}
                       index={index}
                       itemOptions={itemOptions}
+                      searchLoading={searchLoading}
                       onItemSelect={handleItemSelect}
                       onItemNameSearch={handleItemNameSearch}
                       onQtyChange={handleQtyChange}
