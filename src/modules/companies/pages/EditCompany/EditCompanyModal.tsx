@@ -31,7 +31,9 @@ const ModalStyles = () => (
 
     /* ── Header ── */
     .eco-header {
-      background: #1E1B4B;
+      background:
+        radial-gradient(120% 180% at 100% 0%, #4338CA 0%, transparent 55%),
+        linear-gradient(135deg, #14123A 0%, #1E1B4B 55%, #2A2470 100%);
       padding: 20px 24px;
       display: flex; align-items: center; justify-content: space-between;
       position: relative; overflow: hidden;
@@ -43,13 +45,15 @@ const ModalStyles = () => (
     }
     .eco-header-noise {
       position: absolute; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
       pointer-events: none;
     }
     .eco-header-left { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
     .eco-header-icon {
-      width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 10px;
+      width: 36px; height: 36px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px;
+      background: linear-gradient(135deg, #818CF8, #4F46E5 70%);
+      box-shadow: 0 4px 12px rgba(79,70,229,.45);
     }
     .eco-header-title { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
     .eco-header-sub   { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; }
