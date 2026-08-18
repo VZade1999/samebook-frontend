@@ -14,6 +14,7 @@ import {
   UsergroupDeleteOutlined,
   AppstoreOutlined,
   ShopOutlined,
+  FieldTimeOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAccess } from "../../permissions/useAccess";
@@ -38,6 +39,11 @@ const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
       key: "/app/dashboard",
       icon: <DashboardOutlined />,
       label: "Dashboard",
+    },
+    can("attendance.view") && {
+      key: "/app/attendance",
+      icon: <FieldTimeOutlined />,
+      label: "Attendance",
     },
     (can("users.view") || can("roles.view") || can("permissions.view")) && {
       key: "user-management",
