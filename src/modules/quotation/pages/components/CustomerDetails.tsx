@@ -241,6 +241,7 @@ const CustomerDetails = () => {
       customerName: customer.display_name, companyName: customer.company_name,
       customerGSTN: customer.gst_number || billingAddress?.gst_number,
       customerEmail: primaryContact?.email, customerPhone: primaryContact?.phone,
+      placeOfOrder: billingAddress?.state,
       contactPersonId: primaryContact?.id, billingAddressId: billingAddress?.id, shippingAddressId: shippingAddress?.id,
       billingAddress: [billingAddress?.address_line_1, billingAddress?.address_line_2, billingAddress?.city, billingAddress?.state, billingAddress?.country, billingAddress?.postal_code].filter(Boolean).join(", "),
       shippingAddress: [shippingAddress?.address_line_1, shippingAddress?.address_line_2, shippingAddress?.city, shippingAddress?.state, shippingAddress?.country, shippingAddress?.postal_code].filter(Boolean).join(", "),
