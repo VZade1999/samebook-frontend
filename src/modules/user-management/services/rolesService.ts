@@ -15,7 +15,7 @@ export const rolesService = {
       query.set('search', search);
     }
 
-    return api.get(`/roles/?${query.toString()}`);
+    return api.get(`/roles?${query.toString()}`);
   },
 
   getRoles: () =>
