@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { sendAiMessage, resetAiChat } from "./redux/aiAgentActions";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { sendAiMessage, resetAiChat, fetchAiHistory, clearAiHistory } from "./redux/aiAgentActions";
 
 interface Message {
   role: "user" | "assistant";
@@ -9,22 +11,45 @@ interface Message {
   timestamp: Date;
 }
 
+const WELCOME_MESSAGE: Message = {
+  role: "assistant",
+  content:
+    "Hi! I'm your AI assistant. Ask me anything about your customers — I can search, create, update, or delete them for you.",
+  timestamp: new Date(),
+};
+
 const AiAgentChat: React.FC = () => {
   const dispatch = useDispatch();
   const aiState = useSelector((state: any) => state.aiAgent);
 
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content:
-        "Hi! I'm your AI assistant. Ask me anything about your customers — I can search, create, update, or delete them for you.",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load this user's persisted conversation on mount — it now carries
+  // forward from any device/tab they log in on, not just this browser tab.
+  useEffect(() => {
+    dispatch(fetchAiHistory());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!aiState.historyLoaded || hydrated) return;
+    setHydrated(true);
+    if (aiState.history?.length) {
+      setMessages(
+        aiState.history.map((msg: any) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.created_at ? new Date(msg.created_at) : new Date(),
+        })),
+      );
+    } else {
+      setMessages([WELCOME_MESSAGE]);
+    }
+  }, [aiState.historyLoaded, aiState.history, hydrated]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,20 +93,16 @@ const AiAgentChat: React.FC = () => {
       timestamp: new Date(),
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
     if (inputRef.current) {
       inputRef.current.style.height = "auto";
     }
 
-    const history = updatedMessages
-      .slice(1)
-      .slice(0, -1)
-      .map((msg) => ({ role: msg.role, content: msg.content }));
-
-    dispatch(sendAiMessage({ message: trimmed, session_id: "user-session", history }));
+    // Conversation context is now tracked server-side per user (see
+    // ai_agent_messages) — no need to resend the transcript on every call.
+    dispatch(sendAiMessage({ message: trimmed, session_id: "user-session" }));
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
@@ -94,6 +115,7 @@ const AiAgentChat: React.FC = () => {
       },
     ]);
     dispatch(resetAiChat());
+    dispatch(clearAiHistory());
     setInput("");
   };
 
@@ -165,15 +187,30 @@ const AiAgentChat: React.FC = () => {
                   </svg>
                 </div>
               )}
-              <div style={{ ...styles.bubbleWrap, ...(isUser ? styles.bubbleWrapUser : {}) }}>
+              <div style={{ ...styles.bubbleWrap, ...(isUser ? styles.bubbleWrapUser : styles.bubbleWrapAi) }}>
                 <div
-                  className="aiagent-bubble"
+                  className={isUser ? "aiagent-bubble" : "aiagent-bubble aiagent-bubble-md"}
                   style={{
                     ...styles.bubble,
                     ...(isUser ? styles.bubbleUser : styles.bubbleAi),
                   }}
                 >
-                  {msg.content}
+                  {isUser ? (
+                    msg.content
+                  ) : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        table: ({ children }) => (
+                          <div className="aiagent-md-table-wrap">
+                            <table>{children}</table>
+                          </div>
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  )}
                 </div>
                 <div style={{ ...styles.msgTime, ...(isUser ? { textAlign: "right" } : {}) }}>
                   {formatTime(msg.timestamp)}
@@ -254,6 +291,101 @@ const AiAgentChat: React.FC = () => {
         textarea:focus { outline: none; border-color: #1677ff !important; }
         textarea::placeholder { color: #9ca3af; }
         textarea::-webkit-scrollbar { width: 0; }
+
+        .aiagent-bubble-md {
+          white-space: normal;
+        }
+        .aiagent-bubble-md > *:first-child { margin-top: 0 !important; }
+        .aiagent-bubble-md > *:last-child { margin-bottom: 0 !important; }
+        .aiagent-bubble-md p {
+          margin: 0 0 8px;
+        }
+        .aiagent-bubble-md strong {
+          font-weight: 700;
+          color: #0b1220;
+        }
+        .aiagent-bubble-md ul,
+        .aiagent-bubble-md ol {
+          margin: 4px 0 8px;
+          padding-left: 20px;
+        }
+        .aiagent-bubble-md li {
+          margin-bottom: 3px;
+        }
+        .aiagent-bubble-md li > p { margin: 0; }
+        .aiagent-bubble-md h1,
+        .aiagent-bubble-md h2,
+        .aiagent-bubble-md h3,
+        .aiagent-bubble-md h4 {
+          margin: 10px 0 6px;
+          font-weight: 700;
+          line-height: 1.35;
+        }
+        .aiagent-bubble-md h1 { font-size: 17px; }
+        .aiagent-bubble-md h2 { font-size: 16px; }
+        .aiagent-bubble-md h3 { font-size: 15px; }
+        .aiagent-bubble-md h4 { font-size: 14px; }
+        .aiagent-bubble-md code {
+          background: rgba(0,0,0,0.06);
+          border-radius: 4px;
+          padding: 1px 5px;
+          font-size: 12.5px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        .aiagent-bubble-md pre {
+          background: #0b1220;
+          color: #e5e7eb;
+          border-radius: 10px;
+          padding: 10px 12px;
+          overflow-x: auto;
+          margin: 6px 0 8px;
+        }
+        .aiagent-bubble-md pre code {
+          background: transparent;
+          padding: 0;
+          color: inherit;
+        }
+        .aiagent-bubble-md a {
+          color: #1677ff;
+          text-decoration: underline;
+        }
+        .aiagent-bubble-md blockquote {
+          margin: 6px 0 8px;
+          padding: 2px 12px;
+          border-left: 3px solid rgba(22,119,255,0.35);
+          color: #4b5563;
+        }
+        .aiagent-bubble-md hr {
+          border: none;
+          border-top: 1px solid rgba(0,0,0,0.08);
+          margin: 10px 0;
+        }
+        .aiagent-md-table-wrap {
+          overflow-x: auto;
+          margin: 4px 0 10px;
+          -webkit-overflow-scrolling: touch;
+        }
+        .aiagent-bubble-md table {
+          border-collapse: collapse;
+          width: max-content;
+          min-width: 100%;
+          font-size: 13px;
+        }
+        .aiagent-bubble-md th,
+        .aiagent-bubble-md td {
+          border: 1px solid rgba(0,0,0,0.1);
+          padding: 6px 10px;
+          text-align: left;
+          white-space: nowrap;
+        }
+        .aiagent-bubble-md th {
+          background: #f3f4f6;
+          font-weight: 600;
+          color: #111827;
+        }
+        .aiagent-bubble-md tr:nth-child(even) td {
+          background: rgba(0,0,0,0.015);
+        }
       `}</style>
     </div>
   );
@@ -364,6 +496,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   bubbleWrapUser: {
     alignItems: "flex-end",
+  },
+  bubbleWrapAi: {
+    maxWidth: "92%",
   },
   bubble: {
     padding: "10px 14px",
