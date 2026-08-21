@@ -15,6 +15,8 @@ import {
   AppstoreOutlined,
   ShopOutlined,
   FieldTimeOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAccess } from "../../permissions/useAccess";
@@ -22,9 +24,10 @@ import { useAccess } from "../../permissions/useAccess";
 interface SidebarProps {
   collapsed?: boolean;
   onClose?: () => void;
+  onToggleCollapse?: () => void;
 }
 
-const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
+const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { can } = useAccess();
@@ -97,33 +100,50 @@ const Sidebar = ({ collapsed = false, onClose }: SidebarProps) => {
   ].filter(Boolean) as any[];
 
   return (
-    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
-      {/* Brand */}
-      <div className="brand">
-        <div className="logo-icon">
-          <span className="logo-box red" />
-          <span className="logo-box green" />
-          <span className="logo-box blue" />
-          <span className="logo-box yellow" />
-        </div>
-        {!collapsed && (
-          <div className="logo">
-            Same<span>Book</span>
+    <div className="sidebar-shell">
+      <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
+        {/* Brand */}
+        <div className="brand">
+          <div className="logo-icon">
+            <span className="logo-box red" />
+            <span className="logo-box green" />
+            <span className="logo-box blue" />
+            <span className="logo-box yellow" />
           </div>
-        )}
-      </div>
+          {!collapsed && (
+            <div className="logo">
+              Same<span>Book</span>
+            </div>
+          )}
+        </div>
 
-      {/* Navigation */}
-      <Menu
-        mode="inline"
-        selectedKeys={[location.pathname]}
-        defaultOpenKeys={["user-management"]}
-        onClick={({ key }) => handleNav(key)}
-        items={menuItems}
-        inlineCollapsed={collapsed}
-        className="sidebar-menu"
-      />
-    </aside>
+        {/* Navigation */}
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          defaultOpenKeys={["user-management"]}
+          onClick={({ key }) => handleNav(key)}
+          items={menuItems}
+          inlineCollapsed={collapsed}
+          className="sidebar-menu"
+        />
+      </aside>
+
+      {/* Collapse / expand toggle — desktop only. Rendered outside the
+          sidebar's own overflow:hidden so the circular button isn't
+          clipped at the edge. */}
+      {onToggleCollapse && (
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <RightOutlined /> : <LeftOutlined />}
+        </button>
+      )}
+    </div>
   );
 };
 
