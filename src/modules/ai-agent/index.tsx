@@ -49,12 +49,14 @@ const AiAgentChat: React.FC = () => {
         ...prev,
         {
           role: "assistant",
-          content: `⚠️ ${aiState.error ?? "Something went wrong. Please try again."}`,
+          content: `⚠️ ${aiState.error.message ?? "Something went wrong. Please try again."}`,
           timestamp: new Date(),
         },
       ]);
     }
-  }, [aiState.error]);
+    // Keyed on error.id (not the message text) so two consecutive failures
+    // with the same message both still show up as separate chat bubbles.
+  }, [aiState.error?.id]);
 
   const handleSend = () => {
     const trimmed = input.trim();

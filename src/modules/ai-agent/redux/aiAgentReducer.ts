@@ -20,7 +20,15 @@ const aiAgentReducer = (state = initialState, action: any) => {
       return { ...state, loading: false, lastReply: action.data };
 
     case ASYNC_AI_CHAT_FAILED:
-      return { ...state, loading: false, error: action.error };
+      // { message, id } instead of a bare string — two consecutive failures
+      // with the identical message (e.g. rate limit hit twice in a row)
+      // would otherwise dedupe away in the UI's effect, which keys off
+      // this value changing.
+      return {
+        ...state,
+        loading: false,
+        error: { message: action.error, id: Date.now() },
+      };
 
     case ASYNC_AI_CHAT_RESET:
       return initialState;
