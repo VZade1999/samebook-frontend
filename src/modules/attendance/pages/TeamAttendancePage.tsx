@@ -279,6 +279,11 @@ const TeamAttendancePage: React.FC = () => {
                           </div>
                           <div className="team-leave-dates">
                             {leave.from_date}{leave.from_date !== leave.to_date ? ` – ${leave.to_date}` : ""}
+                            {leave.leave_type === "HALF_DAY" && (
+                              <Tag style={{ marginLeft: 6, fontSize: 10, lineHeight: "16px", padding: "0 5px" }}>
+                                Half Day{leave.half_day_period ? ` · ${leave.half_day_period}` : ""}
+                              </Tag>
+                            )}
                           </div>
                           <div className="team-leave-reason">{leave.reason}</div>
                           {leave.status !== "pending" && (

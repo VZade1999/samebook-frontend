@@ -4,7 +4,13 @@ import { leaveService } from "../services/leaveService";
 export const requestLeave = createAsyncThunk(
   "leave/requestLeave",
   async (
-    payload: { from_date: string; to_date: string; reason: string },
+    payload: {
+      from_date: string;
+      to_date: string;
+      reason: string;
+      leave_type?: "FULL_DAY" | "HALF_DAY";
+      half_day_period?: "AM" | "PM";
+    },
     { rejectWithValue },
   ) => {
     try {

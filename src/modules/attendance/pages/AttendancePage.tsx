@@ -364,6 +364,11 @@ const AttendancePage: React.FC = () => {
                       {new Date(leave.from_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       {leave.from_date !== leave.to_date &&
                         ` – ${new Date(leave.to_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+                      {leave.leave_type === "HALF_DAY" && (
+                        <Tag style={{ marginLeft: 6, fontSize: 10, lineHeight: "16px", padding: "0 5px" }}>
+                          Half Day{leave.half_day_period ? ` · ${leave.half_day_period}` : ""}
+                        </Tag>
+                      )}
                     </div>
                     <div className="att-leave-reason">{leave.reason}</div>
                   </div>
