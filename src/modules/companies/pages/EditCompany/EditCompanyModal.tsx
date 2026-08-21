@@ -590,6 +590,14 @@ const EditCompanyModal: React.FC<EditCompanyModalProps> = ({
                               <Input placeholder="Postal code" />
                             </Form.Item>
                           </div>
+                          <div className="eco-grid-2">
+                            <Form.Item
+                              label="GSTIN (if this location has its own GST registration)"
+                              name={[field.name, "gst_no"]}
+                            >
+                              <Input placeholder="e.g. 27AAAAA0000A1Z5" maxLength={15} />
+                            </Form.Item>
+                          </div>
                           <Form.Item label="Notes" name={[field.name, "notes"]}>
                             <Input.TextArea rows={2} placeholder="Optional notes" />
                           </Form.Item>

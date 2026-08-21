@@ -7,9 +7,16 @@ import {
   Input,
   InputNumber,
   Row,
+  Select,
   Typography,
 } from "antd";
 import dayjs from "dayjs";
+import { StorageService } from "@/storage";
+import {
+  determineTaxType,
+  getStateCodeFromName,
+  resolveSellerStateCode,
+} from "@/utils/taxType";
 
 const { TextArea } = Input;
 
@@ -271,11 +278,44 @@ const QuotationSummary = () => {
   const igst = Form.useWatch("igst", form);
   const transport = Form.useWatch("transport", form);
   const placeOfOrder = Form.useWatch("placeOfOrder", form);
+  const issuingLocationId = Form.useWatch("issuing_location_id", form);
 
-  const isMaharashtra =
-    String(placeOfOrder || "")
-      .trim()
-      .toLowerCase() === "maharashtra";
+  const [sellerCompany, setSellerCompany] = useState<any>(null);
+  useEffect(() => {
+    const storageService = new StorageService();
+    const stored = storageService.getItem(
+      StorageService.STORAGE_KEYS.COMPANY_DETAILS,
+    );
+    if (stored) {
+      try {
+        setSellerCompany(JSON.parse(stored));
+      } catch {
+        setSellerCompany(null);
+      }
+    }
+  }, []);
+
+  // Only companies with more than one GST-registered branch need to pick
+  // which one is issuing this document — everyone else uses the primary
+  // GSTIN (issuing_location_id stays null) and never sees this control.
+  const gstLocations: any[] = (sellerCompany?.locations || []).filter(
+    (l: any) => l?.gst_no,
+  );
+  const selectedLocation = gstLocations.find(
+    (l) => l.id === issuingLocationId,
+  );
+
+  // Authoritative on save is the backend's own recomputation — this is only
+  // a live preview so the totals shown here match what gets persisted.
+  const sellerStateCode = selectedLocation
+    ? selectedLocation.gst_state_code || getStateCodeFromName(selectedLocation.address_state)
+    : resolveSellerStateCode(sellerCompany);
+  const taxType = determineTaxType(
+    sellerStateCode,
+    getStateCodeFromName(placeOfOrder),
+  );
+  const isMaharashtra = taxType === "INTRA_STATE";
+  const isNoGst = taxType === "NO_GST";
 
   useEffect(() => {
     const sub = Number(subTotal) || 0;
@@ -287,21 +327,26 @@ const QuotationSummary = () => {
 
     const discountAmount = (sub * discountPercent) / 100;
     const subtotalAfterDiscount = sub - discountAmount;
-    const cgstAmount = isMaharashtra
-      ? (subtotalAfterDiscount * cgstPercent) / 100
-      : 0;
-    const sgstAmount = isMaharashtra
-      ? (subtotalAfterDiscount * sgstPercent) / 100
-      : 0;
-    const igstAmount = isMaharashtra
-      ? 0
-      : (subtotalAfterDiscount * igstPercent) / 100;
+    const cgstAmount =
+      !isNoGst && isMaharashtra
+        ? (subtotalAfterDiscount * cgstPercent) / 100
+        : 0;
+    const sgstAmount =
+      !isNoGst && isMaharashtra
+        ? (subtotalAfterDiscount * sgstPercent) / 100
+        : 0;
+    const igstAmount =
+      !isNoGst && !isMaharashtra
+        ? (subtotalAfterDiscount * igstPercent) / 100
+        : 0;
     const totalTaxAmount = cgstAmount + sgstAmount + igstAmount;
     const grandTotal =
       subtotalAfterDiscount + totalTaxAmount + transportCharges;
-    const combinedTaxPercent = isMaharashtra
-      ? cgstPercent + sgstPercent
-      : igstPercent;
+    const combinedTaxPercent = isNoGst
+      ? 0
+      : isMaharashtra
+        ? cgstPercent + sgstPercent
+        : igstPercent;
 
     const safe = (v: any) => {
       const n = Number(v);
@@ -326,7 +371,7 @@ const QuotationSummary = () => {
       gst: safe(combinedTaxPercent),
       transport: safe(transportCharges),
     });
-  }, [subTotal, discount, cgst, sgst, igst, transport, placeOfOrder, form]);
+  }, [subTotal, discount, cgst, sgst, igst, transport, placeOfOrder, form, isMaharashtra, isNoGst]);
 
   return (
     <>
@@ -358,6 +403,25 @@ const QuotationSummary = () => {
             />
           }
         >
+          {gstLocations.length > 0 && (
+            <Row gutter={[16, 0]}>
+              <Col xs={24} sm={12} md={6}>
+                <Form.Item
+                  label="Issuing Location (GSTIN)"
+                  name="issuing_location_id"
+                >
+                  <Select
+                    allowClear
+                    placeholder={`Primary — ${sellerCompany?.gst_no || "no GSTIN"}`}
+                    options={gstLocations.map((l) => ({
+                      value: l.id,
+                      label: `${l.name || "Location"} — ${l.gst_no}`,
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
           <Row gutter={[16, 0]}>
             {/* Sub-total */}
             <Col xs={24} sm={12} md={6}>
@@ -394,7 +458,11 @@ const QuotationSummary = () => {
 
             {/* Tax */}
             <Col xs={24} sm={12} md={6}>
-              {isMaharashtra ? (
+              {isNoGst ? (
+                <div className="qs-amount-hint">
+                  GST not applicable — seller has no GSTIN on record.
+                </div>
+              ) : isMaharashtra ? (
                 <>
                   <Form.Item label="CGST (%)" name="cgst">
                     <InputNumber
