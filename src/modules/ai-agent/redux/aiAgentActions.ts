@@ -16,6 +16,14 @@ export const sendAiMessage = (payload: any) => ({
   payload,
 });
 
+// Shares ASYNC_AI_CHAT/_SUCCESS/_FAILED with a regular text message — same
+// response shape, same loading/error/lastReply handling — the saga just
+// routes to a different backend endpoint based on `isDocument`.
+export const sendAiDocument = (payload: any) => ({
+  type: ASYNC_AI_CHAT,
+  payload: { ...payload, isDocument: true },
+});
+
 export const resetAiChat = () => ({
   type: ASYNC_AI_CHAT_RESET,
 });

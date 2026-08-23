@@ -1,14 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Spin } from "antd";
+import { Spin, message as toast } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { sendAiMessage, resetAiChat, fetchAiHistory, clearAiHistory } from "./redux/aiAgentActions";
+import { sendAiMessage, sendAiDocument, resetAiChat, fetchAiHistory, clearAiHistory } from "./redux/aiAgentActions";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+}
+
+const ALLOWED_DOCUMENT_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const MAX_DOCUMENT_SIZE_BYTES = 12 * 1024 * 1024; // stays under the backend's 15mb body limit with base64 overhead
+
+interface PendingFile {
+  file: File;
+  base64: string;
 }
 
 const WELCOME_MESSAGE: Message = {
@@ -25,9 +33,11 @@ const AiAgentChat: React.FC = () => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [pendingFile, setPendingFile] = useState<PendingFile | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load this user's persisted conversation on mount — it now carries
   // forward from any device/tab they log in on, not just this browser tab.
@@ -85,25 +95,71 @@ const AiAgentChat: React.FC = () => {
 
   const handleSend = () => {
     const trimmed = input.trim();
-    if (!trimmed || aiState.loading) return;
-
-    const userMessage: Message = {
-      role: "user",
-      content: trimmed,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    if ((!trimmed && !pendingFile) || aiState.loading) return;
 
     if (inputRef.current) {
       inputRef.current.style.height = "auto";
     }
 
-    // Conversation context is now tracked server-side per user (see
-    // ai_agent_messages) — no need to resend the transcript on every call.
-    dispatch(sendAiMessage({ message: trimmed, session_id: "user-session" }));
+    if (pendingFile) {
+      const userMessage: Message = {
+        role: "user",
+        content: `📎 ${pendingFile.file.name}${trimmed ? `\n${trimmed}` : ""}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      dispatch(
+        sendAiDocument({
+          document: pendingFile.base64,
+          document_mime_type: pendingFile.file.type,
+          document_name: pendingFile.file.name,
+          ...(trimmed && { message: trimmed }),
+          session_id: "user-session",
+        }),
+      );
+      setPendingFile(null);
+      setInput("");
+    } else {
+      const userMessage: Message = {
+        role: "user",
+        content: trimmed,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setInput("");
+
+      // Conversation context is now tracked server-side per user (see
+      // ai_agent_messages) — no need to resend the transcript on every call.
+      dispatch(sendAiMessage({ message: trimmed, session_id: "user-session" }));
+    }
+
     setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    if (!ALLOWED_DOCUMENT_TYPES.includes(file.type)) {
+      toast.error("Only JPG, PNG, WEBP, or PDF files are supported.");
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+      toast.error("File is too large. Please upload a file under 12 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the "data:<mime>;base64," prefix — backend expects raw base64.
+      const base64 = result.slice(result.indexOf(",") + 1);
+      setPendingFile({ file, base64 });
+    };
+    reader.onerror = () => toast.error("Could not read that file. Please try again.");
+    reader.readAsDataURL(file);
   };
 
   const handleClear = () => {
@@ -248,8 +304,45 @@ const AiAgentChat: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* ── Pending file chip ── */}
+      {pendingFile && (
+        <div style={styles.pendingFileChip}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1677ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+          </svg>
+          <span style={styles.pendingFileName}>{pendingFile.file.name}</span>
+          <button
+            type="button"
+            onClick={() => setPendingFile(null)}
+            style={styles.pendingFileRemove}
+            aria-label="Remove attached file"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ── Input ── */}
       <div style={styles.inputArea}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ALLOWED_DOCUMENT_TYPES.join(",")}
+          style={{ display: "none" }}
+          onChange={handleFileSelect}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={aiState.loading}
+          style={styles.attachBtn}
+          aria-label="Attach a document (image or PDF) to build a quotation from"
+          title="Upload a requirement photo/PDF to auto-build a quotation"
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+          </svg>
+        </button>
         <textarea
           ref={inputRef}
           value={input}
@@ -258,17 +351,17 @@ const AiAgentChat: React.FC = () => {
             autoResize(e.target);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Ask me about your customers…"
+          placeholder={pendingFile ? "Add an optional note…" : "Ask me about your customers…"}
           disabled={aiState.loading}
           rows={1}
           style={styles.textarea}
         />
         <button
           onClick={handleSend}
-          disabled={!input.trim() || aiState.loading}
+          disabled={(!input.trim() && !pendingFile) || aiState.loading}
           style={{
             ...styles.sendBtn,
-            ...((!input.trim() || aiState.loading) ? styles.sendBtnDisabled : {}),
+            ...((!input.trim() && !pendingFile) || aiState.loading ? styles.sendBtnDisabled : {}),
           }}
         >
           {aiState.loading ? (
@@ -281,7 +374,9 @@ const AiAgentChat: React.FC = () => {
           )}
         </button>
       </div>
-      <div style={styles.hint}>Enter to send · Shift+Enter for new line</div>
+      <div style={styles.hint}>
+        Enter to send · Shift+Enter for new line · 📎 upload a requirement photo/PDF to auto-build a quotation
+      </div>
 
       <style>{`
         @keyframes bounce {
@@ -551,6 +646,48 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "flex-end",
     gap: 8,
+  },
+  attachBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: "50%",
+    border: "1px solid rgba(0,0,0,0.12)",
+    background: "#f8f9fa",
+    color: "#4b5563",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    transition: "background 0.15s, color 0.15s",
+  },
+  pendingFileChip: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    margin: "0 14px 8px",
+    padding: "6px 10px",
+    background: "#eff6ff",
+    border: "1px solid rgba(22,119,255,0.2)",
+    borderRadius: 10,
+    fontSize: 12.5,
+    color: "#1677ff",
+    width: "fit-content",
+    maxWidth: "calc(100% - 28px)",
+  },
+  pendingFileName: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  pendingFileRemove: {
+    border: "none",
+    background: "none",
+    color: "#1677ff",
+    cursor: "pointer",
+    fontSize: 12,
+    padding: "0 2px",
+    flexShrink: 0,
   },
   textarea: {
     flex: 1,

@@ -16,7 +16,10 @@ const aiAgentService = new AiAgentService();
 
 function* aiChatSaga(action: any): any {
   try {
-    const response = yield call(aiAgentService.chat, action?.payload);
+    const { isDocument, ...payload } = action?.payload || {};
+    const response = isDocument
+      ? yield call(aiAgentService.chatWithDocument, payload)
+      : yield call(aiAgentService.chat, payload);
     if (response.data?.success) {
       yield put({
         type: ASYNC_AI_CHAT_SUCCESS,
