@@ -33,10 +33,14 @@ apiClient.interceptors.response.use(
 
     // Never attempt a refresh for the refresh call itself or the login call —
     // that would be an infinite loop (refresh fails 401 -> tries to refresh -> ...).
-    const isAuthEndpoint = url.includes("/auth/refresh") || url.includes("/auth/login");
+    const isRefreshCall = url.includes("/auth/refresh");
+    const isAuthEndpoint = isRefreshCall || url.includes("/auth/login");
 
     if (status !== 401 || isAuthEndpoint || !originalRequest || originalRequest._retry) {
-      if (status === 401 && isAuthEndpoint) {
+      // A 401 from /auth/login just means bad credentials — let the login saga
+      // show the error instead of reloading the page. Only a failed refresh
+      // means the session is gone.
+      if (status === 401 && isRefreshCall) {
         redirectToLogin();
       }
       return Promise.reject(error);

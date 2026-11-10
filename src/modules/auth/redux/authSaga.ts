@@ -52,7 +52,10 @@ function* loginSaga(action: any) {
       yield put({ type: ASYNC_LOGIN_FAILED, error: response.data?.message });
     }
   } catch (error: any) {
-    yield put({ type: ASYNC_LOGIN_FAILED, error: error.message });
+    yield put({
+      type: ASYNC_LOGIN_FAILED,
+      error: error?.response?.data?.message || error?.message || "Login failed",
+    });
   }
 }
 
