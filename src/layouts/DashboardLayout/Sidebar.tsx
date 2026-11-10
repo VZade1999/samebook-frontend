@@ -17,6 +17,7 @@ import {
   FieldTimeOutlined,
   LeftOutlined,
   RightOutlined,
+  CarOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAccess } from "../../permissions/useAccess";
@@ -91,6 +92,11 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
       key: "/app/quotation",
       icon: <FileTextOutlined />,
       label: "Quotation",
+    },
+    can("challans.view") && {
+      key: "/app/delivery-challans",
+      icon: <CarOutlined />,
+      label: "Delivery Challans",
     },
     can("invoices.view") && {
       key: "/app/invoice",

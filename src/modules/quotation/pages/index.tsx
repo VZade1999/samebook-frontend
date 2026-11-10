@@ -63,6 +63,7 @@ import PaymentDetails from "./components/PaymentDetails";
 import { StorageService } from "@/storage";
 import { getCustomers } from "@/modules/customers/redux/customerActions";
 import { useAccess } from "@/permissions/useAccess";
+import CreateChallanButton from "@/modules/delivery-challan/components/CreateChallanButton";
 
 const { useBreakpoint } = Grid;
 const { Option } = Select;
@@ -2211,6 +2212,7 @@ const columns = useMemo(() => [
                 </button>
               </>
             )}
+            <CreateChallanButton quotation={selectedQuotation} className="qt-btn qt-btn-primary" />
           </div>
         }
       >
