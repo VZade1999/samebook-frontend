@@ -38,6 +38,7 @@ import {
   CheckCircleOutlined,
   SendOutlined,
   RightOutlined,
+  CarOutlined,
   CheckCircleFilled,
   FileDoneOutlined,
   ReloadOutlined,
@@ -64,6 +65,14 @@ import { StorageService } from "@/storage";
 import { getCustomers } from "@/modules/customers/redux/customerActions";
 import { useAccess } from "@/permissions/useAccess";
 import CreateChallanButton from "@/modules/delivery-challan/components/CreateChallanButton";
+import { useNavigate } from "react-router-dom";
+
+// Which workflow actions a quotation's status allows (mirrors the backend).
+// Send is limited to DRAFT/SENT (resend): sending an APPROVED/INVOICED
+// quotation would push it back to SENT.
+const canSendStatus = (q: any) => !!q && !q.has_invoice && ["DRAFT", "SENT"].includes(q.status);
+const canApproveStatus = (q: any) => !!q && !q.has_invoice && q.status === "SENT";
+const canChallanStatus = (q: any) => !!q && q.status === "APPROVED";
 
 const { useBreakpoint } = Grid;
 const { Option } = Select;
@@ -280,6 +289,14 @@ export const GlobalStyles = () => (
     .qt-btn-danger:hover { background: var(--qt-danger); color: #fff; }
     .qt-btn-sm { padding: 6px 12px; font-size: 12px; }
     .qt-btn-icon { padding: 7px; }
+    /* Row workflow actions */
+    .qt-btn-send { color: #0891B2; border-color: #A5F3FC !important; background: #ECFEFF; }
+    .qt-btn-send:hover:not(:disabled) { background: #0891B2; color: #fff; }
+    .qt-btn-approve { color: #059669; border-color: #A7F3D0 !important; background: #ECFDF5; }
+    .qt-btn-approve:hover:not(:disabled) { background: #059669; color: #fff; }
+    .qt-btn-dc { color: #7C3AED; border-color: #DDD6FE !important; background: #F5F3FF; }
+    .qt-btn-dc:hover:not(:disabled) { background: #7C3AED; color: #fff; }
+    .dark .qt-btn-send, .dark .qt-btn-approve, .dark .qt-btn-dc { background: transparent; }
 
     /* ── Table overrides ── */
     .qt-table-wrap .ant-table { font-size: 13px !important; font-family: 'Inter', sans-serif !important; }
@@ -1046,6 +1063,13 @@ const MobileCard: React.FC<{
   canDelete: boolean;
   canExport: boolean;
   deletingId: number | null;
+  canSend: boolean;
+  canApprove: boolean;
+  canChallan: boolean;
+  onSend: (r: any) => void;
+  onApprove: (r: any) => void;
+  onCreateChallan: (r: any) => void;
+  actingId: number | null;
 }> = React.memo(({
   record,
   downloadingId,
@@ -1057,6 +1081,13 @@ const MobileCard: React.FC<{
   canDelete,
   canExport,
   deletingId,
+  canSend,
+  canApprove,
+  canChallan,
+  onSend,
+  onApprove,
+  onCreateChallan,
+  actingId,
 }) => (
   <div className="qt-mobile-card" onClick={() => onView(record)}>
     <div className="qt-mobile-card-top">
@@ -1106,6 +1137,29 @@ const MobileCard: React.FC<{
         {record.created_by_user?.first_name} {record.created_by_user?.last_name}
       </div>
       <div className="qt-mobile-btns">
+        {canSend && (
+          <Popconfirm
+            title={record.status === "SENT" ? "Resend this quotation?" : "Send this quotation?"}
+            onConfirm={() => onSend(record)}
+            okText="Send"
+          >
+            <button className="qt-btn qt-btn-ghost qt-btn-sm" disabled={actingId === record.id} title="Send">
+              {actingId === record.id ? <Spin size="small" /> : <SendOutlined />}
+            </button>
+          </Popconfirm>
+        )}
+        {canApprove && (
+          <Popconfirm title="Approve this quotation?" onConfirm={() => onApprove(record)} okText="Approve">
+            <button className="qt-btn qt-btn-ghost qt-btn-sm qt-btn-approve" disabled={actingId === record.id} title="Approve">
+              {actingId === record.id ? <Spin size="small" /> : <CheckCircleOutlined />}
+            </button>
+          </Popconfirm>
+        )}
+        {canChallan && (
+          <button className="qt-btn qt-btn-ghost qt-btn-sm" onClick={() => onCreateChallan(record)} title="Create Delivery Challan">
+            <CarOutlined /> DC
+          </button>
+        )}
         {canExport && (
           <button
             className="qt-btn qt-btn-ghost qt-btn-sm"
@@ -1218,6 +1272,11 @@ const QuotationPage = () => {
   const loading = quotationState?.loading || false;
   const createLoading = quotationState?.createLoading || false;
   const actionLoading = quotationState?.actionLoading || false;
+  const navigate = useNavigate();
+  const [actingId, setActingId] = useState<number | null>(null);
+  useEffect(() => {
+    if (!actionLoading) setActingId(null);
+  }, [actionLoading]);
   const selectedQuotation = quotationState?.selectedQuotation;
   const quotationHistory = quotationState?.quotationHistory || [];
   const quotationTimeline = quotationState?.quotationTimeline || [];
@@ -1607,20 +1666,29 @@ const QuotationPage = () => {
     setSelectedQuotationId(record.id);
     setDetailsVisible(true);
   }, []);
+  // Send / Approve can be triggered from a list row or from the details
+  // drawer; actingId tracks which quotation the (single, global)
+  // actionLoading flag belongs to so only that row shows a spinner.
+  const userId = authState?.user?.id;
+  const sendById = useCallback((id: number) => {
+    setActingId(id);
+    dispatch(sendQuotation({ id, user_id: userId }));
+  }, [dispatch, userId]);
+  const approveById = useCallback((id: number) => {
+    setActingId(id);
+    dispatch(approveQuotation({ id, user_id: userId }));
+  }, [dispatch, userId]);
+  const handleRowSend = useCallback((record: any) => sendById(record.id), [sendById]);
+  const handleRowApprove = useCallback((record: any) => approveById(record.id), [approveById]);
+  const handleCreateChallan = useCallback(
+    (record: any) => navigate(`/app/delivery-challans?fromQuotation=${record.id}`),
+    [navigate],
+  );
   const handleSend = () => {
-    if (!selectedQuotationId) return;
-    dispatch(
-      sendQuotation({ id: selectedQuotationId, user_id: authState?.user?.id }),
-    );
+    if (selectedQuotationId) sendById(selectedQuotationId);
   };
   const handleApprove = () => {
-    if (!selectedQuotationId) return;
-    dispatch(
-      approveQuotation({
-        id: selectedQuotationId,
-        user_id: authState?.user?.id,
-      }),
-    );
+    if (selectedQuotationId) approveById(selectedQuotationId);
   };
 
   const closeForm = () => {
@@ -1783,9 +1851,39 @@ const columns = useMemo(() => [
     title: "Actions",
     key: "action",
     fixed: "right" as const,
-    width: 140,
+    width: 250,
     render: (_: any, record: any) => (
       <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
+        {/* Workflow actions — only the ones valid for this status are shown */}
+        {can("quotations.send") && canSendStatus(record) && (
+          <Popconfirm
+            title={record.status === "SENT" ? "Resend this quotation?" : "Send this quotation?"}
+            onConfirm={() => handleRowSend(record)}
+            okText="Send"
+          >
+            <Tooltip title={record.status === "SENT" ? "Resend" : "Send"}>
+              <button className="qt-btn qt-btn-ghost qt-btn-icon qt-btn-send" disabled={actingId === record.id}>
+                {actingId === record.id ? <Spin size="small" /> : <SendOutlined />}
+              </button>
+            </Tooltip>
+          </Popconfirm>
+        )}
+        {can("quotations.send") && canApproveStatus(record) && (
+          <Popconfirm title="Approve this quotation?" onConfirm={() => handleRowApprove(record)} okText="Approve">
+            <Tooltip title="Approve">
+              <button className="qt-btn qt-btn-ghost qt-btn-icon qt-btn-approve" disabled={actingId === record.id}>
+                {actingId === record.id ? <Spin size="small" /> : <CheckCircleOutlined />}
+              </button>
+            </Tooltip>
+          </Popconfirm>
+        )}
+        {can("challans.create") && canChallanStatus(record) && (
+          <Tooltip title="Create Delivery Challan">
+            <button className="qt-btn qt-btn-ghost qt-btn-icon qt-btn-dc" onClick={() => handleCreateChallan(record)}>
+              <CarOutlined />
+            </button>
+          </Tooltip>
+        )}
         {can("quotations.export") && (
           <button className="qt-btn qt-btn-ghost qt-btn-icon" onClick={() => downloadQuotationPDF(record)} title="Download PDF">
             {downloadingQuotationId === record.id ? <Spin size="small" /> : <DownloadOutlined />}
@@ -1805,7 +1903,7 @@ const columns = useMemo(() => [
       </div>
     ),
   },
-], [can, handleView, handleEdit, handleDelete, downloadQuotationPDF, deletingQuotationId, downloadingQuotationId]);
+], [can, handleView, handleEdit, handleDelete, downloadQuotationPDF, deletingQuotationId, downloadingQuotationId, handleRowSend, handleRowApprove, handleCreateChallan, actingId]);
 
   return (
     <div className="qt-root">
@@ -2076,6 +2174,13 @@ const columns = useMemo(() => [
                   canEdit={can("quotations.edit") && !q.has_invoice}
                   canDelete={can("quotations.delete") && q.status === "DRAFT"}
                   canExport={can("quotations.export")}
+                  canSend={can("quotations.send") && canSendStatus(q)}
+                  canApprove={can("quotations.send") && canApproveStatus(q)}
+                  canChallan={can("challans.create") && canChallanStatus(q)}
+                  onSend={handleRowSend}
+                  onApprove={handleRowApprove}
+                  onCreateChallan={handleCreateChallan}
+                  actingId={actingId}
                 />
               ))
             )}
@@ -2160,7 +2265,7 @@ const columns = useMemo(() => [
                 Download PDF
               </button>
             )}
-            {can("quotations.send") && (
+            {can("quotations.send") && canSendStatus(selectedQuotation) && (
               <>
                 <button
                   className="qt-btn qt-btn-primary"
@@ -2186,7 +2291,7 @@ const columns = useMemo(() => [
                 </button>
               </>
             )}
-            {can("quotations.send") && selectedQuotation?.status === "SENT" && (
+            {can("quotations.send") && canApproveStatus(selectedQuotation) && (
               <>
                 <button
                   className="qt-btn qt-btn-primary"
