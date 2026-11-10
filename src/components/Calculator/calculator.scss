@@ -1,0 +1,185 @@
+// Header calculator — uses the app theme tokens so it follows dark/light mode.
+
+// Floating, draggable window. z-index sits above antd modals (1000) so it can
+// be used while filling a quotation/invoice form, and below messages (1010+).
+.calc-window {
+  position: fixed;
+  z-index: 1005;
+  width: 288px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 18px 48px -12px rgba(30, 27, 75, 0.38), 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  animation: calc-pop 0.14s ease-out;
+
+  &.is-mobile { width: min(320px, calc(100vw - 16px)); }
+  &.is-dragging { box-shadow: 0 28px 60px -12px rgba(30, 27, 75, 0.5), 0 6px 16px rgba(0, 0, 0, 0.14); opacity: 0.97; }
+  &.is-dragging .calc-titlebar { cursor: grabbing; }
+  &.is-min { width: 200px; }
+}
+@keyframes calc-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.calc-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 10px;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  color: #fff;
+  cursor: grab;
+  user-select: none;
+  touch-action: none; // let pointer events drive the drag on touch screens
+  font-size: 13px;
+  font-weight: 600;
+}
+.calc-grip { color: rgba(255, 255, 255, 0.5); }
+.calc-title { flex: 1; }
+.calc-win-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  &:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+  &.close:hover { background: #dc2626; }
+}
+
+.header-icon-btn.is-active { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
+.dark .header-icon-btn.is-active { background: rgba(79, 70, 229, 0.2); color: #a5b4fc; }
+
+.calc-pad {
+  padding: 12px;
+  background: var(--card);
+  color: var(--foreground);
+  user-select: none;
+  outline: none;
+
+  &.is-mobile { padding: 10px; }
+}
+
+.calc-screen {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+  border-radius: 12px;
+  padding: 12px 14px 10px;
+  margin-bottom: 12px;
+  text-align: right;
+  min-height: 78px;
+}
+.calc-expr {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  min-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.calc-display-row { display: flex; align-items: flex-end; gap: 8px; }
+.calc-display {
+  flex: 1;
+  min-width: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+  &.sm { font-size: 24px; }
+  &.xs { font-size: 18px; }
+}
+.calc-copy {
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  margin-bottom: 5px;
+  &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); color: #fff; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.calc-keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.calc-key {
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--foreground);
+  font: 600 18px "Inter", sans-serif;
+  cursor: pointer;
+  transition: transform 0.08s, background 0.12s, box-shadow 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+
+  &:hover { filter: brightness(0.97); }
+  &:active { transform: scale(0.95); }
+  &:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+
+  &.fn { color: #4f46e5; background: #eef2ff; border-color: #c7d2fe; font-size: 16px; }
+  &.op { color: #4f46e5; background: #eef2ff; border-color: #c7d2fe; font-size: 22px; }
+  &.op.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+  &.eq {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    color: #fff;
+    border-color: transparent;
+    font-size: 22px;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+  }
+}
+.is-mobile .calc-key { height: 52px; font-size: 20px; border-radius: 14px; }
+.is-mobile .calc-key.op,
+.is-mobile .calc-key.eq { font-size: 24px; }
+
+// Dark mode: soften the tinted function keys.
+.dark .calc-key.fn,
+.dark .calc-key.op:not(.active),
+[data-theme="dark"] .calc-key.fn,
+[data-theme="dark"] .calc-key.op:not(.active) {
+  background: rgba(79, 70, 229, 0.16);
+  border-color: rgba(129, 140, 248, 0.35);
+  color: #a5b4fc;
+}
+
+.calc-native {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+  &:hover { background: var(--muted); color: #4338ca; }
+}
+.calc-hint {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
