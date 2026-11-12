@@ -5,6 +5,7 @@ import {
   CloudUploadOutlined,
   DownloadOutlined,
   EyeOutlined,
+  ExportOutlined,
   FileSearchOutlined,
   HistoryOutlined,
   InfoCircleOutlined,
@@ -14,7 +15,7 @@ import {
   SwapOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
-import { downloadFile, driveService } from "../services/driveService";
+import { downloadFile, driveService, ensureFreshAuth, fileUrl, openInBrowser } from "../services/driveService";
 import {
   DriveFileDetail,
   DriveFolder,
@@ -75,12 +76,40 @@ const Preview: React.FC<{
   previewable: boolean;
   name: string;
 }> = ({ fileId, version, kind, ext, mime, previewable, name }) => {
-  const media = previewable && ["image", "pdf", "video", "audio"].includes(kind);
+  const isPdf = previewable && kind === "pdf";
+  const media = previewable && ["image", "video", "audio"].includes(kind);
   const isText = previewable && /^text\//.test(mime);
   const { url, loading, error } = useBlobUrl(fileId, version, media);
+  const [pdfSrc, setPdfSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isPdf) return;
+    let alive = true;
+    setPdfSrc(null);
+    ensureFreshAuth()
+      .catch(() => undefined)
+      .then(() => alive && setPdfSrc(fileUrl(fileId, { version, inline: true })));
+    return () => {
+      alive = false;
+    };
+  }, [isPdf, fileId, version]);
   const { text, truncated } = useTextPreview(fileId, version, isText);
   const meta = KIND_META[kind];
 
+  if (isPdf) {
+    return (
+      <div className="dv-pv dv-pv-pdf">
+        <div className="dv-pv-bar">
+          <span>
+            <FileSearchOutlined /> Use <kbd>Ctrl</kbd> + <kbd>F</kbd> inside the document to search its text
+          </span>
+          <button className="dv-chip-btn primary" onClick={() => openInBrowser(fileId, version).catch((e) => message.error(errText(e)))}>
+            <ExportOutlined /> Open in new tab
+          </button>
+        </div>
+        {pdfSrc ? <iframe src={pdfSrc} title={name} /> : <div className="dv-pv-loading"><Spin /></div>}
+      </div>
+    );
+  }
   if (!previewable || (!media && !isText)) {
     return (
       <div className="dv-pv dv-pv-none" style={{ ["--k" as any]: meta.color, ["--ks" as any]: meta.soft }}>
@@ -124,8 +153,14 @@ const Preview: React.FC<{
   }
   if (loading || (!url && !error)) return <div className="dv-pv dv-pv-loading"><Spin /></div>;
   if (error || !url) return <div className="dv-pv dv-pv-loading">Couldn't load the preview.</div>;
-  if (kind === "image") return <div className="dv-pv dv-pv-image"><img src={url} alt={name} /></div>;
-  if (kind === "pdf") return <div className="dv-pv dv-pv-pdf"><iframe src={url} title={name} /></div>;
+  if (kind === "image")
+    return (
+      <Tooltip title="Click to open full size in a new tab">
+        <div className="dv-pv dv-pv-image" onClick={() => openInBrowser(fileId, version).catch((e) => message.error(errText(e)))}>
+          <img src={url} alt={name} />
+        </div>
+      </Tooltip>
+    );
   if (kind === "video") return <div className="dv-pv dv-pv-video"><video src={url} controls /></div>;
   return (
     <div className="dv-pv dv-pv-audio" style={{ ["--k" as any]: meta.color }}>
@@ -417,6 +452,11 @@ const FileDrawer: React.FC<{
               <button className="dv-btn white" onClick={() => download()} disabled={downloading !== null}>
                 {downloading === 0 ? <LoadingOutlined /> : <DownloadOutlined />} Download
               </button>
+              {current?.previewable && (
+                <button className="dv-btn glass" onClick={() => openInBrowser(f.id).catch((e) => message.error(errText(e)))}>
+                  <ExportOutlined /> Open in browser
+                </button>
+              )}
               {can && (
                 <button className="dv-btn glass" onClick={() => setTab("versions")}>
                   <CloudUploadOutlined /> New version
@@ -636,6 +676,14 @@ const FileDrawer: React.FC<{
                                 onClick={() => setPreviewVersion(v.is_current ? null : v)}
                               >
                                 <EyeOutlined /> {shown?.id === v.id ? "Previewing" : "Preview"}
+                              </button>
+                            )}
+                            {v.previewable && (
+                              <button
+                                className="dv-chip-btn"
+                                onClick={() => openInBrowser(f.id, v.is_current ? undefined : v.version_no).catch((e) => message.error(errText(e)))}
+                              >
+                                <ExportOutlined /> Open
                               </button>
                             )}
                             <button className="dv-chip-btn" onClick={() => download(v)} disabled={downloading !== null}>

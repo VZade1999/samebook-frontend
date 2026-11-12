@@ -12,6 +12,7 @@ import {
   CloudUploadOutlined,
   DownloadOutlined,
   EditOutlined,
+  ExportOutlined,
   FolderAddOutlined,
   FolderOpenOutlined,
   HistoryOutlined,
@@ -24,7 +25,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { downloadFile, driveService } from "../services/driveService";
+import { downloadFile, driveService, openInBrowser } from "../services/driveService";
 import {
   DRIVE_CHANGED_EVENT,
   DriveActivityItem,
@@ -291,6 +292,7 @@ const DrivePage: React.FC = () => {
   const fileMenu = (f: DriveFile): MenuProps => ({
     items: [
       { key: "open", icon: <FolderOpenOutlined />, label: "Open details" },
+      ...(f.previewable ? [{ key: "browser", icon: <ExportOutlined />, label: "Open in browser" }] : []),
       { key: "download", icon: <DownloadOutlined />, label: "Download" },
       ...(canUpdate ? [{ key: "move", icon: <SwapOutlined />, label: "Move to…" }] : []),
       ...(f.folder_id !== folderId || view !== "browse" ? [{ key: "reveal", icon: <FolderOpenOutlined />, label: "Show in folder" }] : []),
@@ -298,6 +300,7 @@ const DrivePage: React.FC = () => {
     onClick: ({ key, domEvent }) => {
       domEvent.stopPropagation();
       if (key === "open") openFile(f.id);
+      if (key === "browser") openInBrowser(f.id).catch((e) => message.error(errText(e, "Couldn't open the file")));
       if (key === "download") downloadFile(f.id, f.name).catch((e) => message.error(errText(e, "Download failed")));
       if (key === "move") setMoving({ type: "file", item: f });
       if (key === "reveal") openFolder(f.folder_id);

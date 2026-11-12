@@ -60,19 +60,70 @@ export const driveService = {
     }),
 };
 
-/** Downloads a version to the user's disk with the server-chosen file name. */
-export const downloadFile = async (id: number, fallbackName: string, version?: number) => {
-  const res = await driveService.blob(id, { version });
-  const cd: string = res.headers["content-disposition"] || "";
-  const star = /filename\*=UTF-8''([^;]+)/i.exec(cd);
-  const plain = /filename="([^"]+)"/i.exec(cd);
-  const name = star ? decodeURIComponent(star[1]) : plain ? plain[1] : fallbackName;
-  const url = URL.createObjectURL(res.data);
+/**
+ * Direct URL of a version. Auth is the httpOnly session cookie, which the
+ * browser sends on same-origin navigations (the /api proxy), so these URLs
+ * work in <a href>, new tabs and iframes without any JS blob handling.
+ */
+export const fileUrl = (id: number, opts: { version?: number; inline?: boolean } = {}) => {
+  const base = (api.defaults.baseURL || "/api").replace(/\/$/, "");
+  const q = new URLSearchParams();
+  if (opts.version) q.set("version", String(opts.version));
+  if (opts.inline) q.set("inline", "1");
+  const qs = q.toString();
+  return `${base}/drive/files/${id}/download${qs ? `?${qs}` : ""}`;
+};
+
+/**
+ * A plain navigation can't refresh an expired access token, so first make one
+ * cheap API call through axios: its interceptor refreshes the cookie if needed.
+ */
+let authCheckedAt = 0;
+export const ensureFreshAuth = async () => {
+  if (Date.now() - authCheckedAt < 60_000) return;
+  await api.get("/drive/meta");
+  authCheckedAt = Date.now();
+};
+
+/** Native browser download (progress in the download bar, real file name). */
+export const downloadFile = async (id: number, _fallbackName?: string, version?: number) => {
+  await ensureFreshAuth();
   const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
+  a.href = fileUrl(id, { version });
+  a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+};
+
+/**
+ * Opens a PDF / image / video in a new browser tab with the browser's own
+ * viewer (zoom, print, Ctrl+F search in PDFs). The tab is opened synchronously
+ * inside the click so popup blockers allow it, then pointed at the file.
+ */
+export const openInBrowser = (id: number, version?: number) => {
+  const tab = window.open("", "_blank");
+  const url = fileUrl(id, { version, inline: true });
+  if (tab) {
+    try {
+      tab.document.title = "Opening…";
+      tab.document.body.innerHTML =
+        '<p style="font:14px system-ui,sans-serif;color:#64748b;padding:24px">Opening file…</p>';
+    } catch {
+      // cross-origin about:blank edge cases: just navigate
+    }
+  }
+  return ensureFreshAuth()
+    .then(() => {
+      if (tab) {
+        tab.opener = null;
+        tab.location.href = url;
+      } else {
+        window.location.href = url; // popup blocked: open in this tab
+      }
+    })
+    .catch((e) => {
+      tab?.close();
+      throw e;
+    });
 };
