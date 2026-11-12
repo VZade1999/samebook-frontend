@@ -14,13 +14,16 @@ import {
   UsergroupDeleteOutlined,
   AppstoreOutlined,
   ShopOutlined,
-  FieldTimeOutlined,
+  AppstoreAddOutlined,
   LeftOutlined,
   RightOutlined,
   CarOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAccess } from "../../permissions/useAccess";
+import { useModules } from "@/session/useModules";
+import { FEATURES } from "@/features/registry";
+import type { FeatureSidebarItem } from "@/features/types";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -38,21 +41,30 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
     onClose?.();
   };
 
+  // Turn registry sidebar entries into antd menu items, dropping anything the
+  // company hasn't connected or the user isn't allowed to see.
+  const { hasModule } = useModules();
+  const allowed = (i: FeatureSidebarItem) =>
+    (!i.permission || can(i.permission)) &&
+    (!i.anyPermission || i.anyPermission.some((p) => can(p)));
+  const toMenu = (i: FeatureSidebarItem): any => {
+    if (!allowed(i)) return null;
+    if (!i.children) return { key: i.key, icon: i.icon, label: i.label };
+    const children = i.children.map(toMenu).filter(Boolean);
+    return children.length ? { key: i.key, icon: i.icon, label: i.label, children } : null;
+  };
+  const featureMenuItems = FEATURES.filter((f) => !f.module || hasModule(f.module))
+    .flatMap((f) => f.sidebar.map(toMenu))
+    .filter(Boolean);
+
   const menuItems = [
     can("dashboard.view") && {
       key: "/app/dashboard",
       icon: <DashboardOutlined />,
       label: "Dashboard",
     },
-    (can("attendance.view") || can("attendance.manage")) && {
-      key: "attendance-management",
-      icon: <FieldTimeOutlined />,
-      label: "Attendance",
-      children: [
-        can("attendance.view") && { key: "/app/attendance", icon: <FieldTimeOutlined />, label: "My Attendance" },
-        can("attendance.manage") && { key: "/app/attendance/team", icon: <TeamOutlined />, label: "Team Attendance" },
-      ].filter(Boolean),
-    },
+    // Pluggable features (add-ons) — only when the company has connected them
+    ...featureMenuItems,
     (can("users.view") || can("roles.view") || can("permissions.view")) && {
       key: "user-management",
       icon: <TeamOutlined />,
@@ -102,6 +114,11 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
       key: "/app/invoice",
       icon: <FileTextOutlined />,
       label: "Invoice",
+    },
+    can("company.modules.manage") && {
+      key: "/app/settings/apps",
+      icon: <AppstoreAddOutlined />,
+      label: "Apps & Add-ons",
     },
   ].filter(Boolean) as any[];
 

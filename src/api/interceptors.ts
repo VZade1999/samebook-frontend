@@ -36,6 +36,12 @@ apiClient.interceptors.response.use(
     const isRefreshCall = url.includes("/auth/refresh");
     const isAuthEndpoint = isRefreshCall || url.includes("/auth/login");
 
+    // An add-on was switched off (or the UI is stale): ask the app to re-sync
+    // access so the feature disappears from the sidebar/routes.
+    if (status === 403 && response?.data?.code === "MODULE_NOT_ENABLED" && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("samebook:session-stale"));
+    }
+
     if (status !== 401 || isAuthEndpoint || !originalRequest || originalRequest._retry) {
       // A 401 from /auth/login just means bad credentials — let the login saga
       // show the error instead of reloading the page. Only a failed refresh

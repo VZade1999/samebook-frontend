@@ -9,6 +9,7 @@ import {
 import AuthnService from ".";
 import { ASYNC_LOGIN_SUCCESS, ASYNC_LOGIN_FAILED } from "./authActions";
 import { StorageService } from "@/storage";
+import { MODULES_STORAGE_KEY } from "@/session/session";
 
 const authService = new AuthnService();
 const storageService = new StorageService();
@@ -39,6 +40,11 @@ function* loginSaga(action: any) {
       storageService.setItem(
         StorageService.STORAGE_KEYS.PERMISSIONS,
         permissions,
+      );
+      const modules = response.data.data.user.modules;
+      storageService.setItem(
+        MODULES_STORAGE_KEY,
+        (Array.isArray(modules) ? modules : ["billing"]).join(","),
       );
       storageService.setItem(
         StorageService.STORAGE_KEYS.COMPANY_DETAILS,

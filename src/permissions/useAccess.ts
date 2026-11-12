@@ -1,16 +1,18 @@
 import { useCallback, useMemo } from "react";
+import { useSelector } from "react-redux";
 import { StorageService } from "@/storage";
 
 export const useAccess = () => {
-  // Read fresh every render (cheap — a synchronous sessionStorage read) so
-  // this still picks up a real permissions change, but only produces a new
-  // array *reference* when the underlying string actually differs. That's
-  // what lets `can` below stay referentially stable across renders when
-  // nothing changed — this hook is called at the top of most list pages, so
-  // an unstable `can` reference used to silently defeat any
-  // useMemo/useCallback keyed on it elsewhere (e.g. table column defs).
+  // Prefer the live copy synced from GET /auth/session (Redux, so components
+  // re-render when an add-on is connected/disconnected); fall back to what
+  // login stored in sessionStorage. The raw string is the memo key, so `can`
+  // keeps a stable reference unless the permissions actually change — many
+  // list pages key useMemo/useCallback on it (e.g. table column defs).
+  const live: string[] | null = useSelector((s: any) => s.session?.permissions ?? null);
   const storageService: any = new StorageService();
-  const permissionsRaw: string = storageService.getItem(StorageService.STORAGE_KEYS.PERMISSIONS) || "";
+  const permissionsRaw: string = live
+    ? live.join(",")
+    : storageService.getItem(StorageService.STORAGE_KEYS.PERMISSIONS) || "";
   const permissions: string[] = useMemo(() => permissionsRaw.split(","), [permissionsRaw]);
 
   const can = useCallback(

@@ -13,9 +13,9 @@ import { invoiceReducer } from "@/modules/invoice/redux/invoiceReducer";
 import categoriesReducer from "@/modules/categories/redux/categoriesSlice";
 import warehousesReducer from "@/modules/warehouses/redux/warehousesSlice";
 import profileReducer from "@/modules/auth/profile/redux/profileSlice";
-import attendanceReducer from "@/modules/attendance/redux/attendanceSlice";
-import leaveReducer from "@/modules/leave/redux/leaveSlice";
+import { featureReducers } from "@/features/reducers";
 import challansReducer from "@/modules/delivery-challan/redux/challanSlice";
+import sessionReducer from "@/session/sessionSlice";
 const rootReducer = combineReducers({
   authn: authReducer,
   customers: customerReducer,
@@ -30,9 +30,10 @@ const rootReducer = combineReducers({
   categories: categoriesReducer,
   warehouses: warehousesReducer,
   profile: profileReducer,
-  attendance: attendanceReducer,
-  leave: leaveReducer,
   challans: challansReducer,
+  // Pluggable features (attendance, leave, …) — see src/features
+  ...featureReducers,
+  session: sessionReducer,
 });
 
 export default rootReducer;

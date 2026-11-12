@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import HeaderBar from "./Header";
 import "./styles.scss";
+import { useDispatch } from "react-redux";
+import { SESSION_STALE_EVENT, syncSession } from "@/session/session";
 
 interface Props {
   children: React.ReactNode;
@@ -15,6 +17,30 @@ const DashboardLayout = ({ children }: Props) => {
   const [desktopCollapsed, setDesktopCollapsed] = useState(
     () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1",
   );
+
+  // Keep access (permissions + enabled add-ons) in sync with the server: on
+  // load, when the tab regains focus, and when an API reports a disabled
+  // add-on. This is what lets a connected/disconnected add-on show up or
+  // disappear without logging out and in again.
+  const dispatch = useDispatch();
+  useEffect(() => {
+    let last = 0;
+    const sync = (force = false) => {
+      const now = Date.now();
+      if (!force && now - last < 30_000) return;
+      last = now;
+      syncSession(dispatch);
+    };
+    sync(true);
+    const onFocus = () => sync();
+    const onStale = () => sync(true);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener(SESSION_STALE_EVENT, onStale);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener(SESSION_STALE_EVENT, onStale);
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const check = () => {

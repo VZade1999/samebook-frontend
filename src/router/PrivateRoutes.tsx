@@ -14,8 +14,9 @@ import RolesPage from "../modules/user-management/pages/RolesPage";
 import PermissionsPage from "../modules/user-management/pages/PermissionsPage";
 import CategoriesPage from "../modules/categories/pages/CategoriesPage";
 import WarehousesPage from "../modules/warehouses/pages/WarehousesPage";
-import AttendancePage from "../modules/attendance/pages/AttendancePage";
-import TeamAttendancePage from "../modules/attendance/pages/TeamAttendancePage";
+import { FEATURES } from "@/features/registry";
+import ModuleRoute from "@/features/ModuleRoute";
+import AppsPage from "@/modules/apps/pages/AppsPage";
 // import RolesList from "../modules/user-management/pages/RolesList";
 // import PermissionsList from "../modules/user-management/pages/PermissionsList";
 
@@ -66,20 +67,26 @@ const PrivateRoutes = () => {
           }
         />
 
-        <Route
-          path="/attendance"
-          element={
-            <ProtectedRoute permission="attendance.view">
-              <AttendancePage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Pluggable features (add-ons) — routes come from the registry */}
+        {FEATURES.flatMap((f) =>
+          f.routes.map((r) => (
+            <Route
+              key={`${f.key}:${r.path}`}
+              path={r.path}
+              element={
+                <ModuleRoute module={f.module} name={f.name} permission={r.permission}>
+                  {r.element}
+                </ModuleRoute>
+              }
+            />
+          )),
+        )}
 
         <Route
-          path="/attendance/team"
+          path="/settings/apps"
           element={
-            <ProtectedRoute permission="attendance.manage">
-              <TeamAttendancePage />
+            <ProtectedRoute permission="company.modules.manage">
+              <AppsPage />
             </ProtectedRoute>
           }
         />
