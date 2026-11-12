@@ -91,7 +91,8 @@ const DrivePage: React.FC = () => {
   const searching = !!(q || tag);
 
   const meta = useDriveMeta();
-  const canCreate = !!meta?.can.create;
+  const storageMissing = meta?.storage === "unconfigured";
+  const canCreate = !!meta?.can.create && !storageMissing;
   const canUpdate = !!meta?.can.update;
 
   const [tree, setTree] = useState<{ folders: DriveFolder[]; root_file_count: number } | null>(null);
@@ -745,6 +746,12 @@ const DrivePage: React.FC = () => {
             </div>
           </div>
 
+          {storageMissing && (
+            <div className="dv-warn">
+              <b>File storage isn't set up on this server yet.</b> You can browse folders and details, but uploads and
+              downloads are disabled until an administrator connects cloud storage (S3 / R2).
+            </div>
+          )}
           {view !== "activity" && (
             <div className="dv-kinds">
               {KIND_FILTERS.map((k) => (

@@ -89,6 +89,8 @@ export interface DriveFileDetail {
 export interface DriveMeta {
   can: { view: boolean; create: boolean; update: boolean };
   max_upload_mb: number;
+  /** "unconfigured" = this server has no file storage set up yet. */
+  storage?: "local" | "s3" | "unconfigured";
   colors: string[];
   quota: { used_bytes: number; limit_bytes: number };
   stats: { files: number; folders: number; versions: number; changed_week: number };

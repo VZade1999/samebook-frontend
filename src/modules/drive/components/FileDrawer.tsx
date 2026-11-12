@@ -15,7 +15,7 @@ import {
   SwapOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
-import { downloadFile, driveService, ensureFreshAuth, fileUrl, openInBrowser } from "../services/driveService";
+import { downloadFile, driveService, openInBrowser, viewUrl } from "../services/driveService";
 import {
   DriveFileDetail,
   DriveFolder,
@@ -81,15 +81,23 @@ const Preview: React.FC<{
   const isText = previewable && /^text\//.test(mime);
   const { url, loading, error } = useBlobUrl(fileId, version, media);
   const [pdfSrc, setPdfSrc] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   useEffect(() => {
     if (!isPdf) return;
     let alive = true;
+    let revoke = () => undefined as void;
     setPdfSrc(null);
-    ensureFreshAuth()
-      .catch(() => undefined)
-      .then(() => alive && setPdfSrc(fileUrl(fileId, { version, inline: true })));
+    setPdfError(null);
+    viewUrl(fileId, { version, inline: true })
+      .then((v) => {
+        if (!alive) return v.revoke();
+        revoke = v.revoke;
+        setPdfSrc(v.href);
+      })
+      .catch((e) => alive && setPdfError(errText(e, "Couldn't load the preview")));
     return () => {
       alive = false;
+      revoke();
     };
   }, [isPdf, fileId, version]);
   const { text, truncated } = useTextPreview(fileId, version, isText);
@@ -106,7 +114,13 @@ const Preview: React.FC<{
             <ExportOutlined /> Open in new tab
           </button>
         </div>
-        {pdfSrc ? <iframe src={pdfSrc} title={name} /> : <div className="dv-pv-loading"><Spin /></div>}
+        {pdfError ? (
+          <div className="dv-pv-loading dv-pv-error">{pdfError}</div>
+        ) : pdfSrc ? (
+          <iframe src={pdfSrc} title={name} />
+        ) : (
+          <div className="dv-pv-loading"><Spin /></div>
+        )}
       </div>
     );
   }

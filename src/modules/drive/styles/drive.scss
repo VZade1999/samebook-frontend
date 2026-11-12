@@ -1510,3 +1510,15 @@ $radius: 14px;
   }
   .dv-pv-image { cursor: zoom-in; }
 }
+
+.dv-root .dv-warn {
+  margin: 0 20px 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #92400e;
+  background: color-mix(in srgb, #{$warn} 12%, var(--card));
+  border: 1px solid color-mix(in srgb, #{$warn} 35%, transparent);
+}
+.dark .dv-root .dv-warn { color: #fcd34d; }
+.dv-drawer .dv-pv-error { color: $danger; padding: 0 20px; text-align: center; }

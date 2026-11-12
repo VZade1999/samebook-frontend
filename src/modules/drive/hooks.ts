@@ -52,7 +52,7 @@ const getBlobUrl = (fileId: number, version: number) => {
   }
   const p = driveService
     .blob(fileId, { version, inline: true })
-    .then((r) => URL.createObjectURL(r.data as Blob));
+    .then((blob) => URL.createObjectURL(blob));
   p.catch(() => blobCache.delete(key));
   blobCache.set(key, p);
   while (blobCache.size > BLOB_CACHE_MAX) {
@@ -97,8 +97,7 @@ export const useTextPreview = (fileId: number | null, version: number | null, en
     setText(null);
     driveService
       .blob(fileId, { version, inline: true })
-      .then(async (r) => {
-        const blob = r.data as Blob;
+      .then(async (blob) => {
         const limit = 200 * 1024;
         const t = await blob.slice(0, limit).text();
         if (alive) {
