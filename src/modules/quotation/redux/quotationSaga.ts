@@ -1,4 +1,5 @@
-import { call, put, takeLatest } from 'redux-saga/effects';
+import { call, put, select, takeLatest } from 'redux-saga/effects';
+import { stableKey } from '@/app/billingCache';
 import QuotationService from '.';
 import {
   ASYNC_GET_QUOTATIONS,
@@ -36,19 +37,28 @@ import { notification } from 'antd';
 
 const quotationService = new QuotationService();
 
+// Generation of the browser cache when a read STARTS: the reducer stores the
+// response only if no billing change happened meanwhile (app/billingCache.ts).
+const cacheGen = (state: any) => state.quotations?.cacheGen ?? 0;
+const idOf = (payload: any) => String(payload?.id ?? payload);
+
 function* getQuotationsSaga(action: any): any {
+  const gen = yield select(cacheGen);
+  const key = stableKey(action?.payload);
   try {
     const response = yield call(quotationService.getQuotations, action?.payload);
     if (response.data.success) {
       yield put({
         type: ASYNC_GET_QUOTATIONS_SUCCESS,
         data: response.data.data,
+        gen,
+        key,
       });
     } else {
-      yield put({ type: ASYNC_GET_QUOTATIONS_FAILED, error: response.data?.message });
+      yield put({ type: ASYNC_GET_QUOTATIONS_FAILED, error: response.data?.message, key });
     }
   } catch (error: any) {
-    yield put({ type: ASYNC_GET_QUOTATIONS_FAILED, error: error?.message });
+    yield put({ type: ASYNC_GET_QUOTATIONS_FAILED, error: error?.message, key });
   }
 }
 
@@ -69,58 +79,70 @@ function* getQuotationListForInvoiceSaga(action: any): any {
 }
 
 function* getQuotationDetailsSaga(action: any): any {
+  const gen = yield select(cacheGen);
+  const key = idOf(action?.payload);
   try {
     const response = yield call(quotationService.getQuotationDetails, action?.payload);
     if (response.data.success) {
       yield put({
         type: ASYNC_GET_QUOTATION_DETAILS_SUCCESS,
         data: response.data.data,
+        gen,
+        key,
       });
     } else {
       notification.error({
         message: 'Quotation Details Failed',
         description: response.data?.message || 'Unable to load quotation details',
       });
-      yield put({ type: ASYNC_GET_QUOTATION_DETAILS_FAILED, error: response.data?.message });
+      yield put({ type: ASYNC_GET_QUOTATION_DETAILS_FAILED, error: response.data?.message, key });
     }
   } catch (error: any) {
     notification.error({
       message: 'Quotation Details Failed',
       description: error?.message || 'Unable to load quotation details',
     });
-    yield put({ type: ASYNC_GET_QUOTATION_DETAILS_FAILED, error: error?.message });
+    yield put({ type: ASYNC_GET_QUOTATION_DETAILS_FAILED, error: error?.message, key });
   }
 }
 
 function* getQuotationHistorySaga(action: any): any {
+  const gen = yield select(cacheGen);
+  const key = idOf(action?.payload);
   try {
     const response = yield call(quotationService.getQuotationHistory, action?.payload);
     if (response.data.success) {
       yield put({
         type: ASYNC_GET_QUOTATION_HISTORY_SUCCESS,
         data: response.data.data,
+        gen,
+        key,
       });
     } else {
-      yield put({ type: ASYNC_GET_QUOTATION_HISTORY_FAILED, error: response.data?.message });
+      yield put({ type: ASYNC_GET_QUOTATION_HISTORY_FAILED, error: response.data?.message, key });
     }
   } catch (error: any) {
-    yield put({ type: ASYNC_GET_QUOTATION_HISTORY_FAILED, error: error?.message });
+    yield put({ type: ASYNC_GET_QUOTATION_HISTORY_FAILED, error: error?.message, key });
   }
 }
 
 function* getQuotationTimelineSaga(action: any): any {
+  const gen = yield select(cacheGen);
+  const key = idOf(action?.payload);
   try {
     const response = yield call(quotationService.getQuotationTimeline, action?.payload);
     if (response.data.success) {
       yield put({
         type: ASYNC_GET_QUOTATION_TIMELINE_SUCCESS,
         data: response.data.data,
+        gen,
+        key,
       });
     } else {
-      yield put({ type: ASYNC_GET_QUOTATION_TIMELINE_FAILED, error: response.data?.message });
+      yield put({ type: ASYNC_GET_QUOTATION_TIMELINE_FAILED, error: response.data?.message, key });
     }
   } catch (error: any) {
-    yield put({ type: ASYNC_GET_QUOTATION_TIMELINE_FAILED, error: error?.message });
+    yield put({ type: ASYNC_GET_QUOTATION_TIMELINE_FAILED, error: error?.message, key });
   }
 }
 

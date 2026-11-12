@@ -765,7 +765,7 @@ const InvoiceDetails = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  const { selectedInvoice, invoiceTimeline, detailsLoading, actionLoading, error } = useSelector(
+  const { selectedInvoice, invoiceTimeline, detailsLoading, detailsFromCache, actionLoading, error } = useSelector(
     (state: any) => state.invoice,
   );
 
@@ -953,8 +953,15 @@ const InvoiceDetails = () => {
 
       {/* ── Action buttons ────────────────────────────────────────────────────── */}
       <div className="id-actions">
-        <button className="id-btn id-btn-success" onClick={() => setPaymentModalOpen(true)}>
-          <DollarOutlined />Add Payment
+        {/* Payments depend on the balance due: wait for fresh data, never the cached copy. */}
+        <button
+          className="id-btn id-btn-success"
+          onClick={() => setPaymentModalOpen(true)}
+          disabled={!!detailsFromCache}
+          title={detailsFromCache ? "Refreshing…" : undefined}
+        >
+          {detailsFromCache ? <Spin size="small" /> : <DollarOutlined />}
+          {detailsFromCache ? "Refreshing…" : "Add Payment"}
         </button>
         <button className="id-btn id-btn-ghost" onClick={handleDownloadPdf} disabled={downloadingPdf}>
           {downloadingPdf ? <Spin size="small" /> : <DownloadOutlined />}Download PDF

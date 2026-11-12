@@ -12,6 +12,7 @@ import {
   getChallanActivity,
 } from "./challanActions";
 import { ASYNC_LOGOUT_SUCCESS } from "@/modules/auth/redux/authActions";
+import { isBillingMutation } from "@/app/billingCache";
 
 // ─── Stale-while-revalidate cache ───────────────────────────────────────────
 // Lists (per filter/page) and details (per id) are remembered so revisiting
@@ -221,12 +222,10 @@ const challanSlice = createSlice({
     );
 
     // ── Mutations invalidate the caches ───────────────────────────────────
+    // Any billing change — challan, quotation or invoice (they're linked:
+    // invoicing a quotation/challan changes challan statuses) — clears them.
     builder.addMatcher(
-      isAnyOf(
-        createChallan.fulfilled,
-        updateChallan.fulfilled,
-        ...actionThunks.map((t) => t.fulfilled),
-      ),
+      (action: any) => isBillingMutation(action),
       (state) => {
         state.cacheGen += 1;
         state.listCache = {};

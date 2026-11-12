@@ -1,4 +1,5 @@
-import { call, put, takeLatest } from 'redux-saga/effects';
+import { call, put, select, takeLatest } from 'redux-saga/effects';
+import { stableKey } from '@/app/billingCache';
 import { notification } from 'antd';
 
 import InvoiceService from '../services/invoiceService';
@@ -31,11 +32,17 @@ import {
 
 const invoiceService = new InvoiceService();
 
+// Generation of the browser cache when a read STARTS: the reducer stores the
+// response only if no billing change happened meanwhile (app/billingCache.ts).
+const cacheGen = (state: any) => state.invoice?.cacheGen ?? 0;
+
 /* ---------------------------------------------------------- */
 /* GET INVOICES */
 /* ---------------------------------------------------------- */
 
 function* getInvoicesSaga(action: any): any {
+  const gen = yield select(cacheGen);
+  const key = stableKey(action?.payload);
   try {
     const response = yield call(
       invoiceService.getInvoices,
@@ -46,17 +53,21 @@ function* getInvoicesSaga(action: any): any {
       yield put({
         type: ASYNC_GET_INVOICES_SUCCESS,
         data: response.data.data,
+        gen,
+        key,
       });
     } else {
       yield put({
         type: ASYNC_GET_INVOICES_FAILED,
         error: response.data?.message,
+        key,
       });
     }
   } catch (error: any) {
     yield put({
       type: ASYNC_GET_INVOICES_FAILED,
       error: error?.message,
+      key,
     });
   }
 }
@@ -66,6 +77,8 @@ function* getInvoicesSaga(action: any): any {
 /* ---------------------------------------------------------- */
 
 function* getInvoiceDetailsSaga(action: any): any {
+  const gen = yield select(cacheGen);
+  const key = String(action?.payload);
   try {
     const response = yield call(
       invoiceService.getInvoiceDetails,
@@ -76,17 +89,21 @@ function* getInvoiceDetailsSaga(action: any): any {
       yield put({
         type: ASYNC_GET_INVOICE_DETAILS_SUCCESS,
         data: response.data.data,
+        gen,
+        key,
       });
     } else {
       yield put({
         type: ASYNC_GET_INVOICE_DETAILS_FAILED,
         error: response.data?.message,
+        key,
       });
     }
   } catch (error: any) {
     yield put({
       type: ASYNC_GET_INVOICE_DETAILS_FAILED,
       error: error?.message,
+      key,
     });
   }
 }
@@ -261,6 +278,8 @@ function* addPaymentSaga(action: any): any {
 /* ---------------------------------------------------------- */
 
 function* getInvoiceTimelineSaga(action: any): any {
+  const gen = yield select(cacheGen);
+  const key = String(action?.payload);
   try {
     const response = yield call(
       invoiceService.getTimeline,
@@ -271,17 +290,21 @@ function* getInvoiceTimelineSaga(action: any): any {
       yield put({
         type: ASYNC_GET_INVOICE_TIMELINE_SUCCESS,
         data: response.data.data,
+        gen,
+        key,
       });
     } else {
       yield put({
         type: ASYNC_GET_INVOICE_TIMELINE_FAILED,
         error: response.data?.message,
+        key,
       });
     }
   } catch (error: any) {
     yield put({
       type: ASYNC_GET_INVOICE_TIMELINE_FAILED,
       error: error?.message,
+      key,
     });
   }
 }

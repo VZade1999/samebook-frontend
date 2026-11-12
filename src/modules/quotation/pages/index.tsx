@@ -1278,6 +1278,8 @@ const QuotationPage = () => {
     if (!actionLoading) setActingId(null);
   }, [actionLoading]);
   const selectedQuotation = quotationState?.selectedQuotation;
+  // true while the drawer shows the browser-cached copy and fresh data is on its way
+  const detailsFromCache = !!quotationState?.detailsFromCache;
   const quotationHistory = quotationState?.quotationHistory || [];
   const quotationTimeline = quotationState?.quotationTimeline || [];
 
@@ -1332,6 +1334,8 @@ const QuotationPage = () => {
 
   useEffect(() => {
     if (!editingQuotation || !selectedQuotation) return;
+    // Never fill the edit form from the browser cache: wait for fresh data.
+    if (detailsFromCache) return;
     if (selectedQuotation.id !== editingQuotation.id) return;
     const billingSnapshot = parseJsonField(
       selectedQuotation.billing_address_snapshot,
@@ -1414,7 +1418,7 @@ const QuotationPage = () => {
       validity_date: getValidityDate(selectedQuotation.validity_date),
       notes: selectedQuotation.notes,
     });
-  }, [editingQuotation, selectedQuotation, form]);
+  }, [editingQuotation, selectedQuotation, detailsFromCache, form]);
 
   const downloadQuotationPDF = useCallback(async (quotation: any) => {
     setDownloadingQuotationId(quotation.id);
@@ -2270,7 +2274,8 @@ const columns = useMemo(() => [
                 <button
                   className="qt-btn qt-btn-primary"
                   onClick={handleSend}
-                  disabled={actionLoading}
+                  disabled={actionLoading || detailsFromCache}
+                  title={detailsFromCache ? "Refreshing…" : undefined}
                 >
                   {actionLoading ? (
                     <span
@@ -2296,7 +2301,8 @@ const columns = useMemo(() => [
                 <button
                   className="qt-btn qt-btn-primary"
                   onClick={handleApprove}
-                  disabled={actionLoading}
+                  disabled={actionLoading || detailsFromCache}
+                  title={detailsFromCache ? "Refreshing…" : undefined}
                 >
                   {actionLoading ? (
                     <span
