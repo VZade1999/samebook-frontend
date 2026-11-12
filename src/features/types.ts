@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 
 /**
  * A pluggable feature. The app shell (sidebar, router) renders features from
@@ -18,7 +18,8 @@ export interface FeatureRoute {
 
 export interface FeatureSidebarItem {
   key: string;
-  label: string;
+  /** Text or a small component (e.g. a label with a live badge). */
+  label: ReactNode;
   icon?: ReactNode;
   /** Shown if the user has this permission… */
   permission?: string;
@@ -34,4 +35,9 @@ export interface FeatureManifest {
   name: string;
   routes: FeatureRoute[];
   sidebar: FeatureSidebarItem[];
+  /**
+   * Invisible helpers mounted once in the dashboard shell while the feature
+   * is enabled (e.g. a login reminder). Must render nothing heavy.
+   */
+  globals?: ComponentType[];
 }

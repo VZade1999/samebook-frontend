@@ -4,6 +4,9 @@ import HeaderBar from "./Header";
 import "./styles.scss";
 import { useDispatch } from "react-redux";
 import { SESSION_STALE_EVENT, syncSession } from "@/session/session";
+import { useModules } from "@/session/useModules";
+import { useAccess } from "@/permissions/useAccess";
+import { FEATURES } from "@/features/registry";
 
 interface Props {
   children: React.ReactNode;
@@ -62,8 +65,17 @@ const DashboardLayout = ({ children }: Props) => {
       return next;
     });
 
+  // Feature helpers (e.g. the Tasks login reminder) — only for connected
+  // add-ons the user can actually use.
+  const { hasModule } = useModules();
+  const { can } = useAccess();
+  const featureGlobals = FEATURES.filter(
+    (f) => (!f.module || hasModule(f.module)) && f.routes.some((r) => !r.permission || can(r.permission)),
+  ).flatMap((f) => (f.globals || []).map((G, i) => <G key={`${f.key}-${i}`} />));
+
   return (
     <div className="dashboard-layout">
+      {featureGlobals}
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
         <div className="sidebar-overlay" onClick={closeSidebar} />

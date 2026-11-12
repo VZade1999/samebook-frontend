@@ -11,6 +11,7 @@ import {
 } from "@ant-design/icons";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalculatorButton from "@/components/Calculator/Calculator";
+import NotificationBell from "@/components/NotificationBell/NotificationBell";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../modules/auth/redux/authActions";
 import { StorageService } from "@/storage";
@@ -80,11 +81,8 @@ const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
           <ThemeToggle />
         </div>
 
-        {/* Notifications */}
-        <button className="header-icon-btn notif-btn" aria-label="Notifications">
-          <BellOutlined />
-          <span className="notif-dot" />
-        </button>
+        {/* Notifications (in-app, from any module) */}
+        <NotificationBell />
 
         {/* Profile dropdown */}
         <Dropdown menu={{ items }} placement="bottomRight" trigger={["click"]}>
