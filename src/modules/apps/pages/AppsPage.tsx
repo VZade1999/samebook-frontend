@@ -3,6 +3,8 @@ import { Checkbox, Modal, Spin, message } from "antd";
 import {
   AppstoreAddOutlined,
   CheckCircleFilled,
+  CheckSquareOutlined,
+  CloudOutlined,
   DisconnectOutlined,
   FieldTimeOutlined,
   FileTextOutlined,
@@ -44,6 +46,10 @@ interface ModuleLook {
   bg: string;
   openPath?: string;
   features: string[];
+  /** Shown in the connect dialog under "Who should get access now?". */
+  accessHint?: string;
+  /** Shown at the bottom of the connect dialog. */
+  afterConnect?: string;
 }
 const FALLBACK_LOOK: ModuleLook = { icon: <AppstoreAddOutlined />, color: "#4F46E5", bg: "#EEF2FF", features: [] };
 const LOOK: Record<string, ModuleLook> = {
@@ -59,6 +65,29 @@ const LOOK: Record<string, ModuleLook> = {
     bg: "#ECFDF5",
     openPath: "/app/attendance",
     features: ["Punch in / out with live clock", "Shift rules, grace time & holidays", "Monthly calendar & team view", "Leave requests & approvals"],
+    accessHint:
+      "Roles that already have attendance permissions get access automatically. Tick any other roles that should be able to use My Attendance.",
+    afterConnect:
+      "Shift timings, grace minutes, weekly offs and holidays can be adjusted afterwards in Team Attendance → Settings.",
+  },
+  tasks: {
+    icon: <CheckSquareOutlined />,
+    color: "#4F46E5",
+    bg: "#EEF2FF",
+    openPath: "/app/tasks",
+    features: ["Epics, goals, tasks & subtasks", "Assign work and follow up", "Calendar & due-date reminders", "Team overview for managers"],
+    accessHint:
+      "Ticked roles can see their own tasks and create tasks. Give tasks.manage in Roles & Permissions to anyone who should see everyone's work.",
+  },
+  drive: {
+    icon: <CloudOutlined />,
+    color: "#0891B2",
+    bg: "#ECFEFF",
+    openPath: "/app/drive",
+    features: ["Nested folders with colours", "Tags & descriptions on every file", "Full version history & restore", "Who changed what, and when"],
+    accessHint:
+      "Ticked roles can browse, upload and update files (new versions, renames, tags). Nothing can be deleted — every version is kept.",
+    afterConnect: "You can fine-tune view / create / update access per role later in Roles & Permissions.",
   },
 };
 
@@ -296,8 +325,8 @@ const AppsPage: React.FC = () => {
             </p>
             <div className="apps-modal-label">Who should get access now?</div>
             <p className="apps-modal-hint">
-              Roles that already have attendance permissions get access automatically. Tick any other roles that
-              should be able to use My Attendance.
+              {(LOOK[connecting.key] || FALLBACK_LOOK).accessHint ||
+                "Roles that already have this add-on's permissions get access automatically. Tick any other roles that should be able to use it."}
             </p>
             {roles === null && can("roles.view") ? (
               <Spin size="small" />
@@ -311,10 +340,11 @@ const AppsPage: React.FC = () => {
             ) : (
               <p className="apps-modal-hint">You can give roles access later from Roles &amp; Permissions.</p>
             )}
-            <p className="apps-modal-hint" style={{ marginTop: 12 }}>
-              Shift timings, grace minutes, weekly offs and holidays can be adjusted afterwards in Team
-              Attendance → Settings.
-            </p>
+            {(LOOK[connecting.key] || FALLBACK_LOOK).afterConnect && (
+              <p className="apps-modal-hint" style={{ marginTop: 12 }}>
+                {(LOOK[connecting.key] || FALLBACK_LOOK).afterConnect}
+              </p>
+            )}
           </div>
         )}
       </Modal>
