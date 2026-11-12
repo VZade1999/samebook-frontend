@@ -16,6 +16,7 @@ import profileReducer from "@/modules/auth/profile/redux/profileSlice";
 import { featureReducers } from "@/features/reducers";
 import challansReducer from "@/modules/delivery-challan/redux/challanSlice";
 import sessionReducer from "@/session/sessionSlice";
+import dashboardReducer from "@/modules/dashboard/redux/dashboardSlice";
 const rootReducer = combineReducers({
   authn: authReducer,
   customers: customerReducer,
@@ -31,6 +32,7 @@ const rootReducer = combineReducers({
   warehouses: warehousesReducer,
   profile: profileReducer,
   challans: challansReducer,
+  dashboard: dashboardReducer,
   // Pluggable features (attendance, leave, …) — see src/features
   ...featureReducers,
   session: sessionReducer,
