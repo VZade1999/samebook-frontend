@@ -14,6 +14,9 @@ import {
   ASYNC_SEND_QUOTATION,
   ASYNC_SEND_QUOTATION_SUCCESS,
   ASYNC_SEND_QUOTATION_FAILED,
+  ASYNC_APPROVE_QUOTATION,
+  ASYNC_APPROVE_QUOTATION_SUCCESS,
+  ASYNC_APPROVE_QUOTATION_FAILED,
   ASYNC_CREATE_QUOTATION,
   ASYNC_CREATE_QUOTATION_SUCCESS,
   ASYNC_CREATE_QUOTATION_FAILED,
@@ -198,11 +201,16 @@ export const quotationReducer = (state: State = initialState, action: any): Stat
       };
 
     // ── Mutations (cache clearing happens above) ──────────────────────────
+    // Send and approve share one busy flag (the page shows a spinner on the
+    // row being acted on until it clears).
     case ASYNC_SEND_QUOTATION:
+    case ASYNC_APPROVE_QUOTATION:
       return { ...state, actionLoading: true, error: null };
     case ASYNC_SEND_QUOTATION_SUCCESS:
+    case ASYNC_APPROVE_QUOTATION_SUCCESS:
       return { ...state, actionLoading: false, error: null };
     case ASYNC_SEND_QUOTATION_FAILED:
+    case ASYNC_APPROVE_QUOTATION_FAILED:
       return { ...state, actionLoading: false, error: action.error };
 
     case ASYNC_CREATE_QUOTATION:

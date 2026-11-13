@@ -1,178 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { Card, Form, Input, Row, Col, Select, Spin } from "antd";
+import { useEffect, useState } from "react";
+import { Form, Input, Row, Col, Select, Spin } from "antd";
+import { IdcardOutlined, ShopOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { StorageService } from "@/storage";
 import { getCompanyDetails } from "@/modules/companies/redux/companyActions";
-import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
+import FormSection from "./FormSection";
 
 const { TextArea } = Input;
 const { Option } = Select;
 
-/* ─── Design tokens ─────────────────────────────────────────────────────── */
-const tokens = {
-  // Palette: deep navy + warm white + amber accent
-  navy: "#0F1F3D",
-  navyMid: "#1A3560",
-  surface: "var(--muted)",
-  surfaceCard: "var(--card)",
-  border: "var(--border)",
-  borderFocus: "#3B6FE8",
-  accent: "#3B6FE8",
-  accentLight: "#EBF0FD",
-  text: "var(--foreground)",
-  textMuted: "var(--muted-foreground)",
-  textLight: "var(--muted-foreground)",
-  amber: "#F59E0B",
-  radius: "12px",
-  radiusSm: "8px",
-  shadow: "0 1px 3px rgba(15,31,61,0.06), 0 4px 16px rgba(15,31,61,0.06)",
-  shadowHover: "0 4px 20px rgba(59,111,232,0.12)",
-};
-
-/* ─── Injected global styles ────────────────────────────────────────────── */
-const injectStyles = () => {
-  const id = "bd-premium-styles";
-  if (document.getElementById(id)) return;
-  const s = document.createElement("style");
-  s.id = id;
-  s.textContent = `
-    /* Card shell */
-    .bd-card .ant-card {
-      border-radius: ${tokens.radius} !important;
-      border: 1px solid ${tokens.border} !important;
-      box-shadow: ${tokens.shadow} !important;
-      background: ${tokens.surfaceCard} !important;
-      overflow: hidden;
-    }
-    .bd-card .ant-card-head {
-      background: linear-gradient(135deg, ${tokens.navy} 0%, ${tokens.navyMid} 100%) !important;
-      border-bottom: none !important;
-      padding: 0 !important;
-      min-height: unset !important;
-    }
-    .bd-card .ant-card-head-title { padding: 0 !important; }
-    .bd-card .ant-card-body {
-      padding: 28px 28px 20px !important;
-      background: ${tokens.surfaceCard};
-    }
-
-    /* Form label */
-    .bd-card .ant-form-item-label > label {
-      font-size: 11.5px !important;
-      font-weight: 600 !important;
-      letter-spacing: 0.5px !important;
-      text-transform: uppercase !important;
-      color: ${tokens.textMuted} !important;
-    }
-
-    /* Input / TextArea */
-    .bd-card .ant-input,
-    .bd-card .ant-input-affix-wrapper,
-    .bd-card .ant-select-selector {
-      border-radius: ${tokens.radiusSm} !important;
-      border-color: ${tokens.border} !important;
-      background: ${tokens.surface} !important;
-      color: ${tokens.text} !important;
-      font-size: 14px !important;
-      transition: all 0.18s ease !important;
-    }
-    .bd-card .ant-input:focus,
-    .bd-card .ant-select-focused .ant-select-selector {
-      border-color: ${tokens.borderFocus} !important;
-      box-shadow: 0 0 0 3px rgba(59,111,232,0.10) !important;
-      background: #fff !important;
-    }
-    .bd-card .ant-input[disabled],
-    .bd-card .ant-input-disabled,
-    .bd-card textarea[disabled] {
-      background: ${tokens.surface} !important;
-      color: ${tokens.text} !important;
-      cursor: default !important;
-      opacity: 1 !important;
-    }
-    .bd-card .ant-select-disabled .ant-select-selector {
-      background: ${tokens.surface} !important;
-      color: ${tokens.text} !important;
-    }
-
-    /* Select multi-tag */
-    .bd-card .ant-select-multiple .ant-select-selection-item {
-      background: ${tokens.accentLight} !important;
-      border-color: #C7D8FA !important;
-      border-radius: 6px !important;
-      color: ${tokens.accent} !important;
-      font-size: 12px !important;
-      font-weight: 500 !important;
-    }
-    .bd-card .ant-select-multiple .ant-select-selection-item-remove {
-      color: ${tokens.accent} !important;
-    }
-
-    /* Section divider label */
-    .bd-section-divider {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 20px 0 16px;
-    }
-    .bd-section-divider span {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      color: ${tokens.textLight};
-    }
-    .bd-section-divider::before,
-    .bd-section-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: ${tokens.border};
-    }
-    .bd-section-divider::before { flex: 0 0 0px; }
-
-    /* Responsive */
-    @media (max-width: 575px) {
-      .bd-card .ant-card-body { padding: 20px 16px 14px !important; }
-    }
-  `;
-  document.head.appendChild(s);
-};
-injectStyles();
-
-/* ─── Card header ───────────────────────────────────────────────────────── */
-const CardHeader = () => (
-  <div style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    padding: "18px 24px",
-  }}>
-    <div style={{
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      background: "rgba(255,255,255,0.12)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
-    }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
-        <path d="M3 21h18M9 8h1m5 0h1M9 12h1m5 0h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
-      </svg>
-    </div>
-    <div>
-      <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Business Details</div>
-      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11.5, marginTop: 2 }}>Company address, GST & contact information</div>
-    </div>
-  </div>
-);
-
-/* ─── Section divider ───────────────────────────────────────────────────── */
-const SectionDivider = ({ label }: { label: string }) => (
-  <div className="bd-section-divider"><span>{label}</span></div>
-);
+const Divider = ({ label }: { label: string }) => <div className="qf-divider">{label}</div>;
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
 const BusinessDetails = () => {
@@ -336,138 +173,106 @@ const BusinessDetails = () => {
 
   const phoneOptions = buildPhoneOptions(company, addresses, locations);
   const emailOptions = buildEmailOptions(company, addresses, locations);
+  const needOneAddress = { validator: () => { const sa = form.getFieldValue("selectedAddress") || []; const sl = form.getFieldValue("selectedLocation") || []; return (sa.length || sl.length) ? Promise.resolve() : Promise.reject(new Error("Select at least one address or location")); } };
 
   return (
-    <div className="bd-card">
-      <Card title={<CardHeader />} bordered={false}>
-        {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 160 }}>
-            <Spin size="large" />
-          </div>
-        ) : (
-          <>
-            <Form.Item name="businessDetailsSnapshot" hidden><Input type="hidden" /></Form.Item>
+    <FormSection id="qf-business" step={2} icon={<ShopOutlined />} title="Your business" sub="Address, GSTIN and contacts printed on the quotation">
+      {loading && !addresses.length ? (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 160 }}>
+          <Spin />
+        </div>
+      ) : (
+        <>
+          <Form.Item name="businessDetailsSnapshot" hidden><Input type="hidden" /></Form.Item>
 
-            {/* Company name */}
-            <Form.Item label="Company Name" name="businessName">
-              <Input placeholder="—" disabled prefix={
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tokens.textLight} strokeWidth="1.8"><path d="M3 21h18M9 8h1m5 0h1M9 12h1m5 0h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>
-              } />
-            </Form.Item>
+          <Row gutter={[14, 0]}>
+            <Col xs={24} md={14}>
+              <Form.Item label="Company name" name="businessName">
+                <Input placeholder="—" disabled prefix={<ShopOutlined />} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={10}>
+              <Form.Item label="GSTIN" name="businessGST">
+                <Input placeholder="—" disabled prefix={<IdcardOutlined />} className="qp-mono" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            <SectionDivider label="Address Selection" />
+          <Divider label="Address" />
+          <Row gutter={[14, 0]}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Addresses" name="selectedAddress" dependencies={["selectedLocation"]} rules={[needOneAddress]}>
+                <Select mode="multiple" value={selectedAddressIds} placeholder="Choose addresses" onChange={handleAddressChange} allowClear optionLabelProp="label">
+                  {addresses.map((a) => (
+                    <Option key={a.id} value={a.id} label={<span><strong>{a.type || "Address"}</strong>{a.label ? ` · ${a.label}` : ""}</span>}>
+                      <span><strong>{a.type || "Address"}</strong>{a.label ? ` · ${a.label}` : ""}{` — ${a.line_1 || ""} ${a.city || ""}`.trim()}</span>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Locations" name="selectedLocation" dependencies={["selectedAddress"]} rules={[needOneAddress]}>
+                <Select mode="multiple" value={selectedLocationIds} placeholder="Choose locations" onChange={handleLocationChange} allowClear optionLabelProp="label">
+                  {locations.map((l) => (
+                    <Option key={l.id} value={l.id} label={<span><strong>{l.location_type || "Location"}</strong>{` · ${l.name}`}</span>}>
+                      <span><strong>{l.location_type || "Location"}</strong>{` · ${l.name}`}</span>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item label="Printed address" name="businessAddress">
+            <TextArea autoSize={{ minRows: 2, maxRows: 5 }} disabled />
+          </Form.Item>
 
-            <Row gutter={[16, 0]}>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="Addresses"
-                  name="selectedAddress"
-                  dependencies={["selectedLocation"]}
-                  rules={[{ validator: (_: any) => { const sa = form.getFieldValue("selectedAddress") || []; const sl = form.getFieldValue("selectedLocation") || []; return (sa.length || sl.length) ? Promise.resolve() : Promise.reject(new Error("Select at least one address or location")); } }]}
-                >
-                  <Select mode="multiple" value={selectedAddressIds} placeholder="Choose addresses" onChange={handleAddressChange} allowClear optionLabelProp="label">
-                    {addresses.map((a) => (
-                      <Option key={a.id} value={a.id} label={<span><strong>{a.type || "Address"}</strong>{a.label ? ` · ${a.label}` : ""}</span>}>
-                        <span><strong>{a.type || "Address"}</strong>{a.label ? ` · ${a.label}` : ""}{` — ${a.line_1 || ""} ${a.city || ""}`.trim()}</span>
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="Locations"
-                  name="selectedLocation"
-                  dependencies={["selectedAddress"]}
-                  rules={[{ validator: (_: any) => { const sa = form.getFieldValue("selectedAddress") || []; const sl = form.getFieldValue("selectedLocation") || []; return (sa.length || sl.length) ? Promise.resolve() : Promise.reject(new Error("Select at least one address or location")); } }]}
-                >
-                  <Select mode="multiple" value={selectedLocationIds} placeholder="Choose locations" onChange={handleLocationChange} allowClear optionLabelProp="label">
-                    {locations.map((l) => (
-                      <Option key={l.id} value={l.id} label={<span><strong>{l.location_type || "Location"}</strong>{` · ${l.name}`}</span>}>
-                        <span><strong>{l.location_type || "Location"}</strong>{` · ${l.name}`}</span>
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+          <Divider label="Contact" />
+          <Row gutter={[14, 0]}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Phone numbers" name="selectedPhones" rules={[{ validator: (_: any, v: any[]) => v?.length ? Promise.resolve() : Promise.reject(new Error("Select at least one phone number")) }]}>
+                <Select mode="multiple" value={selectedPhoneIds} placeholder="Choose phone numbers" onChange={handlePhoneChange} allowClear optionLabelProp="label">
+                  {phoneOptions.map((p) => (
+                    <Option key={p?.id} value={p?.id} label={<span><strong>{p?.label}</strong> · {p?.detail}</span>}>
+                      <span><strong>{p?.label}</strong>{` · ${p?.detail}`}</span>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Email addresses" name="selectedEmails" rules={[{ validator: (_: any, v: any[]) => v?.length ? Promise.resolve() : Promise.reject(new Error("Select at least one email address")) }]}>
+                <Select mode="multiple" value={selectedEmailIds} placeholder="Choose email addresses" onChange={handleEmailChange} allowClear optionLabelProp="label">
+                  {emailOptions.map((e) => (
+                    <Option key={e?.id} value={e?.id} label={<span><strong>{e?.label}</strong> · {e?.detail}</span>}>
+                      <span><strong>{e?.label}</strong>{` · ${e?.detail}`}</span>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          {/* What the selections above print as. */}
+          <Form.Item name="businessPhone" hidden><Input /></Form.Item>
+          <Form.Item name="businessEmail" hidden><Input /></Form.Item>
 
-            <Form.Item label="Business Address" name="businessAddress">
-              <TextArea rows={3} disabled style={{ resize: "none" }} />
-            </Form.Item>
-
-            <SectionDivider label="Contact & Tax" />
-
-            <Form.Item label="GST Number" name="businessGST">
-              <Input placeholder="—" disabled prefix={
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tokens.textLight} strokeWidth="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-              } />
-            </Form.Item>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="Phone Numbers"
-                  name="selectedPhones"
-                  rules={[{ validator: (_: any, v: any[]) => v?.length ? Promise.resolve() : Promise.reject(new Error("Select at least one phone number")) }]}
-                >
-                  <Select mode="multiple" value={selectedPhoneIds} placeholder="Choose phone numbers" onChange={handlePhoneChange} allowClear optionLabelProp="label">
-                    {phoneOptions.map((p) => (
-                      <Option key={p?.id} value={p?.id} label={<span><strong>{p?.label}</strong> · {p?.detail}</span>}>
-                        <span><strong>{p?.label}</strong>{` · ${p?.detail}`}</span>
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="Email Addresses"
-                  name="selectedEmails"
-                  rules={[{ validator: (_: any, v: any[]) => v?.length ? Promise.resolve() : Promise.reject(new Error("Select at least one email address")) }]}
-                >
-                  <Select mode="multiple" value={selectedEmailIds} placeholder="Choose email addresses" onChange={handleEmailChange} allowClear optionLabelProp="label">
-                    {emailOptions.map((e) => (
-                      <Option key={e?.id} value={e?.id} label={<span><strong>{e?.label}</strong> · {e?.detail}</span>}>
-                        <span><strong>{e?.label}</strong>{` · ${e?.detail}`}</span>
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={[16, 0]}>
-              <Col xs={24} md={12}>
-                <Form.Item label="Phone (display)" name="businessPhone">
-                  <Input disabled placeholder="—" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item label="Email (display)" name="businessEmail">
-                  <Input type="email" disabled placeholder="—" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            {metadata.length > 0 && (
-              <>
-                <SectionDivider label="Additional Metadata" />
-                <Form.Item label="Metadata" name="businessMeta">
-                  <Select mode="multiple" placeholder="Select applicable metadata" onChange={handleMetadataChange} allowClear optionLabelProp="label">
-                    {metadata.map((m) => (
-                      <Option key={m.id} value={m.id} label={<span><strong>{m.key}</strong> · {m.value}</span>}>
-                        <span><strong>{m.key}</strong>{` · ${m.value}`}</span>
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </>
-            )}
-          </>
-        )}
-      </Card>
-    </div>
+          {metadata.length > 0 && (
+            <>
+              <Divider label="Extra details" />
+              <Form.Item label="Show on the quotation" name="businessMeta" style={{ marginBottom: 4 }}>
+                <Select mode="multiple" placeholder="e.g. MSME number, FSSAI licence" onChange={handleMetadataChange} allowClear optionLabelProp="label">
+                  {metadata.map((m) => (
+                    <Option key={m.id} value={m.id} label={<span><strong>{m.key}</strong> · {m.value}</span>}>
+                      <span><strong>{m.key}</strong>{` · ${m.value}`}</span>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </>
+          )}
+        </>
+      )}
+    </FormSection>
   );
 };
 

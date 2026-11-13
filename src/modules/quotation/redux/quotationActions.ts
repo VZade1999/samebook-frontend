@@ -38,6 +38,13 @@ export const ASYNC_DELETE_QUOTATION = 'ASYNC_DELETE_QUOTATION';
 export const ASYNC_DELETE_QUOTATION_SUCCESS = 'ASYNC_DELETE_QUOTATION_SUCCESS';
 export const ASYNC_DELETE_QUOTATION_FAILED = 'ASYNC_DELETE_QUOTATION_FAILED';
 
+// Closing / reopening is a direct API call; these mark that it happened so
+// the billing caches drop and every list / summary on screen refreshes.
+export const QUOTATION_CLOSED = 'QUOTATION_CLOSED';
+export const QUOTATION_REOPENED = 'QUOTATION_REOPENED';
+export const quotationClosed = (id: number) => ({ type: QUOTATION_CLOSED, id });
+export const quotationReopened = (id: number) => ({ type: QUOTATION_REOPENED, id });
+
 export const getQuotations = (payload: any) => ({
   type: ASYNC_GET_QUOTATIONS,
   payload,

@@ -13,6 +13,20 @@ class QuotationService {
     });
   }
 
+  /** Close as REJECTED / EXPIRED with a reason and the customer's feedback. */
+  closeQuotation(id: number, payload: { outcome: string; reason: string; remark?: string }) {
+    return instance.post(`/quotation/${id}/close`, payload);
+  }
+
+  reopenQuotation(id: number) {
+    return instance.post(`/quotation/${id}/reopen`, {});
+  }
+
+  /** Stage totals, pipeline, expiring soon, last 6 months, top customers. */
+  getSummary(tz: number = -new Date().getTimezoneOffset()) {
+    return instance.get('/quotation/summary', { params: { tz } });
+  }
+
   getQuotationDetails(id: number) {
     return instance.get(`/quotation/${id}`);
   }
