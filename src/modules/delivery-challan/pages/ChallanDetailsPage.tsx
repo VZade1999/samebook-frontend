@@ -41,6 +41,7 @@ import {
 } from "../redux/challanActions";
 import { clearChallanDetails } from "../redux/challanSlice";
 import ChallanFormModal from "../components/ChallanFormModal";
+import SeriesField from "../../numbering/SeriesField";
 import {
   STATUS_LABELS,
   addressLines,
@@ -160,13 +161,18 @@ const ChallanDetailsPage: React.FC = () => {
 
   const handleConvert = async () => {
     let payment_due_date: any;
+    let series_id: number | undefined;
     try {
-      ({ payment_due_date } = await convertForm.validateFields());
+      ({ payment_due_date, series_id } = await convertForm.validateFields());
     } catch {
       return;
     }
     const ok = await runAction(
-      convertChallanToInvoice({ id: id as string, payment_due_date: dayjs(payment_due_date).format("YYYY-MM-DD") }),
+      convertChallanToInvoice({
+        id: id as string,
+        payment_due_date: dayjs(payment_due_date).format("YYYY-MM-DD"),
+        series_id,
+      }),
       "Invoice linked to this challan",
     );
     if (ok) {
@@ -720,6 +726,7 @@ const ChallanDetailsPage: React.FC = () => {
           >
             <DatePicker style={{ width: "100%" }} format="DD MMM YYYY" />
           </Form.Item>
+          <SeriesField docType="INVOICE" form={convertForm} />
         </Form>
       </Modal>
     </div>

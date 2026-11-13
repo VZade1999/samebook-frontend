@@ -26,6 +26,7 @@ import CustomerService from "@/modules/customers/redux";
 import ProductService from "@/modules/products/redux";
 import { challanService } from "../services/challanService";
 import { createChallan, updateChallan } from "../redux/challanActions";
+import SeriesField from "../../numbering/SeriesField";
 import {
   loadWarehouses,
   CHALLAN_REASONS,
@@ -439,6 +440,7 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
         shipping_address_id: !quotationMode && !transfer ? values.shipping_address_id : undefined,
         ...optionalHeader,
         affects_stock: values.affects_stock !== false,
+        series_id: values.series_id,
       });
     } else {
       // The update API keeps the stored value for any field that is left out,
@@ -551,6 +553,7 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
               title="Every item of this quotation has already been dispatched on other challans."
             />
           )}
+          {!isEdit && <SeriesField docType="DELIVERY_CHALLAN" form={form} />}
 
           <Row gutter={16}>
             <Col xs={24} sm={12} md={6}>

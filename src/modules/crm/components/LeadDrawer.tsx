@@ -208,7 +208,7 @@ const LeadDrawer: React.FC<Props> = ({ leadId, meta, focus, onClose, onChanged, 
 
   const newQuotation = (customerId: number) => {
     const back = encodeURIComponent(`/app/crm/leads?lead=${lead!.id}`);
-    navigate(`/app/quotations?new=1&customer=${customerId}&returnTo=${back}`);
+    navigate(`/app/quotation?new=1&customer=${customerId}&returnTo=${back}`);
   };
 
   const l = lead;

@@ -58,6 +58,7 @@ import {
 import QuotationService from "../redux";
 import BusinessDetails from "./components/BusinessDetails";
 import CustomerDetails, { customerFormFields } from "./components/CustomerDetails";
+import SeriesField from "../../numbering/SeriesField";
 import CustomerApi from "@/modules/customers/redux";
 import QuotationItems from "./components/QuotationItems";
 import QuotationSummary from "./components/QuotationSummary";
@@ -1587,6 +1588,7 @@ const QuotationPage = () => {
           ...basePayload,
           company_id: currentCompanyId,
           quotation_date: new Date().toISOString(),
+          ...(values.series_id ? { series_id: values.series_id } : {}),
         }),
       );
     }
@@ -1716,7 +1718,7 @@ const QuotationPage = () => {
       form.setFieldsValue({ notes: companyDetails.default_terms_conditions });
   };
 
-  // Deep link: /app/quotations?new=1&customer=<id>&returnTo=/app/... opens a
+  // Deep link: /app/quotation?new=1&customer=<id>&returnTo=/app/... opens a
   // new quotation with that customer filled in (used by the CRM's "Create
   // quotation"), then returns to returnTo once it's saved.
   useEffect(() => {
@@ -2051,6 +2053,9 @@ const columns = useMemo(() => [
                 <Form.Item name="customerId" hidden>
                   <input type="hidden" />
                 </Form.Item>
+                {!editingQuotation && (
+                  <SeriesField docType="QUOTATION" form={form} className="qt-series-field" />
+                )}
                 <Row gutter={[16, 0]}>
                   <Col xs={24} md={12}>
                     <BusinessDetails />

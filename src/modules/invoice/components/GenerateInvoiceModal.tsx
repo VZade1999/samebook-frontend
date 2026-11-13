@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Form, Select, DatePicker, message } from 'antd';
-import { FileTextOutlined, CalendarOutlined, ClockCircleOutlined, CloseOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { FileTextOutlined, CalendarOutlined, ClockCircleOutlined, CloseOutlined, ThunderboltOutlined, NumberOutlined } from '@ant-design/icons';
+import SeriesField from '../../numbering/SeriesField';
 import dayjs from 'dayjs';
 import { useDispatch } from 'react-redux';
 import { generateInvoice } from '../redux/invoiceActions';
@@ -323,6 +324,7 @@ const GenerateInvoiceModal: React.FC<Props> = ({ visible, onClose }) => {
           quotation_id: values.quotation_id,
           invoice_date: values.invoice_date.format('YYYY-MM-DD'),
           payment_due_date: values.payment_due_date.format('YYYY-MM-DD'),
+          series_id: values.series_id,
         }),
       );
       form.resetFields();
@@ -436,6 +438,20 @@ const GenerateInvoiceModal: React.FC<Props> = ({ visible, onClose }) => {
                   </Form.Item>
                 </div>
               </div>
+
+              <SeriesField
+                docType="INVOICE"
+                form={form}
+                wrap={(field, label) => (
+                  <div className="igm-field">
+                    <div className="igm-label">
+                      <div className="igm-label-icon"><NumberOutlined /></div>
+                      {label}
+                    </div>
+                    {field}
+                  </div>
+                )}
+              />
             </Form>
           </div>
 

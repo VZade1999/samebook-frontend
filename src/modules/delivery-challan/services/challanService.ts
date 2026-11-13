@@ -22,8 +22,11 @@ export const challanService = {
   cancelChallan: (id: number | string, reason?: string) =>
     api.post(`/delivery-challan/${id}/cancel`, reason ? { reason } : {}),
 
-  convertToInvoice: (id: number | string, payment_due_date: string) =>
-    api.post(`/delivery-challan/${id}/convert-to-invoice`, { payment_due_date }),
+  convertToInvoice: (id: number | string, payment_due_date: string, series_id?: number) =>
+    api.post(`/delivery-challan/${id}/convert-to-invoice`, {
+      payment_due_date,
+      ...(series_id ? { series_id } : {}),
+    }),
 
   deleteChallan: (id: number | string) => api.delete(`/delivery-challan/${id}`),
 

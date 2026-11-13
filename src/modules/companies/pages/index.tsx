@@ -7,6 +7,7 @@ import {
   EditOutlined,
   EnvironmentOutlined,
   ExclamationCircleFilled,
+  FieldNumberOutlined,
   FileProtectOutlined,
   FileTextOutlined,
   GlobalOutlined,
@@ -33,7 +34,6 @@ import {
   BankCard,
   Checklist,
   CopyBtn,
-  DocNumber,
   FieldTile,
   Letterhead,
   LocationCard,
@@ -56,6 +56,7 @@ import {
   websiteHref,
   websiteText,
 } from "../utils/companyView";
+import NumberingPanel from "../../numbering/NumberingPanel";
 import "../styles/company.scss";
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -360,8 +361,6 @@ const CompanyPage: React.FC = () => {
             />
             <FieldTile icon={<NumberOutlined />} label="Company prefix" value={company.company_prefix} mono onAdd={openEdit} />
           </div>
-          <div className="cp-subhead">How your document numbers look</div>
-          <DocNumber prefix={company.company_prefix} />
         </Panel>
 
         <Panel
@@ -373,6 +372,16 @@ const CompanyPage: React.FC = () => {
           sub={strength >= 100 ? "Everything customers see on your documents is filled in" : "Complete these so quotations and invoices look their best"}
         >
           <Checklist items={checklist} onFix={openEdit} />
+        </Panel>
+
+        <Panel
+          index={2}
+          icon={<FieldNumberOutlined />}
+          tint="var(--cp-accent)"
+          title="Document numbering"
+          sub="Continue your own invoice, quotation and challan numbers — e.g. carry on from your old billing software"
+        >
+          <NumberingPanel canEdit={canEdit} />
         </Panel>
 
         <Panel

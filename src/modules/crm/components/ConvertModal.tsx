@@ -109,7 +109,7 @@ const ConvertModal: React.FC<Props> = ({ open, lead, meta, onClose, onConverted 
     if (canQuote && lead) {
       message.success(`${verb} Opening a new quotation…`);
       const back = encodeURIComponent(`/app/crm/leads?lead=${lead.id}`);
-      navigate(`/app/quotations?new=1&customer=${data.customer_id}&returnTo=${back}`);
+      navigate(`/app/quotation?new=1&customer=${data.customer_id}&returnTo=${back}`);
     } else {
       message.success(`${verb} Ask someone with quotation access to send the quotation.`);
     }

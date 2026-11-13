@@ -61,11 +61,11 @@ export const cancelChallan = createAsyncThunk(
 export const convertChallanToInvoice = createAsyncThunk(
   "challans/convertChallanToInvoice",
   async (
-    params: { id: number | string; payment_due_date: string },
+    params: { id: number | string; payment_due_date: string; series_id?: number },
     { rejectWithValue },
   ) =>
     run(
-      () => challanService.convertToInvoice(params.id, params.payment_due_date),
+      () => challanService.convertToInvoice(params.id, params.payment_due_date, params.series_id),
       rejectWithValue,
     ),
 );
