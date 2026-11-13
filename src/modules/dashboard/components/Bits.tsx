@@ -104,7 +104,8 @@ export const Delta: React.FC<{ change: number | null | undefined; current?: numb
   vs,
   onDark,
 }) => {
-  const cls = onDark ? " dark" : "";
+  // Not "dark": that is the app's theme class and would re-scope the theme variables.
+  const cls = onDark ? " ondark" : "";
   if (change === null || change === undefined) {
     return current ? (
       <span className={`db-delta new${cls}`} title={vs ? `Nothing in ${vs}` : undefined}>

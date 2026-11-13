@@ -434,7 +434,7 @@ $radius: 16px;
   &.good { color: var(--db-up); background: color-mix(in srgb, var(--db-good) 13%, transparent); }
   &.bad { color: var(--db-down); background: color-mix(in srgb, var(--db-critical) 11%, transparent); }
   &.flat, &.new { color: var(--muted-foreground); background: var(--muted); }
-  &.dark {
+  &.ondark {
     &.good { color: #bbf7d0; background: rgba(34, 197, 94, 0.22); }
     &.bad { color: #fecaca; background: rgba(248, 113, 113, 0.22); }
     &.flat, &.new { color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.14); }
