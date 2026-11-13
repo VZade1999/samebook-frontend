@@ -1,281 +1,420 @@
 @use "../../style/variables" as *;
 
-// ─── Design tokens — exact mirror of the app system ───────────────────────────
-//
-//  #1E1B4B  →  deep indigo  (cusl-header, modal header, drawer header, lgn-submit)
-//  #4F46E5  →  accent       (cusl-accent, focus rings, pills, icons)
-//  #EEF2FF  →  accent-light (cusl-accent-light, pill backgrounds)
-//  #F4F5F9  →  page bg      (cusl-bg, lgn-shell)
-//  #E5E7EB  →  border       (cusl-border)
-//  #6B7280  →  muted        (cusl-muted)
-//  Inter    →  font          (all components)
-//
-// Left panel uses the deep-indigo bg so the split reads as
-// "product identity | user action" — same dark-left / light-right
-// convention that B2B SaaS apps use (Notion, Linear, Vercel onboarding).
+// Sign-in shell. The brand panel reuses the dashboard hero (same gradient, orbs
+// and masked grid) so the first screen already feels like the product; the form
+// side follows the app's light/dark theme.
 
-$al-indigo    : #1E1B4B;
-$al-indigo-md : #2D2A6E;   // one step lighter for hover / subtle UI
-$al-indigo-lt : #3730A3;   // accent-on-dark
-$al-accent    : #4F46E5;
-$al-accent-lt : #EEF2FF;
-$al-bg        : #F4F5F9;
-$al-surface   : #FFFFFF;
-$al-border    : #E5E7EB;
-$al-muted     : #6B7280;
-$al-text      : #111827;
-$al-shadow-lg : 0 8px 32px rgba(30, 27, 75, 0.12), 0 2px 8px rgba(30, 27, 75, 0.06);
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+$hero-ink: #0b1324;
 
-// ─── Root shell ───────────────────────────────────────────────────────────────
-.al-root {
-  display: flex;
+.sba-root {
+  --sba-bg: #f6f7fb;
+  --sba-surface: #ffffff;
+  --sba-text: #0b1324;
+  --sba-muted: #64748b;
+  --sba-border: #e3e7ef;
+  --sba-border-strong: #cfd6e2;
+  --sba-accent: #2563eb;
+  --sba-soft: #eef4ff;
+  --sba-danger: #c0282d;
+  --sba-danger-bg: #fdf2f2;
+  --sba-danger-border: #f5c9c9;
+  --sba-warn: #8a5a00;
+  --sba-warn-bg: #fff6df;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
   min-height: 100vh;
-  width: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100dvh;
+  background: var(--sba-bg);
+  color: var(--sba-text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-// ─── Left panel ───────────────────────────────────────────────────────────────
-.al-left {
-  // Exact same #1E1B4B used on every page/modal header in the app
-  background: $al-indigo;
-  flex: 1;
+.dark .sba-root {
+  --sba-bg: #04080f;
+  --sba-surface: #0d1728;
+  --sba-text: #f8fafc;
+  --sba-muted: #94a3b8;
+  --sba-border: #1e3358;
+  --sba-border-strong: #2b4673;
+  --sba-accent: #60a5fa;
+  --sba-soft: #111f38;
+  --sba-danger: #f87171;
+  --sba-danger-bg: rgba(248, 113, 113, 0.08);
+  --sba-danger-border: rgba(248, 113, 113, 0.3);
+  --sba-warn: #fcd34d;
+  --sba-warn-bg: rgba(252, 211, 77, 0.1);
+}
+
+@keyframes sba-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sba-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes sba-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes sba-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes sba-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+
+// ── Brand panel ─────────────────────────────────────────────────────────────
+.sba-brand {
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 24px);
+  height: calc(100dvh - 24px);
+  margin: 12px 0 12px 12px;
+  border-radius: 24px;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(125deg, $hero-ink 0%, #172554 40%, #1d4ed8 82%, #2a78d6 112%);
+  box-shadow: 0 30px 60px -36px rgba(29, 78, 216, 0.75);
+  animation: sba-fade 0.4s ease;
+}
+
+.sba-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(52px);
+  pointer-events: none;
+  &.a { width: 420px; height: 420px; right: -120px; top: -170px; background: rgba(56, 189, 248, 0.36); }
+  &.b { width: 360px; height: 360px; left: -60px; bottom: -200px; background: rgba(139, 92, 246, 0.34); }
+}
+
+.sba-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.95), transparent 92%);
+}
+
+.sba-brand-inner {
+  position: relative;
+  z-index: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 28px;
+  padding: 30px clamp(28px, 4vw, 52px) 32px;
+}
+
+.sba-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: #fff !important;
+  text-decoration: none;
+  border-radius: 10px;
+  &:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.8); outline-offset: 4px; }
+}
+
+.sba-mark {
+  display: grid;
+  grid-template-columns: repeat(2, 11px);
+  gap: 4px;
+  padding: 7px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  i { display: block; width: 11px; height: 11px; border-radius: 3px; }
+  .r { background: $error-color; }
+  .g { background: $success-color; }
+  .b { background: $info-color; }
+  .y { background: $warning-color; }
+}
+
+.sba-pitch { margin-top: auto; animation: sba-rise 0.5s 0.05s ease both; }
+.sba-eyebrow {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.sba-headline {
+  margin: 16px 0 12px;
+  font-size: clamp(32px, 3.6vw, 48px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -1.4px;
+  text-shadow: 0 8px 34px rgba(15, 23, 42, 0.35);
+}
+.sba-sub {
+  margin: 0;
+  max-width: 420px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+// Product preview: a glass card in the dashboard hero's style
+.sba-preview {
   position: relative;
+  width: min(400px, 100%);
+  margin-bottom: auto;
+  // Room for the toast, which overlaps only the card's bottom padding
+  padding-bottom: 44px;
+  animation: sba-rise 0.6s 0.15s ease both;
+}
+.sba-card {
+  padding: 16px 18px 24px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 24px 50px -28px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.sba-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  em {
+    font-style: normal;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.78);
+  }
+}
+.sba-card-num {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+.sba-card-delta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  b {
+    margin-right: 4px;
+    padding: 1px 7px;
+    border-radius: 99px;
+    font-weight: 700;
+    color: #bbf7d0;
+    background: rgba(34, 197, 94, 0.18);
+  }
+}
+.sba-bars {
+  height: 64px;
+  margin-top: 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  span {
+    flex: 1;
+    max-width: 24px;
+    border-radius: 4px 4px 1px 1px;
+    background: rgba(255, 255, 255, 0.3);
+    transform-origin: bottom;
+    animation: sba-grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    &:last-child { background: linear-gradient(180deg, #a5f3fc, #67e8f9); }
+  }
+}
+.sba-meter { margin-top: 14px; }
+.sba-meter-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.75);
+  b { font-size: 13px; color: #fff; }
+}
+.sba-track {
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.16);
   overflow: hidden;
-  min-width: 0;
-
-  // Dot-grid overlay (mirrors lgn-shell dot pattern, inverted to light-on-dark)
-  &__noise {
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
-    background-size: 22px 22px;
-    pointer-events: none;
-    z-index: 0;
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #67e8f9, #a5f3fc);
+    transform-origin: left;
+    animation: sba-grow-x 1s 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
+}
 
-  // Decorative arc at bottom-right
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -120px;
-    right: -120px;
-    width: 340px;
-    height: 340px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.06);
-    pointer-events: none;
-  }
+.sba-toast {
+  position: absolute;
+  right: -18px;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 270px;
+  padding: 10px 14px 10px 12px;
+  border-radius: 14px;
+  color: $hero-ink;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 40px -16px rgba(2, 6, 23, 0.55);
+  animation: sba-rise 0.6s 0.7s ease both, sba-float 6s 1.4s ease-in-out infinite;
+  > .anticon { font-size: 20px; color: #16a34a; }
+  b { display: block; font-size: 12.5px; font-weight: 700; }
+  span { display: block; font-size: 11.5px; color: #475569; }
+}
 
-  // Everything sits above the noise overlay
-  > *:not(.al-left__noise) { position: relative; z-index: 1; }
-
-  // ── Top-left logo row ──
-  &__logo {
+.sba-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  animation: sba-rise 0.6s 0.25s ease both;
+  li {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 28px 36px;
-  }
-
-  &__logo-name {
-    font-size: 15px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: -0.2px;
-  }
-
-  // ── Centre content ──
-  &__body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 48px;
-    max-width: 480px;
-  }
-
-  // ── Bottom tagline ──
-  &__footer {
-    padding: 28px 36px;
-  }
-
-  &__footer-text {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.86);
   }
 }
-
-// ─── Logo grid (reuses LoginPage logo — same markup, same sizes) ──────────────
-.al-logo-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 12px);
-  gap: 5px;
-}
-
-.al-logo-box {
-  display: block;
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-
-  &--red    { background: $error-color;   }
-  &--green  { background: $success-color; }
-  &--blue   { background: $info-color;    }
-  &--yellow { background: $warning-color; }
-}
-
-// ─── Branding copy ────────────────────────────────────────────────────────────
-.al-tagline {
-  margin-bottom: 40px;
-
-  &__eyebrow {
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.4);
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    margin: 0 0 16px;
-  }
-
-  &__headline {
-    font-size: clamp(32px, 3.5vw, 44px);
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: -0.8px;
-    line-height: 1.15;
-    margin: 0 0 18px;
-  }
-
-  &__sub {
-    font-size: 14px;
-    color: rgba(255,255,255,0.55);
-    line-height: 1.7;
-    margin: 0;
-    max-width: 340px;
-  }
-}
-
-// ─── Feature pills ────────────────────────────────────────────────────────────
-.al-pills {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.al-pill {
+.sba-feature-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  width: fit-content;
-  transition: background 0.15s, border-color 0.15s;
-
-  &:hover {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.18);
-  }
-
-  &__icon {
-    font-size: 15px;
-    line-height: 1;
-    flex-shrink: 0;
-  }
-
-  &__label {
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.8);
-  }
+  justify-content: center;
+  font-size: 15px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-// ─── Right panel ──────────────────────────────────────────────────────────────
-.al-right {
-  // Same $lgn-bg / cusl-bg page background
-  background: $al-bg;
-  flex: 1;
+// ── Form side ───────────────────────────────────────────────────────────────
+.sba-main {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 22px clamp(20px, 4vw, 48px) 20px;
+  // Soft accent wash from the top; a linear fade avoids the visible ring a
+  // small radial glow leaves on low-contrast screens.
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sba-accent) 6%, transparent) 0%, transparent 55%),
+    var(--sba-bg);
+}
+
+.sba-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sba-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sba-muted) !important;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  &:hover { background: var(--sba-soft); color: var(--sba-text) !important; }
+  &:focus-visible { outline: 2px solid var(--sba-accent); outline-offset: 2px; }
+}
+.sba-theme {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  padding: 40px 32px;
-  min-width: 0;
-
-  // Dot-grid mirrors the login page shell pattern
-  background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px);
-  background-size: 22px 22px;
-
-  &__inner {
-    width: 100%;
-    max-width: 420px;
-  }
+  border-radius: 12px;
+  border: 1px solid var(--sba-border);
+  background: var(--sba-surface);
+  color: var(--sba-muted);
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+  &:hover { color: var(--sba-accent); border-color: var(--sba-border-strong); transform: rotate(-12deg); }
+  &:focus-visible { outline: 2px solid var(--sba-accent); outline-offset: 2px; }
 }
 
-// ─── Responsive ───────────────────────────────────────────────────────────────
+.sba-main-inner {
+  flex: 1;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 0;
+}
 
-// Tablet — stack vertically, left becomes a compact top bar
+.sba-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--sba-muted);
+  span { display: inline-flex; align-items: center; gap: 6px; }
+}
+
+// ── Short screens: drop the extras before anything gets cramped ─────────────
+@media (max-height: 820px) and (min-width: 901px) {
+  .sba-features { display: none; }
+  .sba-brand-inner { gap: 22px; }
+}
+@media (max-height: 640px) and (min-width: 901px) {
+  .sba-preview { display: none; }
+}
+
+// ── Tablet & phone: brand panel becomes a compact band on top ───────────────
 @media (max-width: 900px) {
-  .al-root { flex-direction: column; }
+  .sba-root { grid-template-columns: 1fr; }
 
-  .al-left {
-    flex: none;
-
-    &__body {
-      padding: 0 32px 32px;
-      max-width: 100%;
-    }
-
-    &__footer { display: none; }
-
-    &::after { display: none; }
+  .sba-brand {
+    position: relative;
+    height: auto;
+    margin: 12px 12px 0;
+    border-radius: 22px;
   }
+  .sba-brand-inner { gap: 18px; padding: 22px 24px 26px; }
+  .sba-pitch { margin-top: 0; }
+  .sba-headline { font-size: 30px; margin: 12px 0 8px; }
+  .sba-preview,
+  .sba-features { display: none; }
 
-  .al-tagline {
-    margin-bottom: 24px;
-
-    &__headline { font-size: 28px; }
-    &__sub      { max-width: 100%; }
-  }
-
-  .al-pills {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .al-right {
-    flex: none;
-    padding: 32px 20px 48px;
-    // Remove the dot grid on mobile — too busy stacked under the dark panel
-    background-image: none;
-    background-color: $al-bg;
-  }
+  .sba-main { padding: 16px 16px 18px; }
+  .sba-main-inner { max-width: 440px; padding: 24px 0 32px; justify-content: flex-start; }
 }
 
-// Mobile — minimal top bar, full card below
 @media (max-width: 560px) {
-  .al-left {
-    &__logo { padding: 20px 20px 0; }
-    &__body { padding: 20px 20px 28px; }
-  }
+  .sba-brand { margin: 10px 10px 0; border-radius: 20px; }
+  .sba-brand-inner { padding: 18px 20px 22px; gap: 14px; }
+  .sba-headline { font-size: 26px; letter-spacing: -0.8px; margin-top: 0; }
+  .sba-sub { font-size: 13px; }
+  .sba-eyebrow { display: none; }
+}
 
-  .al-tagline {
-    &__headline { font-size: 24px; }
-    &__sub      { display: none; }
-  }
-
-  .al-pills { display: none; }
-
-  .al-right {
-    padding: 24px 16px 40px;
-
-    &__inner { max-width: 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .sba-root *,
+  .sba-root *::before,
+  .sba-root *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

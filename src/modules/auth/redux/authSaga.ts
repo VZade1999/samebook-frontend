@@ -58,11 +58,20 @@ function* loginSaga(action: any) {
       yield put({ type: ASYNC_LOGIN_FAILED, error: response.data?.message });
     }
   } catch (error: any) {
-    yield put({
-      type: ASYNC_LOGIN_FAILED,
-      error: error?.response?.data?.message || error?.message || "Login failed",
-    });
+    yield put({ type: ASYNC_LOGIN_FAILED, error: loginErrorMessage(error) });
   }
+}
+
+// Turn transport-level failures into something a person can act on; keep the
+// server's own message for everything else (e.g. "Invalid email or password").
+function loginErrorMessage(error: any): string {
+  const status: number | undefined = error?.response?.status;
+  if (!error?.response) {
+    return "Can't reach SameBook right now. Check your internet connection and try again.";
+  }
+  if (status === 429) return "Too many sign-in attempts. Wait a minute, then try again.";
+  if (status && status >= 500) return "Something went wrong on our side. Please try again in a moment.";
+  return error?.response?.data?.message || error?.message || "Login failed";
 }
 
 function* logoutSaga() {

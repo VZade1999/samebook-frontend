@@ -1,73 +1,146 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import {
+  ArrowLeftOutlined,
+  CheckCircleFilled,
+  FileDoneOutlined,
+  LineChartOutlined,
+  MoonOutlined,
+  SafetyCertificateOutlined,
+  SunOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+import { useTheme } from "@/theme/ThemeProvider";
 import "./styles.scss";
 
 interface Props {
   children: React.ReactNode;
 }
 
+// The four-square SameBook mark.
+export const SameBookMark = () => (
+  <span className="sba-mark" aria-hidden="true">
+    <i className="r" />
+    <i className="g" />
+    <i className="b" />
+    <i className="y" />
+  </span>
+);
+
+// Decorative only: heights of the little column chart in the preview card.
+const PREVIEW_BARS = [36, 50, 42, 60, 54, 70, 63, 86];
+
+const FEATURES = [
+  { icon: <FileDoneOutlined />, label: "Quotations to GST invoices in one click" },
+  { icon: <TeamOutlined />, label: "Customers, leads and follow-ups together" },
+  { icon: <LineChartOutlined />, label: "Live sales, dues and collections" },
+];
+
 const AuthLayout = ({ children }: Props) => {
+  const { theme, toggleTheme } = useTheme();
+  const dark = theme === "dark";
+
   return (
-    <div className="al-root">
+    <div className="sba-root">
+      {/* ── Brand panel (same gradient hero as the dashboard) ── */}
+      <aside className="sba-brand">
+        <span className="sba-orb a" aria-hidden="true" />
+        <span className="sba-orb b" aria-hidden="true" />
+        <span className="sba-grid" aria-hidden="true" />
 
-      {/* ── Left panel ── */}
-      <div className="al-left" aria-hidden="true">
-        <div className="al-left__noise" />
+        <div className="sba-brand-inner">
+          <Link to="/" className="sba-wordmark">
+            <SameBookMark />
+            SameBook
+          </Link>
 
-        {/* Top-left logo grid */}
-        <div className="al-left__logo">
-          <div className="al-logo-grid">
-            <span className="al-logo-box al-logo-box--red"    />
-            <span className="al-logo-box al-logo-box--green"  />
-            <span className="al-logo-box al-logo-box--blue"   />
-            <span className="al-logo-box al-logo-box--yellow" />
-          </div>
-          <span className="al-left__logo-name">SameBook</span>
-        </div>
-
-        {/* Centre branding */}
-        <div className="al-left__body">
-          <div className="al-tagline">
-            <p className="al-tagline__eyebrow">Business accounting</p>
-            <h1 className="al-tagline__headline">
-              Every number,<br />in its place.
-            </h1>
-            <p className="al-tagline__sub">
-              Smart accounting for modern businesses — invoices, customers,
-              inventory and reports, all in one place.
+          <div className="sba-pitch">
+            <span className="sba-eyebrow">Business accounting</span>
+            <p className="sba-headline">
+              Every number,
+              <br />
+              in its place.
+            </p>
+            <p className="sba-sub">
+              Quotations, invoices, challans, customers and stock: one calm
+              workspace for your whole business.
             </p>
           </div>
 
-          {/* Feature pills */}
-          <div className="al-pills">
-            {[
-              { icon: "📄", label: "GST-ready invoicing"    },
-              { icon: "👥", label: "Customer management"    },
-              { icon: "📦", label: "Inventory tracking"     },
-              { icon: "📊", label: "Real-time reports"      },
-            ].map(({ icon, label }) => (
-              <div className="al-pill" key={label}>
-                <span className="al-pill__icon">{icon}</span>
-                <span className="al-pill__label">{label}</span>
+          <div className="sba-preview" aria-hidden="true">
+            <div className="sba-card">
+              <div className="sba-card-top">
+                <span>This month · Sales</span>
+                <em>Example</em>
               </div>
-            ))}
+              <div className="sba-card-num">₹4,82,600</div>
+              <div className="sba-card-delta">
+                <b>▲ 12.4%</b> vs last month
+              </div>
+              <div className="sba-bars">
+                {PREVIEW_BARS.map((h, i) => (
+                  <span key={i} style={{ height: `${h}%`, animationDelay: `${120 + i * 55}ms` }} />
+                ))}
+              </div>
+              <div className="sba-meter">
+                <div className="sba-meter-top">
+                  <span>Collected</span>
+                  <b>78%</b>
+                </div>
+                <div className="sba-track">
+                  <span style={{ width: "78%" }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="sba-toast">
+              <CheckCircleFilled />
+              <div>
+                <b>QT-0142 approved</b>
+                <span>Converted to invoice INV-0391</span>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Bottom decoration */}
-        <div className="al-left__footer">
-          <span className="al-left__footer-text">
-            Trusted by businesses across India
+          <ul className="sba-features">
+            {FEATURES.map((f) => (
+              <li key={f.label}>
+                <span className="sba-feature-icon" aria-hidden="true">
+                  {f.icon}
+                </span>
+                {f.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+
+      {/* ── Form side ── */}
+      <main className="sba-main">
+        <header className="sba-top">
+          <Link to="/" className="sba-back">
+            <ArrowLeftOutlined /> Home
+          </Link>
+          <button
+            type="button"
+            className="sba-theme"
+            onClick={toggleTheme}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            title={dark ? "Light mode" : "Dark mode"}
+          >
+            {dark ? <SunOutlined /> : <MoonOutlined />}
+          </button>
+        </header>
+
+        <div className="sba-main-inner">{children}</div>
+
+        <footer className="sba-foot">
+          <span>© {new Date().getFullYear()} SameBook</span>
+          <span>
+            <SafetyCertificateOutlined /> Secure sign-in
           </span>
-        </div>
-      </div>
-
-      {/* ── Right panel — the login card lives here ── */}
-      <div className="al-right">
-        <div className="al-right__inner">
-          {children}
-        </div>
-      </div>
-
+        </footer>
+      </main>
     </div>
   );
 };

@@ -1,333 +1,217 @@
- @use "../../../../style/variables" as *;
- @use "sass:color";
+// Sign-in form. Colours come from the --sba-* tokens set on .sba-root by the
+// auth layout, so light and dark both work without extra rules here.
 
-// ─── Design tokens (mirrors CustomerListPage system) ──────────────────────────
-$lgn-bg          : #F4F5F9;
-$lgn-surface     : #FFFFFF;
-$lgn-indigo-deep : #1E1B4B;   // same as cusl header
-$lgn-accent      : #4F46E5;   // same as cusl-accent
-$lgn-accent-lt   : #EEF2FF;   // same as cusl-accent-light
-$lgn-accent-hover: #4338CA;
-$lgn-border      : #E5E7EB;
-$lgn-text        : #111827;
-$lgn-muted       : #6B7280;
-$lgn-error-bg    : #FEF2F2;
-$lgn-error-border: #FECACA;
-$lgn-error-text  : #DC2626;
-$lgn-radius      : 12px;
-$lgn-radius-sm   : 8px;
-$lgn-shadow      : 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-$lgn-shadow-lg   : 0 8px 32px rgba(30, 27, 75, 0.12), 0 2px 8px rgba(30, 27, 75, 0.06);
-
-// ─── Font ─────────────────────────────────────────────────────────────────────
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-// ─── Shell — full-page centred layout ────────────────────────────────────────
-.lgn-shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: $lgn-bg;
-  padding: 24px 16px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-
-  // Subtle dot grid — same noise motif as cusl-header-noise but inverted
-  background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px);
-  background-size: 22px 22px;
+@keyframes sba-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes sba-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
 }
+@keyframes sba-spin { to { transform: rotate(360deg); } }
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
-.lgn-card {
-  width: 100%;
-  max-width: 420px;
-  background: $lgn-surface;
-  border: 1px solid $lgn-border;
-  border-radius: $lgn-radius;
-  box-shadow: $lgn-shadow-lg;
-  overflow: hidden;
+.sba-login { animation: sba-in 0.45s 0.1s ease both; }
 
-  // Dark indigo top bar — same #1E1B4B as cusl-header
-  &::before {
-    content: '';
-    display: block;
-    height: 5px;
-    background: $lgn-indigo-deep;
+.sba-login-head {
+  margin-bottom: 26px;
+  h1 {
+    margin: 0 0 6px;
+    font-size: clamp(26px, 3vw, 32px);
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+    color: var(--sba-text);
   }
-
+  p { margin: 0; font-size: 14.5px; color: var(--sba-muted); }
 }
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
-.lgn-logo {
+// ── Error ───────────────────────────────────────────────────────────────────
+.sba-alert {
   display: flex;
-  justify-content: center;
-  padding-top: 36px;
-  padding-bottom: 28px;
-  padding-left: 36px;
-  padding-right: 36px;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--sba-danger-border);
+  background: var(--sba-danger-bg);
+  animation: sba-shake 0.42s ease both;
+  > .anticon { margin-top: 2px; font-size: 16px; color: var(--sba-danger); }
+  b { display: block; font-size: 13.5px; font-weight: 700; color: var(--sba-text); }
+  span { display: block; margin-top: 1px; font-size: 13px; color: var(--sba-muted); line-height: 1.45; }
 }
 
-.lgn-logo-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 14px);
-  gap: 6px;
-}
-
-.lgn-logo-box {
-  display: block;
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-
-  &--red    { background: $error-color;   }
-  &--green  { background: $success-color; }
-  &--blue   { background: $info-color;    }
-  &--yellow { background: $warning-color; }
-}
-
-// ─── Heading ──────────────────────────────────────────────────────────────────
-.lgn-heading {
-  padding-left: 36px;
-  padding-right: 36px;
-  margin-bottom: 24px;
-}
-
-.lgn-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: $lgn-text;
-  letter-spacing: -0.4px;
-  line-height: 1.2;
-  margin: 0 0 6px;
-}
-
-.lgn-sub {
-  font-size: 13px;
-  color: $lgn-muted;
-  margin: 0;
-  line-height: 1.5;
-}
-
-// ─── Error ────────────────────────────────────────────────────────────────────
-.lgn-error {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 36px 20px;
-  padding: 10px 14px;
-  background: $lgn-error-bg;
-  border: 1px solid $lgn-error-border;
-  border-radius: $lgn-radius-sm;
-  font-size: 13px;
-  color: $lgn-error-text;
-  font-weight: 500;
-  line-height: 1.5;
-}
-
-// ─── Form wrapper ─────────────────────────────────────────────────────────────
-.lgn-form {
-  padding-left: 36px;
-  padding-right: 36px;
-  padding-bottom: 36px;
-
-  // Remove Ant Design Form.Item bottom margin on nested noStyle items
-  .ant-form-item {
-    margin-bottom: 0 !important;
+// ── Form ────────────────────────────────────────────────────────────────────
+.sba-form {
+  .ant-form-item { margin-bottom: 18px; }
+  .ant-form-item-label {
+    padding-bottom: 7px;
+    > label {
+      height: auto;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sba-text);
+    }
   }
-  .ant-form-item-explain-error {
-    font-size: 11px !important;
-    font-family: 'Inter', sans-serif !important;
-    margin-top: 4px !important;
-    color: $lgn-error-text !important;
+  .ant-form-item-explain-error { font-size: 12.5px; margin-top: 4px; }
+  .ant-form-item-extra { min-height: 0; }
+
+  .ant-input-affix-wrapper {
+    height: 50px;
+    padding: 0 14px;
+    border-radius: 14px;
+    border-color: var(--sba-border);
+    background: var(--sba-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &:hover { border-color: var(--sba-border-strong); }
+    &.ant-input-affix-wrapper-focused,
+    &:focus-within {
+      border-color: var(--sba-accent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--sba-accent) 16%, transparent);
+    }
+    &.ant-input-affix-wrapper-status-error {
+      border-color: var(--sba-danger);
+      &:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sba-danger) 14%, transparent); }
+    }
+
+    .ant-input-prefix {
+      margin-inline-end: 10px;
+      font-size: 16px;
+      color: var(--sba-muted);
+    }
+    &:focus-within .ant-input-prefix { color: var(--sba-accent); }
+
+    .ant-input {
+      // 16px keeps iOS Safari from zooming in on focus
+      font-size: 16px;
+      background: transparent;
+      color: var(--sba-text);
+      &::placeholder { color: color-mix(in srgb, var(--sba-muted) 75%, transparent); }
+      &:-webkit-autofill,
+      &:-webkit-autofill:hover,
+      &:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--sba-text);
+        -webkit-box-shadow: 0 0 0 1000px var(--sba-surface) inset;
+        transition: background-color 9999s ease-out;
+      }
+    }
+    .ant-input-password-icon { font-size: 16px; color: var(--sba-muted); &:hover { color: var(--sba-text); } }
   }
 }
 
-// ─── Field block ──────────────────────────────────────────────────────────────
-.lgn-field {
-  margin-bottom: 18px;
-}
-
-.lgn-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.lgn-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
-  letter-spacing: 0.2px;
-  margin-bottom: 6px;
-}
-
-.lgn-label-row .lgn-label {
-  margin-bottom: 0;
-}
-
-// ─── Input ────────────────────────────────────────────────────────────────────
-.lgn-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.lgn-input-icon {
+.sba-password { position: relative; }
+.sba-forgot {
   position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: $lgn-muted;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
+  top: 0;
+  right: 0;
   z-index: 1;
 }
-
-.lgn-input {
-  width: 100%;
-  padding: 10px 40px 10px 38px;
-  border: 1px solid $lgn-border;
-  border-radius: $lgn-radius-sm;
-  // 16px, not 13px — anything smaller triggers iOS Safari's automatic
-  // pinch-zoom on focus, a well-known mobile input bug.
-  font-size: 16px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: $lgn-text;
-  background: #FAFAFA;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  height: 42px;
-
-  &::placeholder {
-    color: #9CA3AF;
-  }
-
-  &:hover {
-border-color: color.adjust($lgn-border, $lightness: -8%);
-    background: #fff;
-  }
-
-  &:focus {
-    border-color: $lgn-accent;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    background: #fff;
-  }
-
-  // Autofill — prevent browser's yellow bg bleeding through
-  &:-webkit-autofill {
-    -webkit-box-shadow: 0 0 0 100px #fff inset;
-    -webkit-text-fill-color: $lgn-text;
-  }
-}
-
-// ─── Eye toggle ───────────────────────────────────────────────────────────────
-.lgn-eye-btn {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
+.sba-link {
+  padding: 0;
+  border: 0;
   background: none;
-  padding: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sba-accent);
   cursor: pointer;
-  color: $lgn-muted;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: color 0.12s, background 0.12s;
-
-  &:hover {
-    color: $lgn-accent;
-    background: $lgn-accent-lt;
-  }
+  border-radius: 6px;
+  &:hover { text-decoration: underline; text-underline-offset: 3px; }
+  &:focus-visible { outline: 2px solid var(--sba-accent); outline-offset: 2px; }
 }
 
-// ─── Forgot password ──────────────────────────────────────────────────────────
-.lgn-forgot {
+.sba-caps {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 99px;
   font-size: 12px;
   font-weight: 600;
-  color: $lgn-accent;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  transition: color 0.12s;
-  text-decoration: none;
-
-  &:hover {
-    color: $lgn-accent-hover;
-    text-decoration: underline;
-  }
+  color: var(--sba-warn);
+  background: var(--sba-warn-bg);
 }
 
-// ─── Submit button ────────────────────────────────────────────────────────────
-.lgn-submit {
-  display: flex;
+// ── Submit ──────────────────────────────────────────────────────────────────
+.sba-submit {
+  position: relative;
+  width: 100%;
+  height: 52px;
+  margin-top: 6px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
-  height: 44px;
-  margin-top: 8px;
-  border: none;
-  border-radius: $lgn-radius-sm;
-  background: $lgn-indigo-deep;  // matches cusl header + modal header
-  color: #fff;
-  font-size: 14px;
+  gap: 10px;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 15px;
   font-weight: 700;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: 0.1px;
+  color: #fff;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  overflow: hidden;
+  background: linear-gradient(125deg, #1d4ed8 0%, #2563eb 55%, #2a78d6 100%);
+  box-shadow: 0 16px 30px -16px rgba(37, 99, 235, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+
+  .anticon { transition: transform 0.2s ease; }
 
   &:hover:not(:disabled) {
-  background: color.adjust($lgn-indigo-deep, $lightness: 8%);
     transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 20px 34px -16px rgba(37, 99, 235, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    .anticon { transform: translateX(3px); }
   }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  &:disabled,
-  &--loading {
-    opacity: 0.75;
-    cursor: not-allowed;
-    transform: none;
-  }
+  &:active:not(:disabled) { transform: translateY(0); }
+  &:focus-visible { outline: 3px solid color-mix(in srgb, #2563eb 45%, transparent); outline-offset: 3px; }
+  &:disabled { cursor: progress; }
+  &.is-loading { filter: saturate(0.85); }
 }
 
-// ─── Spinner (loading state) ──────────────────────────────────────────────────
-.lgn-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+.sba-spinner {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  animation: lgn-spin 0.7s linear infinite;
-  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: sba-spin 0.7s linear infinite;
 }
 
-@keyframes lgn-spin {
-  to { transform: rotate(360deg); }
+// ── New-user note ───────────────────────────────────────────────────────────
+.sba-invite {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 26px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed var(--sba-border-strong);
+  background: color-mix(in srgb, var(--sba-surface) 70%, transparent);
+  p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--sba-muted); }
+  b, strong { color: var(--sba-text); font-weight: 700; }
+}
+.sba-invite-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sba-accent);
+  background: var(--sba-soft);
 }
 
-// ─── Responsive ───────────────────────────────────────────────────────────────
-@media (max-width: 480px) {
-  .lgn-card > * {
-    padding-left: 24px;
-    padding-right: 24px;
+// ── "Forgot password?" popover (renders in a portal) ────────────────────────
+.sba-help-pop {
+  max-width: 300px;
+  .sba-help {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    b { display: block; margin-bottom: 4px; font-size: 13.5px; }
+    p { margin: 0; font-size: 13px; line-height: 1.5; opacity: 0.85; }
   }
-
-  .lgn-logo         { padding-left: 24px; padding-right: 24px; }
-  .lgn-heading      { padding-left: 24px; padding-right: 24px; }
-  .lgn-error        { margin-left: 24px; margin-right: 24px; }
-  .lgn-form         { padding-left: 24px; padding-right: 24px; padding-bottom: 28px; }
-  .lgn-title        { font-size: 20px; }
 }
