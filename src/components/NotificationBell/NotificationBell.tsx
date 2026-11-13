@@ -4,8 +4,12 @@ import {
   BellOutlined,
   CheckCircleOutlined,
   CheckOutlined,
+  CloseCircleOutlined,
+  FunnelPlotOutlined,
   MessageOutlined,
+  RetweetOutlined,
   SwapOutlined,
+  TrophyOutlined,
   UserAddOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -33,6 +37,12 @@ const ICON: Record<string, { icon: React.ReactNode; color: string; bg: string }>
   TASK_COMMENT: { icon: <MessageOutlined />, color: "#2563EB", bg: "#EFF6FF" },
   TASK_COMPLETED: { icon: <CheckCircleOutlined />, color: "#059669", bg: "#ECFDF5" },
   TASK_STATUS: { icon: <SwapOutlined />, color: "#64748B", bg: "#F1F5F9" },
+  CRM_NEW_LEAD: { icon: <FunnelPlotOutlined />, color: "#7C3AED", bg: "#F5F3FF" },
+  CRM_NEW_LEADS: { icon: <FunnelPlotOutlined />, color: "#7C3AED", bg: "#F5F3FF" },
+  CRM_REPEAT_ENQUIRY: { icon: <RetweetOutlined />, color: "#EA580C", bg: "#FFF7ED" },
+  CRM_LEAD_ASSIGNED: { icon: <UserAddOutlined />, color: "#7C3AED", bg: "#F5F3FF" },
+  CRM_LEAD_WON: { icon: <TrophyOutlined />, color: "#059669", bg: "#ECFDF5" },
+  CRM_LEAD_LOST: { icon: <CloseCircleOutlined />, color: "#DC2626", bg: "#FEF2F2" },
 };
 const FALLBACK = { icon: <BellOutlined />, color: "#64748B", bg: "#F1F5F9" };
 

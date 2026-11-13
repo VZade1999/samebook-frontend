@@ -57,7 +57,8 @@ import {
 } from "../redux/quotationActions";
 import QuotationService from "../redux";
 import BusinessDetails from "./components/BusinessDetails";
-import CustomerDetails from "./components/CustomerDetails";
+import CustomerDetails, { customerFormFields } from "./components/CustomerDetails";
+import CustomerApi from "@/modules/customers/redux";
 import QuotationItems from "./components/QuotationItems";
 import QuotationSummary from "./components/QuotationSummary";
 import PaymentDetails from "./components/PaymentDetails";
@@ -65,7 +66,7 @@ import { StorageService } from "@/storage";
 import { getCustomers } from "@/modules/customers/redux/customerActions";
 import { useAccess } from "@/permissions/useAccess";
 import CreateChallanButton from "@/modules/delivery-challan/components/CreateChallanButton";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 // Which workflow actions a quotation's status allows (mirrors the backend).
 // Send is limited to DRAFT/SENT (resend): sending an APPROVED/INVOICED
@@ -1273,6 +1274,8 @@ const QuotationPage = () => {
   const createLoading = quotationState?.createLoading || false;
   const actionLoading = quotationState?.actionLoading || false;
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const returnToRef = useRef<string | null>(null);
   const [actingId, setActingId] = useState<number | null>(null);
   useEffect(() => {
     if (!actionLoading) setActingId(null);
@@ -1315,6 +1318,10 @@ const QuotationPage = () => {
       dispatch(
         getQuotations({ page, limit: pageSize, search: search || undefined }),
       );
+      // Opened from elsewhere (e.g. a CRM lead): go back there once saved.
+      const back = returnToRef.current;
+      returnToRef.current = null;
+      if (back) navigate(back);
     }
     prevCreateLoadingRef.current = createLoading;
   }, [createLoading, quotationState.error]);
@@ -1699,6 +1706,7 @@ const QuotationPage = () => {
     setEditingQuotation(null);
     form.resetFields();
     setShowForm(false);
+    returnToRef.current = null;
   };
   const openCreate = () => {
     setShowForm(true);
@@ -1707,6 +1715,45 @@ const QuotationPage = () => {
     if (companyDetails?.default_terms_conditions)
       form.setFieldsValue({ notes: companyDetails.default_terms_conditions });
   };
+
+  // Deep link: /app/quotations?new=1&customer=<id>&returnTo=/app/... opens a
+  // new quotation with that customer filled in (used by the CRM's "Create
+  // quotation"), then returns to returnTo once it's saved.
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    const customerId = Number(searchParams.get("customer")) || null;
+    const back = searchParams.get("returnTo");
+    returnToRef.current = back && back.startsWith("/app/") && !back.startsWith("//") ? back : null;
+    const rest = new URLSearchParams(searchParams);
+    ["new", "customer", "returnTo"].forEach((k) => rest.delete(k));
+    setSearchParams(rest, { replace: true });
+
+    openCreate();
+    let terms: string | undefined;
+    try {
+      terms = JSON.parse(storageService.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS) || "{}")?.default_terms_conditions;
+    } catch {
+      terms = undefined;
+    }
+    if (terms && !form.getFieldValue("notes")) form.setFieldsValue({ notes: terms });
+    if (!customerId) return;
+    new CustomerApi()
+      .getCustomerDetails(customerId)
+      .then((res: any) => {
+        const customer = res?.data?.data;
+        if (!customer?.id) throw new Error("not found");
+        form.setFieldsValue(customerFormFields(customer).fields);
+        // Load it into the customer picker so contacts / addresses can be switched.
+        dispatch(getCustomers({ search: customer.display_name, page: 1, limit: 10 }));
+      })
+      .catch(() =>
+        notification.warning({
+          message: "Customer not loaded",
+          description: "Pick the customer in the form to continue.",
+        }),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 // Memoized — this array was previously rebuilt from scratch (new closures,
 // new object identities) on every render of QuotationPage, which meant
 // AntD's Table couldn't bail out of re-rendering any row even when the

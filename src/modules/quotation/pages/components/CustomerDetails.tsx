@@ -158,6 +158,36 @@ const SectionDivider = ({ label }: { label: string }) => (
   <div className="cd-section-divider"><span>{label}</span></div>
 );
 
+const joinAddress = (a: any) =>
+  [a?.address_line_1, a?.address_line_2, a?.city, a?.state, a?.country, a?.postal_code].filter(Boolean).join(", ");
+
+/**
+ * Quotation form fields for a customer (primary contact, billing + shipping
+ * address). Shared by picking a customer here and by opening a new quotation
+ * for a customer from elsewhere (e.g. a CRM lead).
+ */
+export const customerFormFields = (customer: any) => {
+  const primaryContact = customer.contacts?.find((c: any) => Number(c.is_primary) === 1) || customer.contacts?.[0];
+  const billingAddress = customer.addresses?.find((a: any) => a.address_type === "BILLING") || customer.addresses?.find((a: any) => Number(a.is_primary) === 1) || customer.addresses?.[0];
+  const shippingAddress = customer.addresses?.find((a: any) => a.address_type === "SHIPPING") || billingAddress;
+  return {
+    primaryContact,
+    billingAddress,
+    shippingAddress,
+    fields: {
+      customerId: customer.id, customerType: customer.customer_type,
+      customerName: customer.display_name, companyName: customer.company_name,
+      customerGSTN: customer.gst_number || billingAddress?.gst_number,
+      customerEmail: primaryContact?.email, customerPhone: primaryContact?.phone,
+      placeOfOrder: billingAddress?.state,
+      contactPersonId: primaryContact?.id, billingAddressId: billingAddress?.id, shippingAddressId: shippingAddress?.id,
+      billingAddress: joinAddress(billingAddress),
+      shippingAddress: joinAddress(shippingAddress),
+      billingAddressSnapshot: JSON.stringify(billingAddress), shippingAddressSnapshot: JSON.stringify(shippingAddress),
+    },
+  };
+};
+
 const CustomerDetails = () => {
   const form = Form.useFormInstance();
   const [searchValue, setSearchValue] = useState("");
@@ -230,23 +260,11 @@ const CustomerDetails = () => {
     const customer = option.customer;
     if (!customer) return;
     setSelectedCustomer(customer);
-    const primaryContact = customer.contacts?.find((c: any) => c.is_primary === 1) || customer.contacts?.[0];
-    const billingAddress = customer.addresses?.find((a: any) => a.address_type === "BILLING") || customer.addresses?.find((a: any) => a.is_primary === 1) || customer.addresses?.[0];
-    const shippingAddress = customer.addresses?.find((a: any) => a.address_type === "SHIPPING") || billingAddress;
+    const { primaryContact, billingAddress, shippingAddress, fields } = customerFormFields(customer);
     setSelectedContact(primaryContact);
     setSelectedBillingAddress(billingAddress);
     setSelectedShippingAddress(shippingAddress);
-    form.setFieldsValue({
-      customerId: customer.id, customerType: customer.customer_type,
-      customerName: customer.display_name, companyName: customer.company_name,
-      customerGSTN: customer.gst_number || billingAddress?.gst_number,
-      customerEmail: primaryContact?.email, customerPhone: primaryContact?.phone,
-      placeOfOrder: billingAddress?.state,
-      contactPersonId: primaryContact?.id, billingAddressId: billingAddress?.id, shippingAddressId: shippingAddress?.id,
-      billingAddress: [billingAddress?.address_line_1, billingAddress?.address_line_2, billingAddress?.city, billingAddress?.state, billingAddress?.country, billingAddress?.postal_code].filter(Boolean).join(", "),
-      shippingAddress: [shippingAddress?.address_line_1, shippingAddress?.address_line_2, shippingAddress?.city, shippingAddress?.state, shippingAddress?.country, shippingAddress?.postal_code].filter(Boolean).join(", "),
-      billingAddressSnapshot: JSON.stringify(billingAddress), shippingAddressSnapshot: JSON.stringify(shippingAddress),
-    });
+    form.setFieldsValue(fields);
     setSearchValue(customer.display_name);
   };
 

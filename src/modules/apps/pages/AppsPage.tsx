@@ -8,6 +8,7 @@ import {
   DisconnectOutlined,
   FieldTimeOutlined,
   FileTextOutlined,
+  FunnelPlotOutlined,
   LinkOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
@@ -88,6 +89,21 @@ const LOOK: Record<string, ModuleLook> = {
     accessHint:
       "Ticked roles can browse, upload and update files (new versions, renames, tags). Nothing can be deleted — every version is kept.",
     afterConnect: "You can fine-tune view / create / update access per role later in Roles & Permissions.",
+  },
+  crm: {
+    icon: <FunnelPlotOutlined />,
+    color: "#7C3AED",
+    bg: "#F5F3FF",
+    openPath: "/app/crm/leads",
+    features: [
+      "Leads, pipeline board & follow-ups",
+      "IndiaMART & website enquiries arrive by themselves",
+      "Lead → customer → quotation in one click",
+      "Insights: sources, win rate, speed to lead",
+    ],
+    accessHint:
+      "Ticked roles can work on their own and unassigned leads and add leads. Give crm.manage in Roles & Permissions to anyone who should see all leads, assign them and connect lead sources.",
+    afterConnect: "Next: open CRM → Lead sources to connect IndiaMART or your website form.",
   },
 };
 
