@@ -45,6 +45,7 @@ export interface DrawerActions {
   canSend: boolean;
   canApprove: boolean;
   canChallan: boolean;
+  canInvoice: boolean;
   canEdit: boolean;
   canDelete: boolean;
   canClose: boolean;
@@ -53,6 +54,7 @@ export interface DrawerActions {
   onSend: () => void;
   onApprove: () => void;
   onChallan: () => void;
+  onInvoice: () => void;
   onDownload: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -450,8 +452,13 @@ const QuotationDrawer: React.FC<{
                   </button>
                 </Popconfirm>
               )}
+              {a.canInvoice && (
+                <button type="button" className="qp-btn white" onClick={a.onInvoice}>
+                  <FileDoneOutlined /> Create invoice
+                </button>
+              )}
               {a.canChallan && (
-                <button type="button" className="qp-btn white" onClick={a.onChallan}>
+                <button type="button" className={`qp-btn ${a.canInvoice ? "glass" : "white"}`} onClick={a.onChallan}>
                   <CarOutlined /> Create delivery challan
                 </button>
               )}

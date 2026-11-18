@@ -27,6 +27,7 @@ export interface RowActions {
   canSend: (q: any) => boolean;
   canApprove: (q: any) => boolean;
   canChallan: (q: any) => boolean;
+  canInvoice: (q: any) => boolean;
   canEdit: (q: any) => boolean;
   canDelete: (q: any) => boolean;
   canClose: (q: any) => boolean;
@@ -35,6 +36,7 @@ export interface RowActions {
   onSend: (q: any) => void;
   onApprove: (q: any) => void;
   onChallan: (q: any) => void;
+  onInvoice: (q: any) => void;
   onDownload: (q: any) => void;
   onEdit: (q: any) => void;
   onDelete: (q: any) => void;
@@ -209,6 +211,13 @@ const Row: React.FC<{ q: any; i: number; selected: boolean; today: Dayjs; a: Row
               </button>
             </Tooltip>
           </Popconfirm>
+        )}
+        {a.canInvoice(q) && (
+          <Tooltip title="Create invoice">
+            <button type="button" className="qp-act invoice" onClick={() => a.onInvoice(q)} aria-label="Create invoice">
+              <FileDoneOutlined />
+            </button>
+          </Tooltip>
         )}
         {a.canChallan(q) && (
           <Tooltip title="Create delivery challan">

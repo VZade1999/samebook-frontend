@@ -23,8 +23,8 @@ import AppsPage from "@/modules/apps/pages/AppsPage";
 // import QuotationList from "../modules/quotation/pages/InvoiceList";
 
 import ProtectedRoute from "../permissions/ProtectedRoute";
-import InvoiceList from "@/modules/invoice/pages/InvoiceListPage";
-import InvoiceDetails from "@/modules/invoice/pages/InvoiceDetails";
+import InvoicePage from "@/modules/invoice/pages";
+import InvoiceDetailsRedirect from "@/modules/invoice/pages/InvoiceDetailsRedirect";
 import Profile from "@/modules/auth/profile/page";
 import ChallanListPage from "@/modules/delivery-challan/pages/ChallanListPage";
 import ChallanDetailsPage from "@/modules/delivery-challan/pages/ChallanDetailsPage";
@@ -139,7 +139,7 @@ const PrivateRoutes = () => {
           path="/invoice"
           element={
             <ProtectedRoute permission="invoices.view">
-              <InvoiceList />
+              <InvoicePage />
             </ProtectedRoute>
           }
         />
@@ -147,8 +147,8 @@ const PrivateRoutes = () => {
         <Route
           path="/invoice-details/:id"
           element={
-            <ProtectedRoute permission="quotations.view">
-              <InvoiceDetails />
+            <ProtectedRoute permission="invoices.view">
+              <InvoiceDetailsRedirect />
             </ProtectedRoute>
           }
         />

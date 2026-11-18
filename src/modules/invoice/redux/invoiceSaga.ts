@@ -66,7 +66,7 @@ function* getInvoicesSaga(action: any): any {
   } catch (error: any) {
     yield put({
       type: ASYNC_GET_INVOICES_FAILED,
-      error: error?.message,
+      error: (error?.response?.data?.message || error?.message),
       key,
     });
   }
@@ -102,7 +102,7 @@ function* getInvoiceDetailsSaga(action: any): any {
   } catch (error: any) {
     yield put({
       type: ASYNC_GET_INVOICE_DETAILS_FAILED,
-      error: error?.message,
+      error: (error?.response?.data?.message || error?.message),
       key,
     });
   }
@@ -150,13 +150,13 @@ function* generateInvoiceSaga(action: any): any {
     notification.error({
       message: 'Generate Invoice Failed',
       description:
-        error?.message ||
+        (error?.response?.data?.message || error?.message) ||
         'Unable to generate invoice',
     });
 
     yield put({
       type: ASYNC_GENERATE_INVOICE_FAILED,
-      error: error?.message,
+      error: (error?.response?.data?.message || error?.message),
     });
   }
 }
@@ -203,13 +203,13 @@ function* sendInvoiceSaga(action: any): any {
     notification.error({
       message: 'Send Invoice Failed',
       description:
-        error?.message ||
+        (error?.response?.data?.message || error?.message) ||
         'Unable to send invoice',
     });
 
     yield put({
       type: ASYNC_SEND_INVOICE_FAILED,
-      error: error?.message,
+      error: (error?.response?.data?.message || error?.message),
     });
   }
 }
@@ -262,13 +262,13 @@ function* addPaymentSaga(action: any): any {
     notification.error({
       message: 'Payment Failed',
       description:
-        error?.message ||
+        (error?.response?.data?.message || error?.message) ||
         'Unable to add payment',
     });
 
     yield put({
       type: ASYNC_ADD_PAYMENT_FAILED,
-      error: error?.message,
+      error: (error?.response?.data?.message || error?.message),
     });
   }
 }
@@ -303,7 +303,7 @@ function* getInvoiceTimelineSaga(action: any): any {
   } catch (error: any) {
     yield put({
       type: ASYNC_GET_INVOICE_TIMELINE_FAILED,
-      error: error?.message,
+      error: (error?.response?.data?.message || error?.message),
       key,
     });
   }

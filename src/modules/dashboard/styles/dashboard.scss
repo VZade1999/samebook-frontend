@@ -87,6 +87,10 @@ $radius: 16px;
 .db-hero {
   position: relative;
   overflow: hidden;
+  // clip, where supported: same look, but the hero is not a scroll container,
+  // so focusing / scrolling to something inside it can't slide its contents up
+  // to show the glow circles that hang below its edge.
+  overflow: clip;
   border-radius: 22px;
   color: #fff;
   background: linear-gradient(125deg, $ink 0%, #172554 40%, #1d4ed8 80%, #2a78d6 110%);

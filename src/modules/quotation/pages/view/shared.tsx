@@ -180,6 +180,8 @@ export const getValidityDate = (v: string | undefined) => {
 export const canSendStatus = (q: any) => !!q && !q.has_invoice && ["DRAFT", "SENT"].includes(q.status);
 export const canApproveStatus = (q: any) => !!q && !q.has_invoice && q.status === "SENT";
 export const canChallanStatus = (q: any) => !!q && q.status === "APPROVED";
+/** An invoice can be made from an approved quotation that has none yet (mirrors generateInvoice). */
+export const canInvoiceStatus = (q: any) => !!q && q.status === "APPROVED" && !q.has_invoice;
 /** Open and not invoiced (mirrors closeBlocker in quotation-insights.rules.ts). */
 export const canCloseStatus = (q: any) => !!q && !q.has_invoice && ["DRAFT", "", "SENT", "APPROVED"].includes(q.status ?? "");
 export const canReopenStatus = (q: any) => !!q && !q.has_invoice && ["REJECTED", "EXPIRED"].includes(q.status);

@@ -335,6 +335,7 @@ $mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   &.send { --tone: var(--qp-sent); }
   &.approve { --tone: var(--qp-good); }
   &.challan { --tone: var(--qp-invoiced); }
+  &.invoice { --tone: var(--qp-good); }
   &.del { --tone: var(--qp-bad); }
   &:disabled { opacity: 0.5; cursor: default; }
 }

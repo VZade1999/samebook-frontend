@@ -31,6 +31,7 @@ import {
   canApproveStatus,
   canChallanStatus,
   canCloseStatus,
+  canInvoiceStatus,
   canReopenStatus,
   canSendStatus,
   getValidityDate,
@@ -555,6 +556,9 @@ const QuotationPage = () => {
     [dispatch, userId],
   );
   const handleCreateChallan = useCallback((record: any) => navigate(`/app/delivery-challans?fromQuotation=${record.id}`), [navigate]);
+  // Opens the invoice page's "New invoice" dialog with this quotation picked.
+  const handleCreateInvoice = useCallback((record: any) => navigate(`/app/invoice?new=1&quotation=${record.id}`), [navigate]);
+  const canMakeInvoice = can("invoices.create");
 
   // ── Close (rejected / expired, with feedback) and reopen ──────────────────
   // Both mark a billing change, so the list and summary refetch; an open
@@ -658,6 +662,7 @@ const QuotationPage = () => {
       canSend: (q) => can("quotations.send") && canSendStatus(q),
       canApprove: (q) => can("quotations.send") && canApproveStatus(q),
       canChallan: (q) => can("challans.create") && canChallanStatus(q),
+      canInvoice: (q) => canMakeInvoice && canInvoiceStatus(q),
       canEdit: (q) => can("quotations.edit") && !q.has_invoice && !isClosed(q),
       canDelete: (q) => can("quotations.delete") && q.status === "DRAFT",
       canClose: (q) => can("quotations.edit") && canCloseStatus(q),
@@ -666,6 +671,7 @@ const QuotationPage = () => {
       onSend: (q) => sendById(q.id),
       onApprove: (q) => approveById(q.id),
       onChallan: handleCreateChallan,
+      onInvoice: handleCreateInvoice,
       onDownload: downloadQuotationPDF,
       onEdit: handleEdit,
       onDelete: handleDelete,
@@ -675,7 +681,7 @@ const QuotationPage = () => {
       downloadingId: downloadingQuotationId,
       deletingId: deletingQuotationId,
     }),
-    [can, canExport, sendById, approveById, handleCreateChallan, downloadQuotationPDF, handleEdit, handleDelete, confirmReopen, actingId, downloadingQuotationId, deletingQuotationId],
+    [can, canExport, canMakeInvoice, sendById, approveById, handleCreateChallan, handleCreateInvoice, downloadQuotationPDF, handleEdit, handleDelete, confirmReopen, actingId, downloadingQuotationId, deletingQuotationId],
   );
 
   // Until fresh details for the opened quotation arrive, show its list row
@@ -688,6 +694,7 @@ const QuotationPage = () => {
     canSend: !!drawerQ && can("quotations.send") && canSendStatus(drawerQ),
     canApprove: !!drawerQ && can("quotations.send") && canApproveStatus(drawerQ),
     canChallan: !!drawerQ && can("challans.create") && canChallanStatus(drawerQ),
+    canInvoice: !!drawerQ && canMakeInvoice && canInvoiceStatus(drawerQ),
     canEdit: !!drawerQ && can("quotations.edit") && !drawerQ.has_invoice && !isClosed(drawerQ),
     canDelete: !!drawerQ && can("quotations.delete") && drawerQ.status === "DRAFT",
     canClose: !!drawerQ && can("quotations.edit") && canCloseStatus(drawerQ),
@@ -696,6 +703,7 @@ const QuotationPage = () => {
     onSend: () => drawerQ && sendById(drawerQ.id),
     onApprove: () => drawerQ && approveById(drawerQ.id),
     onChallan: () => drawerQ && handleCreateChallan(drawerQ),
+    onInvoice: () => drawerQ && handleCreateInvoice(drawerQ),
     onDownload: () => drawerQ && downloadQuotationPDF(drawerQ),
     onEdit: () => drawerQ && handleEdit(drawerQ),
     onDelete: () => {
