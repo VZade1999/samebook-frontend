@@ -5,8 +5,8 @@
 
 export const ACCEPT = "image/png,image/jpeg,image/webp";
 export const MAX_FILE_MB = 10;
-/** Long side of the saved image: crisp at the ~2 cm it prints at, and small. */
-export const OUT_SIDE = 720;
+/** Long side of the saved image: ~300 dpi at the size it prints, and a small file. */
+export const OUT_SIDE = 640;
 /** Long side a photo is processed at. */
 const WORK_SIDE = 1400;
 
@@ -291,12 +291,72 @@ function inkBox(alpha: (i: number) => number, w: number, h: number): Box | null 
   return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
 
-function finish(src: HTMLCanvasElement, box: Box): Prepared {
+/**
+ * Ink is one colour per stroke: each pixel's colour becomes the average of its
+ * neighbours' (weighted by how much ink they hold), so a photo's grain doesn't
+ * speckle the ink. Transparency is left as it is.
+ */
+function evenInk(d: Uint8ClampedArray, w: number, h: number) {
+  const src = new Uint8ClampedArray(d);
+  const R = 2;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (!src[i + 3]) continue;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let sum = 0;
+      for (let dy = -R; dy <= R; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= h) continue;
+        for (let dx = -R; dx <= R; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= w) continue;
+          const j = (yy * w + xx) * 4;
+          const a = src[j + 3];
+          r += src[j] * a;
+          g += src[j + 1] * a;
+          b += src[j + 2] * a;
+          sum += a;
+        }
+      }
+      d[i] = r / sum;
+      d[i + 1] = g / sum;
+      d[i + 2] = b / sum;
+    }
+  }
+}
+
+/**
+ * Crops to `box`, resizes, and saves as PNG. "photo": ink cleaned from a photo
+ * (grain evened out); "ink": already clean ink on transparent; "opaque": the
+ * paper was kept, so it is saved as it is.
+ */
+function finish(src: HTMLCanvasElement, box: Box, kind: "photo" | "ink" | "opaque"): Prepared {
   const k = Math.min(1, OUT_SIDE / Math.max(box.w, box.h));
   const out = makeCanvas(Math.max(8, box.w * k), Math.max(8, box.h * k));
   const ctx = ctx2d(out);
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(src, box.x, box.y, box.w, box.h, 0, 0, out.width, out.height);
+  if (kind === "opaque") return { dataUrl: out.toDataURL("image/png"), width: out.width, height: out.height };
+  // Fewer colour and see-through steps: invisible in ink on paper, but a photo's
+  // grain no longer bloats the file (and every PDF it is printed on).
+  const img = ctx.getImageData(0, 0, out.width, out.height);
+  const d = img.data;
+  if (kind === "photo") evenInk(d, out.width, out.height);
+  for (let i = 0; i < d.length; i += 4) {
+    const a = Math.round(d[i + 3] / 17) * 17;
+    d[i + 3] = a;
+    if (!a) {
+      d[i] = d[i + 1] = d[i + 2] = 0;
+      continue;
+    }
+    d[i] = Math.min(255, Math.round(d[i] / 12) * 12);
+    d[i + 1] = Math.min(255, Math.round(d[i + 1] / 12) * 12);
+    d[i + 2] = Math.min(255, Math.round(d[i + 2] / 12) * 12);
+  }
+  ctx.putImageData(img, 0, 0);
   return { dataUrl: out.toDataURL("image/png"), width: out.width, height: out.height };
 }
 
@@ -315,15 +375,15 @@ export function prepareUpload(src: Source, clean: boolean): Prepared {
     const d = pixels.data;
     const box = inkBox((i) => d[i * 4 + 3], w, h);
     if (!box) throw new Error(NO_INK);
-    return finish(canvas, box);
+    return finish(canvas, box, "ink");
   }
   const cleaned = cleanPaper(pixels);
   const box = inkBox((i) => cleaned.data[i * 4 + 3], w, h);
   if (!box) throw new Error(NO_INK);
-  if (!clean) return finish(canvas, box);
+  if (!clean) return finish(canvas, box, "opaque");
   const tmp = makeCanvas(w, h);
   ctx2d(tmp).putImageData(cleaned, 0, 0);
-  return finish(tmp, box);
+  return finish(tmp, box, "photo");
 }
 
 // ── Drawn on screen ─────────────────────────────────────────────────────────
@@ -384,5 +444,5 @@ export function prepareDrawing(strokes: Stroke[], padW: number, padH: number): P
   const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   const box = inkBox((i) => d[i * 4 + 3], canvas.width, canvas.height);
   if (!box) throw new Error("Sign in the box first");
-  return finish(canvas, box);
+  return finish(canvas, box, "ink");
 }

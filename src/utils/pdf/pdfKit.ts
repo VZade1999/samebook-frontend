@@ -814,9 +814,22 @@ export class PdfKit {
     const gap = 12;
     const pad = 12;
     const SIGN_W = 176;
-    // Taller with a signature, so it prints about 2 cm high.
-    const SIGN_MIN = this.signature ? 96 : 80;
     const BANK_W = 196;
+    /**
+     * The signature box's height. With a signature it is taller (the signature
+     * prints about 2 cm high) — but it shrinks, down to the plain 80, rather
+     * than push the block onto a new page. `others`: the tallest card beside
+     * it; `rest`: the block's height besides the row.
+     */
+    const signRow = (others: number, rest: number) => {
+      const PLAIN = 80;
+      const FULL = 96;
+      if (!this.signature) return Math.max(PLAIN, others);
+      const room = this.H - this.FOOT - 4 - top - rest;
+      if (room >= Math.max(FULL, others)) return Math.max(FULL, others);
+      if (room >= Math.max(PLAIN, others)) return room;
+      return Math.max(FULL, others); // a new page either way: full size there
+    };
     const bank = (o.bank || []).filter(([, v]) => v);
     const termsText = String(o.terms || "").trim();
     const termLines = (w: number) => {
@@ -838,7 +851,9 @@ export class PdfKit {
     // Challan: its notes, the declaration, then the receiver's box beside the signature.
     if (o.receiver) {
       const notesH = termsText ? termsH(CW) : 0;
-      let y = this.ensure(top, (notesH ? notesH + gap : 0) + textH(declL) + SIGN_MIN);
+      const rest = (notesH ? notesH + gap : 0) + textH(declL);
+      const SIGN_H = signRow(0, rest);
+      let y = this.ensure(top, rest + SIGN_H);
       if (notesH) {
         this.termsCard(M, y, CW, notesH, termsTitle, termLines(CW));
         y += notesH + gap;
@@ -848,17 +863,18 @@ export class PdfKit {
         declL.forEach((l, i) => doc.text(l, M, y + 4 + i * 10.2));
         y += textH(declL);
       }
-      this.receiverCard(M, y, CW - SIGN_W - gap, SIGN_MIN);
-      this.signCard(M + CW - SIGN_W, y, SIGN_W, SIGN_MIN, o.signFor);
-      return y + SIGN_MIN;
+      this.receiverCard(M, y, CW - SIGN_W - gap, SIGN_H);
+      this.signCard(M + CW - SIGN_W, y, SIGN_W, SIGN_H, o.signFor);
+      return y + SIGN_H;
     }
 
     // Invoice / quotation: one row — bank | terms | signature — then the thank-you and note.
     const after = (o.thanks ? 16 : 0) + textH(noteL);
     const termsW = CW - SIGN_W - gap - (bank.length ? BANK_W + gap : 0);
     if (!termsText || termLines(termsW).length <= 9) {
-      const rowH = Math.max(SIGN_MIN, bank.length ? bankH : 0, termsText ? termsH(termsW) : 0);
-      let y = this.ensure(top, rowH + (after ? gap - 2 + after : 0));
+      const rest = after ? gap - 2 + after : 0;
+      const rowH = signRow(Math.max(bank.length ? bankH : 0, termsText ? termsH(termsW) : 0), rest);
+      let y = this.ensure(top, rowH + rest);
       let x = M;
       if (bank.length) {
         const w = termsText ? BANK_W : CW - SIGN_W - gap;
@@ -871,8 +887,8 @@ export class PdfKit {
       return after ? this.closingText(y + gap - 2, o.thanks, noteL) : y;
     }
     // Long terms: bank beside the signature, then the terms across the page.
-    const row1 = Math.max(SIGN_MIN, bank.length ? bankH : 0);
     const tH = termsH(CW);
+    const row1 = signRow(bank.length ? bankH : 0, gap + Math.min(tH, 300));
     let y = this.ensure(top, row1 + gap + Math.min(tH, 300));
     if (bank.length) this.bankCard(M, y, CW - SIGN_W - gap, row1, bank);
     this.signCard(M + CW - SIGN_W, y, SIGN_W, row1, o.signFor);
