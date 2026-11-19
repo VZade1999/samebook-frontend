@@ -1,697 +1,102 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { notification } from "antd";
-import { StorageService } from "@/storage";
+import { BAD, MUTED, PdfKit, type Column, type Fact, type ItemCell } from "@/utils/pdf/pdfKit";
+import { addressLines, amount, date, parseJson, pct, qty, withDate } from "@/utils/pdf/pdfFormat";
+import { bankRows, lineNet, sellerFromSnapshot, storedCompany, totalRows } from "@/utils/pdf/pdfData";
 
-const formatCurrency = (value: any) => {
-  return `Rs.${Number(value || 0).toFixed(2)}`;
-};
-
-const formatDate = (date: string) => {
-  if (!date) return "";
-  return new Date(date).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-};
-
-// Normalizes a company logo into a data URL, regardless of which backend
-// endpoint produced it: login returns a raw Buffer (serialized as
-// { type: "Buffer", data: number[] }), while GET /companies/:id already
-// pre-encodes it as a "data:image/...;base64,..." string.
-const bufferToImageDataUrl = (logo: any): string | null => {
-  if (!logo) return null;
-
-  if (typeof logo === "string") {
-    if (logo.startsWith("data:image")) return logo;
-    // Plain base64 without a data: prefix — wrap it.
-    return logo.length > 0 ? `data:image/png;base64,${logo}` : null;
-  }
-
-  if (!logo?.data || !Array.isArray(logo.data) || logo.data.length === 0) {
-    return null;
-  }
-  try {
-    const bytes = new Uint8Array(logo.data);
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binary);
-
-    const isPng =
-      bytes[0] === 0x89 &&
-      bytes[1] === 0x50 &&
-      bytes[2] === 0x4e &&
-      bytes[3] === 0x47;
-    const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
-
-    const mime = isPng ? "image/png" : isJpeg ? "image/jpeg" : "image/png";
-    return `data:${mime};base64,${base64}`;
-  } catch (e) {
-    console.error("Failed to convert logo buffer to data URL", e);
-    return null;
-  }
-};
-
-export async function downloadQuotationPDF(
-  quotation: any,
-  fetchQuotationDetails?: (id: number) => Promise<any>,
-): Promise<void> {
-  const storageService = new StorageService();
-
+/**
+ * The quotation PDF: letterhead, key facts (number, date, valid until, the
+ * customer's PO), quotation-for / deliver-to, items with their discounts,
+ * totals with the amount in words, bank / terms / signature.
+ */
+export async function downloadQuotationPDF(quotation: any, fetchQuotationDetails?: (id: number) => Promise<any>): Promise<void> {
   try {
     const data =
-      quotation.items?.length > 0
-        ? quotation
-        : await fetchQuotationDetails?.(quotation.id).then(
-            (res) => res?.data?.data || quotation,
-          );
+      quotation.items?.length > 0 ? quotation : await fetchQuotationDetails?.(quotation.id).then((res) => res?.data?.data || quotation);
 
-    const billingAddress =
-      typeof data.billing_address_snapshot === "string"
-        ? JSON.parse(data.billing_address_snapshot)
-        : data.billing_address_snapshot || {};
+    const company = storedCompany();
+    const seller = sellerFromSnapshot(data.business_details_snapshot, company);
+    const items: any[] = Array.isArray(data.items) ? data.items : [];
+    const billing = parseJson(data.billing_address_snapshot) || {};
+    const shipping = parseJson(data.shipping_address_snapshot) || {};
+    const billLines = addressLines(billing);
+    const shipLines = addressLines(shipping);
+    const sameAddress = !shipLines.length || shipLines.join("|").toLowerCase() === billLines.join("|").toLowerCase();
+    const contact = [
+      data.contact_person_name && data.contact_person_name !== data.customer_name ? data.contact_person_name : null,
+      data.contact_person_phone,
+      data.contact_person_email,
+    ]
+      .filter(Boolean)
+      .join("   ·   ");
+    const grand = Number(data.grand_total || 0);
+    const validTill = date(data.validity_date);
+    const status = String(data.status || "").toUpperCase();
+    const terms = String(data.notes || "").trim() || company?.default_terms_conditions || "";
 
-    const shippingAddress =
-      typeof data.shipping_address_snapshot === "string"
-        ? JSON.parse(data.shipping_address_snapshot)
-        : data.shipping_address_snapshot || {};
+    const kit = await PdfKit.create("quotation");
+    if (status === "EXPIRED") kit.stamp("EXPIRED", MUTED);
+    else if (status === "REJECTED") kit.stamp("DECLINED", BAD);
+    const cur = kit.cur;
 
-    const businessSnapshot =
-      typeof data.business_details_snapshot === "string"
-        ? JSON.parse(data.business_details_snapshot)
-        : data.business_details_snapshot || {};
-
-    // ─── Company Details (logo, name) from storage ────────────────────────────
-    let companyDetails: any = null;
-    try {
-      const companyDetailsRaw = storageService.getItem(
-        StorageService.STORAGE_KEYS.COMPANY_DETAILS,
-      );
-      if (companyDetailsRaw) {
-        companyDetails = JSON.parse(companyDetailsRaw);
-      }
-    } catch (error) {
-      console.error("Failed to parse stored company details", error);
-    }
-
-    const companyName =
-      companyDetails?.name || businessSnapshot.businessName || "YOUR COMPANY";
-
-    const companyLogoDataUrl = bufferToImageDataUrl(
-      companyDetails?.logo || businessSnapshot.logo,
-    );
-
-    const billingAddressLines = [
-      billingAddress.address_line_1,
-      billingAddress.address_line_2,
-      [billingAddress.city, billingAddress.state].filter(Boolean).join(", "),
-      [billingAddress.country, billingAddress.postal_code]
-        .filter(Boolean)
-        .join(" - "),
-    ].filter(Boolean);
-
-    // Shipping address lines — rendered below the billing address in the
-    // address card. Filtered the same way as billingAddressLines so empty
-    // fields (e.g. no address_line_2) don't leave blank rows.
-    const shippingAddressLines = [
-      shippingAddress.address_line_1,
-      shippingAddress.address_line_2,
-      [shippingAddress.city, shippingAddress.state].filter(Boolean).join(", "),
-      [shippingAddress.country, shippingAddress.postal_code]
-        .filter(Boolean)
-        .join(" - "),
-    ].filter(Boolean);
-    const hasShippingData = shippingAddressLines.length > 0;
-
-    // Build business detail lines, filtering out undefined/empty entries
-    const businessDetailsLines: string[] = [
-      businessSnapshot.businessName,
-      ...(typeof businessSnapshot.businessAddress === "string"
-        ? businessSnapshot.businessAddress
-            .split("\n")
-            .map((s: string) => s.trim())
-            .filter(Boolean)
-        : []),
-      businessSnapshot.businessPhone
-        ? `Phone: ${businessSnapshot.businessPhone}`
-        : undefined,
-      businessSnapshot.businessEmail
-        ? `Email: ${businessSnapshot.businessEmail}`
-        : undefined,
-      businessSnapshot.businessGST
-        ? `GST: ${businessSnapshot.businessGST}`
-        : undefined,
-      ...(Array.isArray(businessSnapshot.businessMeta)
-        ? businessSnapshot.businessMeta
-            .filter(
-              (meta: any) =>
-                meta?.key &&
-                meta?.value &&
-                meta.key !== "undefined" &&
-                meta.value !== "undefined",
-            )
-            .map((meta: any) => `${meta.key}: ${meta.value}`)
-        : []),
-    ].filter(Boolean) as string[];
-
-    // ─── Footer business info ─────────────────────────────────────────────────
-    const businessAddrParts =
-      typeof businessSnapshot.businessAddress === "string"
-        ? businessSnapshot.businessAddress
-            .split("\n")
-            .map((s: string) => s.trim())
-            .filter(Boolean)
-        : [];
-    const businessLocation =
-      businessAddrParts[businessAddrParts.length - 1] || "";
-
-    const footerEmail =
-      businessSnapshot.businessEmail || "sales@yourcompany.com";
-    const footerPhone = businessSnapshot.businessPhone || "9999999999";
-
-    const doc = new jsPDF({
-      orientation: "portrait",
-      unit: "pt",
-      format: "a4",
-    });
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const marginL = 45;
-    const marginR = pageWidth - 45;
-
-    // ─── helpers ──────────────────────────────────────────────────────────────
-    const drawPageBase = () => {
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, 0, pageWidth, pageHeight, "F");
-    };
-
-    const setBlack = () => doc.setTextColor(30, 30, 30);
-    const setGray = () => doc.setTextColor(120, 120, 120);
-    const hLine = (y: number, x1 = marginL, x2 = marginR, gray = false) => {
-      doc.setDrawColor(gray ? 200 : 30, gray ? 200 : 30, gray ? 200 : 30);
-      doc.setLineWidth(gray ? 0.4 : 0.8);
-      doc.line(x1, y, x2, y);
-    };
-
-    // ─── PAGE 1 BASE ─────────────────────────────────────────────────────────
-    drawPageBase();
-
-    // ─── HEADER ──────────────────────────────────────────────────────────────
-    const LOGO_SIZE = 46;
-    const LOGO_Y = 42;
-    let textStartX = marginL + 26;
-
-    if (companyLogoDataUrl) {
-      try {
-        const imgProps = (doc as any).getImageProperties(companyLogoDataUrl);
-        const aspect = imgProps.width / imgProps.height;
-        const logoH = LOGO_SIZE;
-        const logoW = logoH * aspect;
-        doc.addImage(
-          companyLogoDataUrl,
-          imgProps.fileType,
-          marginL,
-          LOGO_Y,
-          logoW,
-          logoH,
-        );
-        textStartX = marginL + logoW + 12;
-      } catch (e) {
-        console.error("Failed to add company logo to PDF", e);
-        doc.setFillColor(30, 30, 30);
-        doc.rect(marginL, 38, 18, 18, "F");
-        textStartX = marginL + 26;
-      }
-    } else {
-      doc.setFillColor(30, 30, 30);
-      doc.rect(marginL, 38, 18, 18, "F");
-      textStartX = marginL + 26;
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(30);
-    setBlack();
-    doc.text("QUOTATION", marginR, 55, { align: "right" });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    setBlack();
-    doc.text(`QUOTATION NO: ${data.quotation_number || "-"}`, marginR, 80, {
-      align: "right",
-    });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    setGray();
-    doc.text(`VALID UNTIL: ${formatDate(data.validity_date)}`, marginR, 96, {
-      align: "right",
-    });
-
-    // ─── ADDRESS CARD ────────────────────────────────────────────────────────
-    const cardTop = 100;
-    const LINE_H = 14;
-    const TOP_PAD = 22;
-    const NAME_H = 20;
-    const PHONE_H = data.contact_person_phone ? LINE_H : 0;
-    const BOTTOM_PAD = 16;
-
-    // Shipping address block sizing — a small gap, a bold label, then either
-    // the address lines or a single "Same as billing address" fallback line.
-    const SHIP_GAP = 10;
-    const SHIP_LABEL_H = 14;
-    const shippingBlockLineCount = hasShippingData
-      ? shippingAddressLines.length
-      : 1;
-
-    const leftContentH =
-      TOP_PAD +
-      NAME_H +
-      billingAddressLines.length * LINE_H +
-      PHONE_H +
-      SHIP_GAP +
-      SHIP_LABEL_H +
-      shippingBlockLineCount * LINE_H +
-      BOTTOM_PAD;
-
-    const rightContentH =
-      TOP_PAD +
-      NAME_H +
-      (businessDetailsLines.length - 1) * LINE_H +
-      BOTTOM_PAD;
-
-    const cardH = Math.max(leftContentH, rightContentH, 100);
-    const midX = pageWidth / 2;
-    const col1 = marginL + 18;
-    const col2 = midX + 10;
-    const maxColWidth = midX - marginL - 28;
-
-    doc.setFillColor(248, 248, 248);
-    doc.roundedRect(marginL, cardTop, pageWidth - 90, cardH, 4, 4, "F");
-
-    // ── Left: Customer (Billing + Shipping) ───────────────────────────────────
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setGray();
-    doc.text("QUOTATION TO", col1, cardTop + 22);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    setBlack();
-    doc.text((data.customer_name || "-").toUpperCase(), col1, cardTop + 40);
-
-    // Customer number — printed directly below the customer name (was
-    // previously shown after the full billing address instead).
-    const NAME_TO_CONTENT_GAP = 17;
-    let addrY = cardTop + 40 + NAME_TO_CONTENT_GAP;
-
-    if (data.contact_person_phone) {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      setGray();
-      doc.text(`Customer No: ${data.contact_person_phone}`, col1, addrY);
-      addrY += LINE_H;
-    }
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setBlack();
-    billingAddressLines.forEach((line) => {
-      const wrapped = doc.splitTextToSize(line, maxColWidth);
-      wrapped.forEach((wl: string) => {
-        doc.text(wl, col1, addrY);
-        addrY += LINE_H;
-      });
-    });
-
-    // ── Shipping Address (below billing) ──────────────────────────────────────
-    addrY += SHIP_GAP;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setGray();
-    doc.text("SHIPPING ADDRESS", col1, addrY);
-    addrY += SHIP_LABEL_H;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    if (hasShippingData) {
-      setBlack();
-      shippingAddressLines.forEach((line) => {
-        const wrapped = doc.splitTextToSize(line, maxColWidth);
-        wrapped.forEach((wl: string) => {
-          doc.text(wl, col1, addrY);
-          addrY += LINE_H;
-        });
-      });
-    } else {
-      setGray();
-      doc.text("Same as billing address", col1, addrY);
-      addrY += LINE_H;
-    }
-
-    // ── Divider ──────────────────────────────────────────────────────────────
-    doc.setDrawColor(210, 210, 210);
-    doc.setLineWidth(0.5);
-    doc.line(midX, cardTop + 12, midX, cardTop + cardH - 12);
-
-    // ── Right: Business Details ───────────────────────────────────────────────
-    let detY = cardTop + 22;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setGray();
-    doc.text("BUSINESS DETAILS", col2, detY);
-    detY += 18;
-
-    businessDetailsLines.forEach((line, idx) => {
-      if (idx === 0) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        setBlack();
-      } else {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        setBlack();
-      }
-      const wrapped = doc.splitTextToSize(line, maxColWidth);
-      wrapped.forEach((wl: string) => {
-        doc.text(wl, col2, detY);
-        detY += LINE_H;
-      });
-    });
-
-    // ─── ITEMS TABLE ─────────────────────────────────────────────────────────
-    const metaY = cardTop + cardH + 28;
-    hLine(metaY - 6);
-
-    const rows =
-      data.items?.map((item: any, index: number) => [
-        `${index + 1}.`,
-        item.product_name || "",
-        // item.hsn_code || "-",
-        Number(item.qty || 0).toFixed(2),
-        item.unit || "",
-        formatCurrency(item.rate),
-        `${Number(item.discount_percent || 0).toFixed(2)}%\n${formatCurrency(item.rate - item.discounted_rate)}`,
-        formatCurrency(item.discounted_rate),
-        formatCurrency(item.total),
-      ]) || [];
-
-    // ── Fixed column grid ───────────────────────────────────────────────────
-    // 8 header labels, 8 values per body row (see `rows` above) — every
-    // index from 0 to 7 MUST have an explicit width here. Previously column
-    // 7 (TOTAL) had no entry, so it fell back to "auto" sizing alongside the
-    // ITEM DESCRIPTION column (also "auto"). Two auto-width columns compete
-    // for the same leftover space based on each row's actual text length,
-    // so a longer/shorter item name silently reflowed the column boundaries
-    // and the header row (sized once, from its own text) no longer lined up
-    // with the body cells underneath it. Giving every column but the
-    // description a fixed width — and only letting the description column
-    // flex — keeps every column boundary identical between the head and
-    // every body row, regardless of how long an item name is.
-    const availableWidth = marginR - marginL;
-    const fixedColumnWidths = {
-      no: 24,
-      qty: 42,
-      unit: 40,
-      mrp: 68,
-      discount: 78,
-      discountedRate: 68,
-      total: 68,
-    };
-    const fixedTotal =
-      fixedColumnWidths.no +
-      fixedColumnWidths.qty +
-      fixedColumnWidths.unit +
-      fixedColumnWidths.mrp +
-      fixedColumnWidths.discount +
-      fixedColumnWidths.discountedRate +
-      fixedColumnWidths.total;
-    // Whatever space is left after all fixed columns goes to the item
-    // description column — computed, not guessed, so the table always
-    // spans exactly `availableWidth` no matter the page size.
-    const descriptionWidth = Math.max(availableWidth - fixedTotal, 90);
-
-    const tableColumnStyles = {
-      0: { cellWidth: fixedColumnWidths.no, halign: "left" as const },
-      1: { cellWidth: descriptionWidth, halign: "left" as const },
-      2: { cellWidth: fixedColumnWidths.qty, halign: "center" as const },
-      3: { cellWidth: fixedColumnWidths.unit, halign: "center" as const },
-      4: { cellWidth: fixedColumnWidths.mrp, halign: "right" as const },
-      5: { cellWidth: fixedColumnWidths.discount, halign: "right" as const },
-      6: {
-        cellWidth: fixedColumnWidths.discountedRate,
-        halign: "right" as const,
-      },
-      7: { cellWidth: fixedColumnWidths.total, halign: "right" as const },
-    };
-
-    autoTable(doc, {
-      startY: metaY + 18,
-      margin: { left: marginL, right: 45 },
-      head: [
-        ["NO", "ITEM DESCRIPTION", "QTY", "UNIT", "MRP", "DISCOUNT", "DISCOUNTED RATE", "TOTAL"],
-      ],
-      body: rows,
-      theme: "plain",
-      tableWidth: availableWidth,
-      // Every column has a fixed cellWidth now (see tableColumnStyles), so
-      // autoTable must treat the table as fixed-layout rather than
-      // recomputing widths from content — this is what actually locks the
-      // header to the body columns.
-      styles: {
-        overflow: "linebreak",
-      },
-      headStyles: {
-        fillColor: false,
-        textColor: [30, 30, 30],
-        fontStyle: "bold",
-        fontSize: 8.5,
-        cellPadding: { top: 6, bottom: 6, left: 4, right: 4 },
-      },
-      bodyStyles: {
-        fillColor: false,
-        textColor: [30, 30, 30],
-        fontSize: 9,
-        cellPadding: { top: 8, bottom: 8, left: 4, right: 4 },
-      },
-      alternateRowStyles: {
-        fillColor: false,
-      },
-      columnStyles: tableColumnStyles,
-      didParseCell: (data: any) => {
-        if (data.row.section === "head") {
-          data.cell.styles.lineWidth = { bottom: 0.8 };
-          data.cell.styles.lineColor = [30, 30, 30];
-        } else {
-          data.cell.styles.lineWidth = { bottom: 0.3 };
-          data.cell.styles.lineColor = [200, 200, 200];
-        }
-      },
-      didAddPage: () => {
-        drawPageBase();
-      },
-    } as any);
-
-    // ─── SUMMARY SECTION ─────────────────────────────────────────────────────
-    let finalY = (doc as any).lastAutoTable.finalY + 10;
-
-    hLine(finalY, marginL, marginR, false);
-    finalY += 20;
-
-    // How much vertical room the summary block (Subtotal → Grand Total)
-    // and the footer below it actually need, derived from the same
-    // constants used to draw them further down — not a guessed number.
-    // This is what makes the page-break decision correct no matter how
-    // many items push the table further down the page: with few items
-    // `finalY` stays small and this check is a no-op; with many items (or
-    // items spilling onto a later page), `finalY` grows and this reliably
-    // forces the summary onto a fresh page instead of letting it collide
-    // with the footer.
-    // checking 
-    const SUMMARY_ROW_H = 17;
-    const SUMMARY_ROWS_COUNT = 6; // Subtotal, Discount, CGST, SGST, IGST, Transport
-    const SUMMARY_DIVIDER_GAP = 14;
-    const GRAND_TOTAL_ROW_H = 20; // grand total line + breathing room
-    const FOOTER_HEIGHT = 145; // matches `footerTop = pageHeight - 145` below
-    const SAFETY_BUFFER = 20;
-
-    const SUMMARY_BLOCK_HEIGHT =
-      SUMMARY_ROWS_COUNT * SUMMARY_ROW_H + SUMMARY_DIVIDER_GAP + GRAND_TOTAL_ROW_H;
-
-    const BOTTOM_MARGIN = SUMMARY_BLOCK_HEIGHT + FOOTER_HEIGHT + SAFETY_BUFFER;
-
-    if (finalY + BOTTOM_MARGIN > pageHeight) {
-      doc.addPage();
-      drawPageBase();
-      finalY = 50;
-    }
-
-    // ── Total Amount — gray highlighted rectangle ─────────────────────────────
-    const totalBoxW = 190;
-    const totalBoxH = 58;
-    doc.setFillColor(248, 248, 248);
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(marginL, finalY - 8, totalBoxW, totalBoxH, 4, 4, "FD");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setGray();
-    doc.text("TOTAL AMOUNT", marginL + 12, finalY + 8);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(24);
-    setBlack();
-    doc.text(formatCurrency(data.grand_total), marginL + 12, finalY + 36);
-
-    // ── Summary table — right side ────────────────────────────────────────────
-    const summaryRows: [string, any][] = [
-      ["SUBTOTAL:", data.sub_total],
-      [`DISCOUNT (${data.discount_percent || 0}%):`, data.discount_amount],
-      [`CGST (${data.cgst_percent || 0}%):`, data.cgst_amount],
-      [`SGST (${data.sgst_percent || 0}%):`, data.sgst_amount],
-      [`IGST (${data.igst_percent || 0}%):`, data.igst_amount],
-      ["TRANSPORT:", data.transport_charges],
+    const facts: Fact[] = [
+      { label: "Quotation No.", value: data.quotation_number || "—" },
+      { label: "Date", value: date(data.quotation_date || data.created_at) || "—" },
+      { label: "Valid Until", value: validTill || "—" },
+      data.customer_po_number
+        ? { label: "Your PO", value: withDate(data.customer_po_number, data.customer_po_date) }
+        : { label: "Quotation Total", value: kit.money(grand), accent: true },
     ];
+    const cols: Column[] = [
+      { header: "#", width: 24, align: "center" },
+      { header: "ITEM & DESCRIPTION" },
+      { header: "HSN/SAC", width: 58, align: "center" },
+      { header: "QTY", width: 62, align: "right" },
+      { header: `RATE (${cur})`, width: 70, align: "right" },
+      { header: "DISC.", width: 44, align: "right" },
+      { header: `AMOUNT (${cur})`, width: 82, align: "right" },
+    ];
+    const rows = items.map((it, i) => [
+      String(i + 1),
+      {
+        content: it.description ? `${it.product_name || ""}\n${it.description}` : String(it.product_name || ""),
+        name: String(it.product_name || "—"),
+        sub: it.description || null,
+      } as ItemCell,
+      it.hsn_code || "—",
+      `${qty(it.qty)}${it.unit ? ` ${it.unit}` : ""}`,
+      amount(it.rate),
+      Number(it.discount_percent) > 0 ? pct(it.discount_percent) : "—",
+      amount(lineNet(it)),
+    ]);
 
-    const sumLabelX = pageWidth - 220;
-    const sumValueX = marginR;
-    let sumY = finalY + 6;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-
-    summaryRows.forEach(([label, value]) => {
-      setGray();
-      doc.text(label, sumLabelX, sumY);
-      setBlack();
-      doc.text(formatCurrency(value), sumValueX, sumY, { align: "right" });
-      sumY += 17;
+    kit.beginCopy(null);
+    let y = kit.header({ seller, title: "QUOTATION", number: data.quotation_number || "" });
+    y = kit.facts(y, facts) + 12;
+    y =
+      kit.parties(y, [
+        { title: "Quotation for", name: data.customer_name || "—", lines: billLines, gstin: data.customer_gst_number || billing.gst_number || "Unregistered", meta: contact ? [contact] : [] },
+        { title: "Deliver to", name: data.customer_name || "—", lines: sameAddress ? [] : shipLines, empty: "Same as the billing address" },
+      ]) + 12;
+    y = kit.table(y, cols, rows) + 12;
+    y = kit.totals(y, {
+      rows: totalRows(data, items, (v) => kit.money(v), kit.minus),
+      grand: { label: "Quotation total", value: kit.money(grand) },
+      leftHeight: (w) => kit.words(0, 0, w, grand, false),
+      left: (x, top, w) => kit.words(x, top, w, grand),
+    });
+    kit.closing(y + 12, {
+      bank: bankRows(data.payment_details_snapshot),
+      terms,
+      thanks: "Thank you for considering us!",
+      note: validTill ? `This quotation is valid until ${validTill}. Prices and availability may change after that date.` : null,
+      signFor: seller.name,
     });
 
-    hLine(sumY + 2, sumLabelX, sumValueX, false);
-    sumY += 14;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setBlack();
-    doc.text("GRAND TOTAL:", sumLabelX, sumY);
-    doc.text(formatCurrency(data.grand_total), sumValueX, sumY, {
-      align: "right",
-    });
-
-    // ─── FOOTER CONTENT ──────────────────────────────────────────────────────
-    const footerTop = pageHeight - 145;
-    hLine(footerTop, marginL, marginR, true);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setBlack();
-    doc.text("Payment Info:", marginL, footerTop + 18);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setGray();
-    const paymentSnapshotRaw = data.payment_details_snapshot;
-    const paymentSnapshot = paymentSnapshotRaw
-      ? typeof paymentSnapshotRaw === "string"
-        ? (JSON.parse(paymentSnapshotRaw) as any)
-        : paymentSnapshotRaw
-      : {};
-
-    const paymentLines: string[] = [];
-
-    if (paymentSnapshot && Object.keys(paymentSnapshot).length > 0) {
-      if (paymentSnapshot.bank_name)
-        paymentLines.push(`${paymentSnapshot.bank_name}`);
-      if (paymentSnapshot.account_holder_name)
-        paymentLines.push(
-          `Account Holder: ${paymentSnapshot.account_holder_name}`,
-        );
-      if (paymentSnapshot.account_number)
-        paymentLines.push(`Account #: ${paymentSnapshot.account_number}`);
-      if (paymentSnapshot.ifsc_code)
-        paymentLines.push(`IFSC: ${paymentSnapshot.ifsc_code}`);
-      if (paymentSnapshot.branch_name)
-        paymentLines.push(`Branch: ${paymentSnapshot.branch_name}`);
-    } else {
-      paymentLines.push(`Account: ${data.customer_name || "-"}`);
-    }
-
-    paymentLines.forEach((line, i) => {
-      doc.text(line, marginL, footerTop + 34 + i * 14);
-    });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setBlack();
-    doc.text("Terms & Conditions:", pageWidth / 2 - 40, footerTop + 18);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setGray();
-    const termsText = doc.splitTextToSize(
-      data.notes ||
-        companyDetails?.default_terms_conditions ||
-        "Payment due within 30 days of quotation date.",
-      160,
-    );
-    doc.text(termsText, pageWidth / 2 - 40, footerTop + 34);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setBlack();
-    doc.text("Authorized Signature", marginR, footerTop + 18, {
-      align: "right",
-    });
-
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(15);
-    setGray();
-    doc.text(companyName || "Your Company", marginR, footerTop + 50, {
-      align: "right",
-    });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setBlack();
-    doc.text("AUTHORIZED SIGNATORY", marginR, footerTop + 65, {
-      align: "right",
-    });
-
-    hLine(pageHeight - 42, marginL, marginR, true);
-
-    // ── Bottom strip — business email, phone, location ────────────────────────
-    const footerLocation = businessLocation || "Pune, Maharashtra";
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    setGray();
-    doc.text(
-      `Questions? Email us at ${footerEmail}  |  Call: ${footerPhone}  |  ${footerLocation}`,
-      pageWidth / 2,
-      pageHeight - 28,
-      { align: "center" },
-    );
-
-    // ─── PAGE NUMBERS ─────────────────────────────────────────────────────────
-    const totalPages = (doc as any).internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      setGray();
-      doc.text(`Page ${i} of ${totalPages}`, marginR, pageHeight - 14, {
-        align: "right",
-      });
-    }
-
-    doc.save(`quotation-${data.quotation_number}.pdf`);
-  } catch (error: any) {
+    kit.save(`quotation-${data.quotation_number}.pdf`);
+  } catch (err: any) {
     notification.error({
-      message: "Download Failed",
-      description: error?.message || "Unable to generate quotation PDF",
+      title: "Download failed",
+      description: err?.message || "Unable to make the quotation PDF",
     });
   }
 }

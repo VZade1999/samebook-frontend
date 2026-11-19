@@ -21,6 +21,7 @@ import {
   ReloadOutlined,
   SafetyCertificateOutlined,
   ShopOutlined,
+  SignatureOutlined,
   SolutionOutlined,
   TagsOutlined,
   TrophyOutlined,
@@ -59,6 +60,9 @@ import {
 } from "../utils/companyView";
 import NumberingPanel from "../../numbering/NumberingPanel";
 import { SalesFlowPanel } from "../salesFlow/SalesFlowPicker";
+import SignaturePanel from "../signature/SignaturePanel";
+import SignatureModal from "../signature/SignatureModal";
+import { useCompanySignature } from "../signature/signatureStore";
 import "../styles/company.scss";
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -70,6 +74,7 @@ const CompanyPage: React.FC = () => {
   const canEdit = can("companies.edit");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(false);
 
   const companyState = useSelector((state: any) => state.companies);
   const company = companyState?.companyDetails;
@@ -91,12 +96,19 @@ const CompanyPage: React.FC = () => {
     load();
   }, [load]);
 
-  const checklist = useMemo(() => profileChecklist(company), [company]);
+  // The live signature; the details only say whether there was one when they were loaded.
+  const { signature, status: signatureStatus } = useCompanySignature();
+  const hasSignature = signatureStatus === "ready" ? !!signature : !!company?.has_signature;
+
+  const checklist = useMemo(() => profileChecklist(company, hasSignature), [company, hasSignature]);
   const done = checklist.filter((c) => c.done).length;
   const strength = checklist.length ? Math.round((done / checklist.length) * 100) : 0;
   const nextUp = checklist.find((c) => !c.done);
 
   const openEdit = canEdit && company ? () => setIsEditModalOpen(true) : undefined;
+  const openSignature = canEdit && company ? () => setSignatureOpen(true) : undefined;
+  // The checklist's "Add": the signature has its own dialog; everything else is in Edit company.
+  const fixItem = openEdit ? (key: string) => (key === "signature" ? setSignatureOpen(true) : openEdit()) : undefined;
 
   if (loading && !company) return <Skeleton />;
 
@@ -331,39 +343,65 @@ const CompanyPage: React.FC = () => {
 
       {/* ── Body ── */}
       <main className="cp-grid">
-        <Panel
-          className="s7"
-          index={0}
-          icon={<SolutionOutlined />}
-          title="Business identity"
-          sub="How your company is named and reached"
-          action={editBtn()}
-        >
-          <div className="cp-fields">
-            <FieldTile icon={<FileProtectOutlined />} label="Legal name" value={company.legal_name} onAdd={openEdit} />
-            <FieldTile icon={<ProfileOutlined />} label="Registration number" value={company.registration_number} mono onAdd={openEdit} />
-            <FieldTile
-              icon={<SafetyCertificateOutlined />}
-              label="GSTIN"
-              value={company.gst_no}
-              mono
-              onAdd={openEdit}
-              badge={company.gst_no ? <span className={`cp-mini-badge ${gstValid ? "ok" : "warn"}`}>{gstValid ? "Valid format" : "Check format"}</span> : null}
-            />
-            <FieldTile icon={<ShopOutlined />} label="Industry" value={company.industry} onAdd={openEdit} copy={false} />
-            <FieldTile icon={<MailOutlined />} label="Email" value={company.primary_email} href={company.primary_email ? `mailto:${company.primary_email}` : null} onAdd={openEdit} />
-            <FieldTile icon={<PhoneOutlined />} label="Phone" value={company.primary_phone} href={company.primary_phone ? `tel:${company.primary_phone}` : null} onAdd={openEdit} />
-            <FieldTile
-              icon={<GlobalOutlined />}
-              label="Website"
-              value={company.website ? websiteText(company.website) : null}
-              href={websiteHref(company.website)}
-              external
-              onAdd={openEdit}
-            />
-            <FieldTile icon={<NumberOutlined />} label="Company prefix" value={company.company_prefix} mono onAdd={openEdit} />
-          </div>
-        </Panel>
+        {/* Identity and its custom fields, beside the (taller) checklist */}
+        <div className="cp-stack s7">
+          <Panel
+            index={0}
+            icon={<SolutionOutlined />}
+            title="Business identity"
+            sub="How your company is named and reached"
+            action={editBtn()}
+          >
+            <div className="cp-fields">
+              <FieldTile icon={<FileProtectOutlined />} label="Legal name" value={company.legal_name} onAdd={openEdit} />
+              <FieldTile icon={<ProfileOutlined />} label="Registration number" value={company.registration_number} mono onAdd={openEdit} />
+              <FieldTile
+                icon={<SafetyCertificateOutlined />}
+                label="GSTIN"
+                value={company.gst_no}
+                mono
+                onAdd={openEdit}
+                badge={company.gst_no ? <span className={`cp-mini-badge ${gstValid ? "ok" : "warn"}`}>{gstValid ? "Valid format" : "Check format"}</span> : null}
+              />
+              <FieldTile icon={<ShopOutlined />} label="Industry" value={company.industry} onAdd={openEdit} copy={false} />
+              <FieldTile icon={<MailOutlined />} label="Email" value={company.primary_email} href={company.primary_email ? `mailto:${company.primary_email}` : null} onAdd={openEdit} />
+              <FieldTile icon={<PhoneOutlined />} label="Phone" value={company.primary_phone} href={company.primary_phone ? `tel:${company.primary_phone}` : null} onAdd={openEdit} />
+              <FieldTile
+                icon={<GlobalOutlined />}
+                label="Website"
+                value={company.website ? websiteText(company.website) : null}
+                href={websiteHref(company.website)}
+                external
+                onAdd={openEdit}
+              />
+              <FieldTile icon={<NumberOutlined />} label="Company prefix" value={company.company_prefix} mono onAdd={openEdit} />
+            </div>
+          </Panel>
+
+          <Panel
+            className="cp-grow"
+            index={1}
+            icon={<TagsOutlined />}
+            tint="var(--cp-pink)"
+            title="Custom fields"
+            count={metadata.length}
+            sub="Extra details such as licence or MSME numbers"
+            action={editBtn(metadata.length ? "Edit" : "Add")}
+          >
+            {metadata.length ? (
+              <ul className="cp-metas">
+                {metadata
+                  .slice()
+                  .reverse()
+                  .map((m, i) => (
+                    <MetaRow key={m.id ?? i} m={m} />
+                  ))}
+              </ul>
+            ) : (
+              emptyBlock(<TagsOutlined />, "No custom fields", "Keep things like an FSSAI licence, MSME/Udyam number or IEC code here.", "Add a field")
+            )}
+          </Panel>
+        </div>
 
         <Panel
           className="s5"
@@ -373,7 +411,7 @@ const CompanyPage: React.FC = () => {
           title="Profile checklist"
           sub={strength >= 100 ? "Everything customers see on your documents is filled in" : "Complete these so quotations and invoices look their best"}
         >
-          <Checklist items={checklist} onFix={openEdit} />
+          <Checklist items={checklist} onFix={fixItem} />
         </Panel>
 
         <Panel
@@ -446,13 +484,39 @@ const CompanyPage: React.FC = () => {
           title="Letterhead preview"
           sub="Roughly how your details appear at the top and bottom of documents"
         >
-          <Letterhead c={company} />
+          <Letterhead c={company} signature={signature} />
         </Panel>
 
-        {/* Two shorter panels stacked beside the letterhead */}
+        {/* The signature and the terms: the two things printed at the bottom of a document */}
         <div className="cp-stack">
           <Panel
             index={5}
+            icon={<SignatureOutlined />}
+            tint="var(--cp-gold)"
+            title="Signature & stamp"
+            sub="Printed above “Authorised Signatory” on your documents"
+            action={
+              openSignature ? (
+                <button type="button" className="cp-head-btn" onClick={openSignature}>
+                  {signature ? (
+                    <>
+                      <EditOutlined /> Change
+                    </>
+                  ) : (
+                    <>
+                      <PlusOutlined /> Add
+                    </>
+                  )}
+                </button>
+              ) : null
+            }
+          >
+            <SignaturePanel company={company.name || ""} onOpen={openSignature} />
+          </Panel>
+
+          <Panel
+            className="cp-grow"
+            index={6}
             icon={<FileProtectOutlined />}
             tint="var(--cp-amber)"
             title="Default terms & conditions"
@@ -470,30 +534,6 @@ const CompanyPage: React.FC = () => {
               <Terms text={company.default_terms_conditions} />
             ) : (
               emptyBlock(<FileProtectOutlined />, "No default terms", "Set payment, delivery and warranty terms once and reuse them on every quotation.", "Add terms")
-            )}
-          </Panel>
-
-          <Panel
-            className="cp-grow"
-            index={6}
-            icon={<TagsOutlined />}
-            tint="var(--cp-pink)"
-            title="Custom fields"
-            count={metadata.length}
-            sub="Extra details such as licence or MSME numbers"
-            action={editBtn(metadata.length ? "Edit" : "Add")}
-          >
-            {metadata.length ? (
-              <ul className="cp-metas">
-                {metadata
-                  .slice()
-                  .reverse()
-                  .map((m, i) => (
-                    <MetaRow key={m.id ?? i} m={m} />
-                  ))}
-              </ul>
-            ) : (
-              emptyBlock(<TagsOutlined />, "No custom fields", "Keep things like an FSSAI licence, MSME/Udyam number or IEC code here.", "Add a field")
             )}
           </Panel>
         </div>
@@ -537,6 +577,9 @@ const CompanyPage: React.FC = () => {
 
       {/* ── Edit modal ── */}
       <EditCompanyModal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} company={company} />
+      {openSignature && (
+        <SignatureModal open={signatureOpen} company={company.name || ""} replacing={!!signature} onClose={() => setSignatureOpen(false)} />
+      )}
     </div>
   );
 };

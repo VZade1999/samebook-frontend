@@ -112,8 +112,9 @@ export interface CheckItem {
   done: boolean;
 }
 
-export const profileChecklist = (c: any): CheckItem[] => [
+export const profileChecklist = (c: any, hasSignature = !!c?.has_signature): CheckItem[] => [
   { key: "logo", label: "Logo", hint: "Shown on every quotation and invoice", done: !!c?.logo },
+  { key: "signature", label: "Signature & stamp", hint: "Printed above “Authorised Signatory” on documents", done: hasSignature },
   { key: "legal_name", label: "Legal name", hint: "The registered name for tax documents", done: !!c?.legal_name },
   { key: "gst_no", label: "GSTIN", hint: "Needed for GST invoices and the CGST/SGST vs IGST split", done: !!c?.gst_no },
   { key: "registration_number", label: "Registration number", hint: "CIN / Udyam / shop licence", done: !!c?.registration_number },

@@ -394,7 +394,11 @@ $mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   min-width: 0;
   > .cp-panel { flex: 0 0 auto; }
   > .cp-panel.cp-grow { flex: 1 1 auto; }
+  &.s7 { grid-column: span 7; }
 }
+// The letterhead fills its row: the sheet stays centred in the backdrop.
+.cp-panel-body > .cp-paper-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.cp-paper-wrap > .cp-paper { width: 100%; }
 .cp-panel-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 6px; }
 .cp-panel-icon {
   width: 38px;
@@ -846,6 +850,8 @@ $doc-colors: (#a5b4fc, #f9a8d4, #67e8f9, #fcd34d, #86efac);
   .missing { color: #9ca3af; font-style: italic; }
 }
 .cp-paper-sign { align-items: flex-end; text-align: right; i { width: 80%; height: 1px; background: #d1d5db; margin: 18px 0 3px; } span { font-weight: 700; } }
+// The signature sits on the line, crossing it a little, as on the PDFs.
+.cp-paper-sig { position: relative; z-index: 1; width: 80%; height: 38px; margin: 4px 0 -20px; object-fit: contain; object-position: 50% 100%; }
 
 // ── Empty states ────────────────────────────────────────────────────────────
 .cp-empty {
@@ -907,7 +913,7 @@ $doc-colors: (#a5b4fc, #f9a8d4, #67e8f9, #fcd34d, #86efac);
 
 // ── Responsive ──────────────────────────────────────────────────────────────
 @media (max-width: 1080px) {
-  .cp-panel.s7, .cp-panel.s5, .cp-stack { grid-column: span 12; }
+  .cp-panel.s7, .cp-panel.s5, .cp-stack, .cp-stack.s7 { grid-column: span 12; }
   .cp-hero-right { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: stretch; }
   .cp-strength { flex: 1 1 300px; }
   .cp-hero-btns { flex: 1 1 260px; flex-direction: column; justify-content: center; }

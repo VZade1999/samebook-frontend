@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [],
+  "files": [
+    "src/utils/pdf/assets.d.ts",
+    "src/modules/companies/signature/signatureStore.ts",
+    "src/modules/companies/signature/signatureImage.ts",
+    "src/modules/companies/signature/SignaturePreview.tsx",
+    "src/modules/companies/signature/SignatureModal.tsx",
+    "src/modules/companies/signature/SignaturePanel.tsx",
+    "src/modules/companies/pages/index.tsx",
+    "src/modules/companies/components/CompanyParts.tsx",
+    "src/modules/companies/utils/companyView.ts",
+    "src/utils/pdf/pdfKit.ts",
+    "src/utils/pdf/pdfData.ts",
+    "src/utils/downloadPdf/downloadInvoicePDF.ts",
+    "src/modules/quotation/components/quotationPdf.ts",
+    "src/modules/delivery-challan/pdf/challanPdf.ts"
+  ]
+}

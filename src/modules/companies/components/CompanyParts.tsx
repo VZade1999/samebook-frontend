@@ -153,7 +153,7 @@ export const DocNumber: React.FC<{ prefix?: string | null }> = ({ prefix }) => {
 
 // ── Profile checklist ───────────────────────────────────────────────────────
 
-export const Checklist: React.FC<{ items: CheckItem[]; onFix?: () => void }> = ({ items, onFix }) => {
+export const Checklist: React.FC<{ items: CheckItem[]; onFix?: (key: string) => void }> = ({ items, onFix }) => {
   const done = items.filter((i) => i.done).length;
   return (
     <div className="cp-check">
@@ -171,7 +171,7 @@ export const Checklist: React.FC<{ items: CheckItem[]; onFix?: () => void }> = (
               {!i.done && <small>{i.hint}</small>}
             </span>
             {!i.done && onFix && (
-              <button type="button" className="cp-pill-btn" onClick={onFix}>
+              <button type="button" className="cp-pill-btn" onClick={() => onFix(i.key)}>
                 Add
               </button>
             )}
@@ -435,7 +435,7 @@ export const Terms: React.FC<{ text: string }> = ({ text }) => {
 
 // ── Letterhead preview ──────────────────────────────────────────────────────
 
-export const Letterhead: React.FC<{ c: any }> = ({ c }) => {
+export const Letterhead: React.FC<{ c: any; signature?: string | null }> = ({ c, signature }) => {
   const addr = (c.addresses || []).find((a: any) => truthy(a.is_default)) || c.addresses?.[0];
   const bank = (c.bank_accounts || []).find((b: any) => truthy(b.is_default)) || c.bank_accounts?.[0];
   const pan = panFromGstin(c.gst_no);
@@ -504,6 +504,7 @@ export const Letterhead: React.FC<{ c: any }> = ({ c }) => {
           </div>
           <div className="cp-paper-sign">
             <span>For {c.name || "your company"}</span>
+            {signature && <img className="cp-paper-sig" src={signature} alt="" />}
             <i />
             <small>Authorised signatory</small>
           </div>
