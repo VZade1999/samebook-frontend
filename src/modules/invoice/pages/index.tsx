@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
-import { Grid, message, notification } from "antd";
+import { Form, Grid, Spin, message, notification } from "antd";
+import { FileSyncOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ASYNC_SEND_INVOICE_SUCCESS, getInvoiceDetails, getInvoiceTimeline, getInvoices } from "../redux/invoiceActions";
+import { ASYNC_GENERATE_INVOICE_SUCCESS, ASYNC_SEND_INVOICE_SUCCESS, getInvoiceDetails, getInvoiceTimeline, getInvoices } from "../redux/invoiceActions";
+import QuotationEditor from "@/modules/quotation/pages/view/QuotationEditor";
+import { customerFormFields } from "@/modules/quotation/pages/components/CustomerDetails";
+import { documentPayload } from "@/modules/quotation/pages/view/payload";
+import { joinAddr } from "@/modules/quotation/pages/view/shared";
+import CustomerApi from "@/modules/customers/redux";
+import { getCustomers } from "@/modules/customers/redux/customerActions";
+import { challanService } from "@/modules/delivery-challan/services/challanService";
+import { invalidateSeries } from "@/modules/numbering/numberingService";
 import InvoiceService from "../services/invoiceService";
 import { StorageService } from "@/storage";
 import { useAccess } from "@/permissions/useAccess";
@@ -13,6 +22,9 @@ import InvoiceDrawer, { type DrawerActions } from "./view/InvoiceDrawer";
 import RecordPaymentModal, { type PayTarget } from "./view/RecordPaymentModal";
 import NewInvoiceModal from "./view/NewInvoiceModal";
 import { balanceOf, errorText, isOpen, parseJsonField, rupees, shortDate, stateOf } from "./view/shared";
+import CancelInvoiceModal from "./view/CancelInvoiceModal";
+import DispatchModal from "./view/DispatchModal";
+import { useSalesFlow } from "@/modules/companies/salesFlow/salesFlow";
 import type { InvoiceSummaryData } from "./view/types";
 import "@/modules/dashboard/styles/dashboard.scss";
 import "@/modules/quotation/styles/quotation.scss";
@@ -31,6 +43,9 @@ const readInsightsOpen = () => {
   return typeof window === "undefined" || window.innerWidth >= 768;
 };
 const tzMinutes = () => -new Date().getTimezoneOffset();
+const scrollContentTop = () => document.querySelector(".dashboard-content")?.scrollTo({ top: 0 });
+const round2 = (n: number) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const DISPATCH_FIELDS = ["vehicle_number", "transporter_name", "lr_number", "eway_bill_number"] as const;
 
 /** Clipboard with a fallback for browsers that block the async API. */
 const copyText = async (text: string) => {
@@ -95,6 +110,8 @@ const InvoicePage = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const { can } = useAccess();
+  // "Services only": nothing travels, so no dispatch details to add.
+  const { hideChallans } = useSalesFlow();
   const insights = can("invoices.insides");
   const today = useMemo(() => dayjs().startOf("day"), []);
   const listTopRef = useRef<HTMLDivElement>(null);
@@ -241,22 +258,160 @@ const InvoicePage = () => {
   const [presetQuotation, setPresetQuotation] = useState<number | null>(null);
   const [sendingId, setSendingId] = useState<number | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [cancellingInv, setCancellingInv] = useState<any>(null);
+  const [dispatchInv, setDispatchInv] = useState<any>(null);
 
   const openNew = useCallback((quotationId?: number | null) => {
     setPresetQuotation(quotationId || null);
     setNewOpen(true);
   }, []);
 
+  // ── An invoice without a quotation: the quotation editor, saving an invoice ─
+  // (a walk-in sale, or billing a challan made without a quotation).
+  const [form] = Form.useForm();
+  const [direct, setDirect] = useState<{ challan: any | null } | null>(null);
+  const [prefilling, setPrefilling] = useState(false);
+  const [savingDirect, setSavingDirect] = useState(false);
+
+  const openDirect = useCallback(
+    async (challanId?: number | null) => {
+      setNewOpen(false);
+      setDetailsVisible(false);
+      form.resetFields();
+      form.setFieldsValue({
+        invoice_date: dayjs(),
+        payment_due_date: dayjs().add(30, "day"),
+        ...(company?.default_terms_conditions ? { notes: company.default_terms_conditions } : {}),
+      });
+      setDirect({ challan: null });
+      scrollContentTop();
+      if (!challanId) return;
+      setPrefilling(true);
+      try {
+        const c = (await challanService.getChallan(challanId))?.data?.data;
+        if (!c?.id) throw new Error("That challan wasn't found");
+        if (c.quotation_id) throw new Error(`${c.challan_number} was made from quotation ${c.quotation_number || ""} — bill it from that quotation`);
+        if (c.invoice_id) throw new Error(`${c.challan_number} is already billed${c.invoice_number ? ` on ${c.invoice_number}` : ""}`);
+        if (!c.customer_id) throw new Error(`${c.challan_number} has no customer to bill`);
+        const customer = (await new CustomerApi().getCustomerDetails(c.customer_id))?.data?.data;
+        if (!customer?.id) throw new Error("The challan's customer wasn't found");
+        const base = customerFormFields(customer);
+        const fields: Record<string, any> = { ...base.fields };
+        // The addresses the challan used, when they are still the customer's records.
+        const own = (snap: any) => {
+          const id = Number(parseJsonField(snap)?.id);
+          return id ? (customer.addresses || []).find((a: any) => Number(a.id) === id) || null : null;
+        };
+        const billTo = own(c.billing_address_snapshot);
+        const shipTo = own(c.shipping_address_snapshot);
+        if (billTo) {
+          Object.assign(fields, {
+            billingAddressId: billTo.id,
+            billingAddress: joinAddr(billTo),
+            billingAddressSnapshot: JSON.stringify(billTo),
+            placeOfOrder: billTo.state,
+            customerGSTN: customer.gst_number || billTo.gst_number,
+          });
+        }
+        if (shipTo) Object.assign(fields, { shippingAddressId: shipTo.id, shippingAddress: joinAddr(shipTo), shippingAddressSnapshot: JSON.stringify(shipTo) });
+        const items = (c.items || []).map((it: any) => {
+          const quantity = Number(it.quantity) || 0;
+          const price = Number(it.rate) || 0;
+          return { itemName: it.item_name, hsn_code: it.hsn_code || "", unit: it.unit || "", quantity, price, discount: 0, discounted_price: price, total: round2(quantity * price) };
+        });
+        form.setFieldsValue({
+          ...fields,
+          items,
+          subTotal: round2(items.reduce((s: number, i: any) => s + i.total, 0)),
+          // Not before the goods went out.
+          ...(c.challan_date && dayjs().isBefore(dayjs(c.challan_date), "day") ? { invoice_date: dayjs(c.challan_date) } : {}),
+        });
+        // Load the customer into the picker so contacts / addresses can be switched.
+        dispatch(getCustomers({ search: customer.display_name, page: 1, limit: 10 }));
+        setDirect({ challan: c });
+      } catch (e: any) {
+        notification.warning({ title: "Couldn't fill in the challan", description: e?.response ? errorText(e) : e?.message || "Please pick the customer and items yourself." });
+      } finally {
+        setPrefilling(false);
+      }
+    },
+    [form, company, dispatch],
+  );
+
+  const closeDirect = () => {
+    setDirect(null);
+    form.resetFields();
+    scrollContentTop();
+  };
+
+  const saveDirect = async (values: any) => {
+    if (!direct) return;
+    if (!(values.items || []).length) {
+      notification.error({ title: "No items added", description: "Add at least one item." });
+      document.getElementById("qf-items")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    const p = documentPayload(values);
+    if (!p.customer_id || !p.billing_address_id) {
+      notification.error({ title: "Pick the customer", description: "Choose the customer and their billing address." });
+      document.getElementById("qf-customer")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    const dispatchDetails = Object.fromEntries(DISPATCH_FIELDS.map((k) => [k, text(values[k])]).filter(([, v]) => v));
+    const body = {
+      customer_id: p.customer_id,
+      contact_person_id: p.contact_person_id || undefined,
+      billing_address_id: p.billing_address_id,
+      shipping_address_id: p.shipping_address_id || undefined,
+      issuing_location_id: p.issuing_location_id || undefined,
+      business_details_snapshot: p.business_details_snapshot,
+      payment_details_snapshot: p.payment_details_snapshot,
+      items: p.items,
+      discount_amount: round2(p.discount_amount),
+      cgst_percent: p.cgst_percent,
+      sgst_percent: p.sgst_percent,
+      igst_percent: p.igst_percent,
+      transport_charges: p.transport_charges,
+      notes: p.notes || undefined,
+      invoice_date: values.invoice_date ? dayjs(values.invoice_date).format("YYYY-MM-DD") : undefined,
+      payment_due_date: dayjs(values.payment_due_date).format("YYYY-MM-DD"),
+      ...(values.series_id ? { series_id: values.series_id } : {}),
+      ...dispatchDetails,
+      ...(direct.challan?.id ? { challan_ids: [Number(direct.challan.id)] } : {}),
+    };
+    setSavingDirect(true);
+    try {
+      const res: any = await service.createDirect(body);
+      const id = Number(res?.data?.data?.id);
+      if (!res?.data?.success || !id) throw new Error(res?.data?.message || "The invoice wasn't created");
+      message.success(res.data.message || "Invoice created");
+      dispatch({ type: ASYNC_GENERATE_INVOICE_SUCCESS });
+      invalidateSeries();
+      closeDirect();
+      openDetails(id);
+    } catch (e: any) {
+      notification.error({ title: "The invoice wasn't created", description: e?.response ? errorText(e) : e?.message || "Please try again." });
+    } finally {
+      setSavingDirect(false);
+    }
+  };
+
   // Deep links: /app/invoice?open=<id> (old /app/invoice-details/<id> links
-  // land here too) and /app/invoice?new=1&quotation=<id>.
+  // land here too), /app/invoice?new=1&quotation=<id>, and
+  // /app/invoice?direct=1&challan=<id> (bill a challan made without a quotation).
   useEffect(() => {
     const openId = Number(searchParams.get("open"));
     const isNew = searchParams.get("new") === "1";
-    if (!openId && !isNew) return;
+    const isDirect = searchParams.get("direct") === "1";
+    if (!openId && !isNew && !isDirect) return;
     const quotationId = Number(searchParams.get("quotation")) || null;
-    setParams({ open: null, new: null, quotation: null });
+    const challanId = Number(searchParams.get("challan")) || null;
+    setParams({ open: null, new: null, quotation: null, direct: null, challan: null });
     if (openId) openDetails(openId);
-    else if (can("invoices.create")) openNew(quotationId);
+    else if (!can("invoices.create")) return;
+    else if (isDirect) openDirect(challanId);
+    else openNew(quotationId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -282,12 +437,12 @@ const InvoicePage = () => {
   );
 
   const download = useCallback(
-    async (inv: any) => {
+    async (inv: any, copies: "original" | "all" = "original") => {
       setDownloadingId(inv.id);
       try {
         // jsPDF loads only for this action, keeping it out of the first page load.
         const { downloadInvoicePDF } = await import("@/utils/downloadPdf/downloadInvoicePDF");
-        await downloadInvoicePDF(inv, (id: number) => service.getInvoiceDetails(id));
+        await downloadInvoicePDF(inv, (id: number) => service.getInvoiceDetails(id), { copies });
       } catch (e: any) {
         notification.error({ title: "Download failed", description: e?.message || "Unable to make the invoice PDF" });
       } finally {
@@ -319,8 +474,12 @@ const InvoicePage = () => {
     [service, company],
   );
 
+  // Opens the quotation's own panel (falls back to searching its number).
   const openQuotation = useCallback(
-    (inv: { quotation_number?: string | null }) => inv.quotation_number && navigate(`/app/quotation?q=${encodeURIComponent(inv.quotation_number)}`),
+    (inv: { quotation_id?: number | null; quotation_number?: string | null }) =>
+      inv.quotation_id
+        ? navigate(`/app/quotation?open=${inv.quotation_id}`)
+        : inv.quotation_number && navigate(`/app/quotation?q=${encodeURIComponent(inv.quotation_number)}`),
     [navigate],
   );
 
@@ -353,15 +512,57 @@ const InvoicePage = () => {
   const drawerActions: DrawerActions = {
     canPay: !!drawerInv && canEdit && isOpen(drawerInv),
     canSend: !!drawerInv && canEdit && stateOf(drawerInv) !== "cancelled",
+    canCancel: !!drawerInv && can("invoices.delete") && stateOf(drawerInv) !== "cancelled",
+    onCancelInvoice: () => drawerInv && !drawerStale && setCancellingInv(drawerInv),
+    onEditDispatch:
+      drawerInv && canEdit && !hideChallans && stateOf(drawerInv) !== "cancelled" ? () => !drawerStale && setDispatchInv(drawerInv) : undefined,
     canExport: true,
     onPay: () => drawerInv && !drawerStale && setPayingInv(drawerInv),
     onSend: () => drawerInv && send(drawerInv),
-    onDownload: () => drawerInv && download(drawerInv),
+    onDownload: (copies) => drawerInv && download(drawerInv, copies),
     onCopyReminder: () => drawerInv && copyReminder(drawerInv),
     onOpenQuotation: canQuotations && drawerInv?.quotation_number ? () => openQuotation(drawerInv) : undefined,
     sending: !!drawerInv && sendingId === drawerInv.id,
     downloading: !!drawerInv && downloadingId === drawerInv.id,
   };
+
+  // ── Editor mode: an invoice without a quotation ───────────────────────────
+  if (direct) {
+    const c = direct.challan;
+    const lines = Array.isArray(c?.items) ? c.items.length : 0;
+    return (
+      <div className="db-root qp-root ip-root">
+        <QuotationEditor
+          mode="invoice"
+          form={form}
+          editing={null}
+          saving={savingDirect}
+          canSave={can("invoices.create")}
+          loadingDetails={prefilling}
+          onFinish={saveDirect}
+          onCancel={closeDirect}
+          // Billing a challan: the goods already travelled on it (its vehicle / e-way bill print from there).
+          showDispatch={!hideChallans && !c}
+          banner={
+            c ? (
+              <div className="qf-banner" role="status">
+                <FileSyncOutlined />
+                <span>
+                  Bills challan <b>{c.challan_number}</b>
+                  {c.challan_date ? ` of ${shortDate(c.challan_date)}` : ""} — its customer and {lines} item{lines === 1 ? "" : "s"} are filled in.
+                  <small>Check the prices and add the GST. Saving links the challan to this invoice.</small>
+                </span>
+              </div>
+            ) : prefilling ? (
+              <div className="qf-banner" role="status">
+                <Spin size="small" /> <span>Filling in the challan…</span>
+              </div>
+            ) : null
+          }
+        />
+      </div>
+    );
+  }
 
   const total = Number(pagination.total || 0);
   return (
@@ -460,6 +661,28 @@ const InvoicePage = () => {
         }}
       />
 
+      <CancelInvoiceModal
+        inv={cancellingInv}
+        onCancel={() => setCancellingInv(null)}
+        onDone={(msg) => {
+          const id = Number(cancellingInv?.id);
+          setCancellingInv(null);
+          message.success(msg);
+          if (id) reloadIfOpen(id);
+        }}
+      />
+
+      <DispatchModal
+        inv={dispatchInv}
+        onCancel={() => setDispatchInv(null)}
+        onDone={(msg) => {
+          const id = Number(dispatchInv?.id);
+          setDispatchInv(null);
+          message.success(msg);
+          if (id) reloadIfOpen(id);
+        }}
+      />
+
       <NewInvoiceModal
         open={newOpen}
         presetQuotationId={presetQuotation}
@@ -469,6 +692,7 @@ const InvoicePage = () => {
           if (inv?.id) openDetails(Number(inv.id));
         }}
         onFixQuotation={(q) => navigate(`/app/quotation?q=${encodeURIComponent(q.quotation_number)}`)}
+        onDirect={can("invoices.create") ? () => openDirect() : undefined}
       />
     </div>
   );

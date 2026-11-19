@@ -12,7 +12,8 @@ const { Option } = Select;
 const Divider = ({ label }: { label: string }) => <div className="qf-divider">{label}</div>;
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
-const BusinessDetails = () => {
+/** docName: what the editor is making ("quotation", or "invoice" for one made without a quotation). */
+const BusinessDetails = ({ docName = "quotation" }: { docName?: string }) => {
   const form = Form.useFormInstance();
   const storageService: any = new StorageService();
   const storedCompany = storageService.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS);
@@ -176,7 +177,7 @@ const BusinessDetails = () => {
   const needOneAddress = { validator: () => { const sa = form.getFieldValue("selectedAddress") || []; const sl = form.getFieldValue("selectedLocation") || []; return (sa.length || sl.length) ? Promise.resolve() : Promise.reject(new Error("Select at least one address or location")); } };
 
   return (
-    <FormSection id="qf-business" step={2} icon={<ShopOutlined />} title="Your business" sub="Address, GSTIN and contacts printed on the quotation">
+    <FormSection id="qf-business" step={2} icon={<ShopOutlined />} title="Your business" sub={`Address, GSTIN and contacts printed on the ${docName}`}>
       {loading && !addresses.length ? (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 160 }}>
           <Spin />
@@ -259,7 +260,7 @@ const BusinessDetails = () => {
           {metadata.length > 0 && (
             <>
               <Divider label="Extra details" />
-              <Form.Item label="Show on the quotation" name="businessMeta" style={{ marginBottom: 4 }}>
+              <Form.Item label={`Show on the ${docName}`} name="businessMeta" style={{ marginBottom: 4 }}>
                 <Select mode="multiple" placeholder="e.g. MSME number, FSSAI licence" onChange={handleMetadataChange} allowClear optionLabelProp="label">
                   {metadata.map((m) => (
                     <Option key={m.id} value={m.id} label={<span><strong>{m.key}</strong> · {m.value}</span>}>

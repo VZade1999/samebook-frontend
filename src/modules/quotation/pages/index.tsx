@@ -4,7 +4,6 @@ import { Form, Grid, Modal, message, notification } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  approveQuotation,
   createQuotation,
   deleteQuotation,
   getQuotationDetails,
@@ -22,11 +21,13 @@ import CustomerApi from "@/modules/customers/redux";
 import { StorageService } from "@/storage";
 import { getCustomers } from "@/modules/customers/redux/customerActions";
 import { useAccess } from "@/permissions/useAccess";
+import { useSalesFlow } from "@/modules/companies/salesFlow/salesFlow";
 import { QuotationHero, QuotationInsights, QuotationTiles } from "./view/Overview";
 import { QuotationList, QuotationToolbar, type RowActions } from "./view/QuotationList";
 import QuotationDrawer, { type DrawerActions } from "./view/QuotationDrawer";
 import QuotationEditor from "./view/QuotationEditor";
 import CloseQuotationModal from "./view/CloseQuotationModal";
+import ApproveQuotationModal, { type PoTarget } from "./view/ApproveQuotationModal";
 import {
   canApproveStatus,
   canChallanStatus,
@@ -35,10 +36,12 @@ import {
   canReopenStatus,
   canSendStatus,
   getValidityDate,
+  hasLinkedDocs,
   isClosed,
   joinAddr,
   parseJsonField,
 } from "./view/shared";
+import { documentPayload } from "./view/payload";
 import type { QuotationSummaryData } from "./view/types";
 import "@/modules/dashboard/styles/dashboard.scss";
 import "../styles/quotation.scss";
@@ -69,6 +72,8 @@ const QuotationPage = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const { can } = useAccess();
+  // "How do you sell?": which button comes first, and no challans for services.
+  const { hideChallans, challanFirst } = useSalesFlow();
   const today = useMemo(() => dayjs().startOf("day"), []);
   const listTopRef = useRef<HTMLDivElement>(null);
 
@@ -335,34 +340,12 @@ const QuotationPage = () => {
       });
       return;
     }
-    const customerId = values.customerId;
     const userId = userDetails.id;
-    const itemsRaw = values.items || [];
-    if (!itemsRaw.length) {
+    if (!(values.items || []).length) {
       notification.error({ message: "No items added", description: "Please add at least one item." });
       document.getElementById("qf-items")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    const items = itemsRaw.map((item: any) => ({
-      product_name: item?.itemName,
-      hsn_code: item?.hsn_code,
-      unit: item?.unit,
-      qty: Number(item?.quantity || item?.qty || 0),
-      rate: Number(item?.price || item?.rate || 0),
-      discount_percent: Number(item?.discount || 0),
-    }));
-    const subTotal = Number(values.subTotal || 0);
-    const discountPercent = Number(values.discount || 0);
-    const discountAmount = Number(values.discount_amount ?? (subTotal * discountPercent) / 100);
-    const taxableAmount = subTotal - discountAmount;
-    const cgstPercent = Number(values.cgst || 0),
-      sgstPercent = Number(values.sgst || 0),
-      igstPercent = Number(values.igst || 0);
-    const cgstAmount = (taxableAmount * cgstPercent) / 100,
-      sgstAmount = (taxableAmount * sgstPercent) / 100,
-      igstAmount = (taxableAmount * igstPercent) / 100;
-    const transportCharges = Number(values.transport || 0);
-    const grandTotal = Number(values.grandTotal || taxableAmount + cgstAmount + sgstAmount + igstAmount + transportCharges);
     const storedCD = storageService.getItem(StorageService.STORAGE_KEYS.COMPANY_DETAILS);
     const currentCompanyId =
       companyDetails?.id ||
@@ -376,48 +359,9 @@ const QuotationPage = () => {
           })()
         : undefined);
     const basePayload: any = {
-      customer_id: Number(customerId) || undefined,
+      ...documentPayload(values),
       user_id: Number(userId) || undefined,
-      contact_person_id: values.contactPersonId,
-      billing_address_id: values.billingAddressId,
-      shipping_address_id: values.shippingAddressId,
-      issuing_location_id: values.issuing_location_id,
-      customer_name: values.customerName,
-      customer_type: values.customerType,
-      customer_gst_number: values.customerGSTN,
-      contact_person_name: values.customerName,
-      contact_person_email: values.customerEmail,
-      contact_person_phone: values.customerPhone,
-      billing_address_snapshot: parseJsonField(values.billingAddressSnapshot),
-      shipping_address_snapshot: parseJsonField(values.shippingAddressSnapshot),
-      business_details_snapshot: values.businessDetailsSnapshot ? parseJsonField(values.businessDetailsSnapshot) : undefined,
-      payment_details_snapshot: values.paymentBankId
-        ? JSON.stringify({
-            bank_id: values.paymentBankId,
-            bank_name: values.paymentBankName,
-            account_holder_name: values.paymentAccountHolder,
-            account_number: values.paymentAccountNumber,
-            ifsc_code: values.paymentIFSC,
-            branch_name: values.paymentBranchName,
-            branch_address: values.paymentBranchAddress,
-            account_type: values.paymentAccountType,
-            is_default: values.paymentIsDefault,
-          })
-        : undefined,
       validity_date: values.validity_date ? values.validity_date.toISOString() : undefined,
-      notes: values.notes,
-      sub_total: subTotal,
-      discount_percent: discountPercent,
-      discount_amount: discountAmount,
-      cgst_percent: cgstPercent,
-      cgst_amount: cgstAmount,
-      sgst_percent: sgstPercent,
-      sgst_amount: sgstAmount,
-      igst_percent: igstPercent,
-      igst_amount: igstAmount,
-      transport_charges: transportCharges,
-      grand_total: grandTotal,
-      items,
     };
     if (editingQuotation) {
       // The editor stays open until the save is confirmed (see the
@@ -548,13 +492,12 @@ const QuotationPage = () => {
     },
     [dispatch, userId],
   );
-  const approveById = useCallback(
-    (id: number) => {
-      setActingId(id);
-      dispatch(approveQuotation({ id, user_id: userId }));
-    },
-    [dispatch, userId],
-  );
+  // Approving opens a dialog that also asks for the customer's PO; the same
+  // dialog adds or changes the PO later (until the quotation is invoiced).
+  const [poTarget, setPoTarget] = useState<PoTarget | null>(null);
+  const startApprove = useCallback((record: any) => setPoTarget({ q: record, mode: "approve" }), []);
+  const canEditPo = (q: any) =>
+    !!q && can("quotations.edit") && !q.has_invoice && ["APPROVED", "PARTIALLY_DISPATCHED", "FULLY_DISPATCHED"].includes(String(q.status));
   const handleCreateChallan = useCallback((record: any) => navigate(`/app/delivery-challans?fromQuotation=${record.id}`), [navigate]);
   // Opens the invoice page's "New invoice" dialog with this quotation picked.
   const handleCreateInvoice = useCallback((record: any) => navigate(`/app/invoice?new=1&quotation=${record.id}`), [navigate]);
@@ -655,21 +598,30 @@ const QuotationPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Deep link: /app/quotation?open=<id> opens that quotation's panel (used by
+  // "Linked documents" on challans / invoices and by the Find search).
+  useEffect(() => {
+    const openId = Number(searchParams.get("open"));
+    if (!openId) return;
+    setParams({ open: null });
+    openDetails(openId);
+  }, [searchParams, setParams, openDetails]);
+
   // ── Row / drawer actions ──────────────────────────────────────────────────
   const canExport = can("quotations.export");
   const rowActions: RowActions = useMemo(
     () => ({
       canSend: (q) => can("quotations.send") && canSendStatus(q),
       canApprove: (q) => can("quotations.send") && canApproveStatus(q),
-      canChallan: (q) => can("challans.create") && canChallanStatus(q),
+      canChallan: (q) => !hideChallans && can("challans.create") && canChallanStatus(q),
       canInvoice: (q) => canMakeInvoice && canInvoiceStatus(q),
-      canEdit: (q) => can("quotations.edit") && !q.has_invoice && !isClosed(q),
+      canEdit: (q) => can("quotations.edit") && !hasLinkedDocs(q) && !isClosed(q),
       canDelete: (q) => can("quotations.delete") && q.status === "DRAFT",
       canClose: (q) => can("quotations.edit") && canCloseStatus(q),
       canReopen: (q) => can("quotations.edit") && canReopenStatus(q),
       canExport,
       onSend: (q) => sendById(q.id),
-      onApprove: (q) => approveById(q.id),
+      onApprove: startApprove,
       onChallan: handleCreateChallan,
       onInvoice: handleCreateInvoice,
       onDownload: downloadQuotationPDF,
@@ -681,7 +633,7 @@ const QuotationPage = () => {
       downloadingId: downloadingQuotationId,
       deletingId: deletingQuotationId,
     }),
-    [can, canExport, canMakeInvoice, sendById, approveById, handleCreateChallan, handleCreateInvoice, downloadQuotationPDF, handleEdit, handleDelete, confirmReopen, actingId, downloadingQuotationId, deletingQuotationId],
+    [can, hideChallans, canExport, canMakeInvoice, sendById, startApprove, handleCreateChallan, handleCreateInvoice, downloadQuotationPDF, handleEdit, handleDelete, confirmReopen, actingId, downloadingQuotationId, deletingQuotationId],
   );
 
   // Until fresh details for the opened quotation arrive, show its list row
@@ -693,15 +645,18 @@ const QuotationPage = () => {
   const drawerActions: DrawerActions = {
     canSend: !!drawerQ && can("quotations.send") && canSendStatus(drawerQ),
     canApprove: !!drawerQ && can("quotations.send") && canApproveStatus(drawerQ),
-    canChallan: !!drawerQ && can("challans.create") && canChallanStatus(drawerQ),
+    canChallan: !!drawerQ && !hideChallans && can("challans.create") && canChallanStatus(drawerQ),
     canInvoice: !!drawerQ && canMakeInvoice && canInvoiceStatus(drawerQ),
-    canEdit: !!drawerQ && can("quotations.edit") && !drawerQ.has_invoice && !isClosed(drawerQ),
+    challanFirst,
+    canEdit: !!drawerQ && can("quotations.edit") && !hasLinkedDocs(drawerQ) && !isClosed(drawerQ),
     canDelete: !!drawerQ && can("quotations.delete") && drawerQ.status === "DRAFT",
     canClose: !!drawerQ && can("quotations.edit") && canCloseStatus(drawerQ),
     canReopen: !!drawerQ && can("quotations.edit") && canReopenStatus(drawerQ),
     canExport,
     onSend: () => drawerQ && sendById(drawerQ.id),
-    onApprove: () => drawerQ && approveById(drawerQ.id),
+    onApprove: () => drawerQ && startApprove(drawerQ),
+    canEditPo: !drawerStale && canEditPo(drawerQ),
+    onEditPo: () => drawerQ && setPoTarget({ q: drawerQ, mode: "po" }),
     onChallan: () => drawerQ && handleCreateChallan(drawerQ),
     onInvoice: () => drawerQ && handleCreateInvoice(drawerQ),
     onDownload: () => drawerQ && downloadQuotationPDF(drawerQ),
@@ -838,6 +793,17 @@ const QuotationPage = () => {
           const id = Number(fresh?.id ?? closingQ?.id);
           setClosingQ(null);
           if (id) afterOutcomeChange(id, "closed");
+        }}
+      />
+
+      <ApproveQuotationModal
+        target={poTarget}
+        onCancel={() => setPoTarget(null)}
+        onDone={(fresh) => {
+          const id = Number(fresh?.id ?? poTarget?.q?.id);
+          setPoTarget(null);
+          // The list refetches on its own (billing change); an open panel reloads.
+          if (id && detailsVisible && selectedQuotationId === id) openDetails(id);
         }}
       />
     </div>

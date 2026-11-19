@@ -16,6 +16,8 @@ import {
   reasonLabel,
   toWarehouseName,
 } from "../constants";
+import { getTrail } from "@/modules/document-links/documentLinksService";
+import type { Trail } from "@/modules/document-links/types";
 
 // Printed in triplicate per CGST Rule 55.
 const COPIES = [
@@ -33,6 +35,7 @@ const dateText = (v?: string) => {
   if (Number.isNaN(d.getTime())) return v;
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
+const withDate = (no: string, date?: string | null) => (date ? `${no} dt. ${dateText(date)}` : no);
 
 export interface ChallanPdfOptions {
   /**
@@ -72,6 +75,15 @@ export async function downloadChallanPDF(
   const shipping = parseJson(data.shipping_address_snapshot);
   const consigneeGstin = data.customer_gst_number || billing?.gst_number || shipping?.gst_number || "";
   const items: any[] = data.items || [];
+
+  // Quotation, PO and invoice references. If they can't be loaded the
+  // challan still prints, with the quotation number it carries.
+  let refs: Trail["references"] | null = null;
+  try {
+    refs = data?.id ? (await getTrail("challan", Number(data.id))).references : null;
+  } catch (e) {
+    console.warn("Challan PDF: linked documents not loaded", e);
+  }
 
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -138,8 +150,21 @@ export async function downloadChallanPDF(
       ["Reason", reasonLabel(data.reason)],
       ["Place of Supply", data.place_of_supply || "-"],
     ];
+    // Linked documents: the quotation, the customer's PO (Buyer's Order) and
+    // the invoice these goods are billed on (with a quotation billed first,
+    // that is the invoice each lot travels against — GST Rule 55(5)).
     const qn = quotationNumber(data);
-    if (qn) meta.push(["Quotation No.", qn]);
+    if (refs?.quotation || qn) meta.push(["Quotation No.", refs?.quotation ? withDate(refs.quotation.number, refs.quotation.date) : String(qn)]);
+    if (refs?.po) meta.push(["Buyer's Order No.", withDate(refs.po.number, refs.po.date)]);
+    if (refs?.invoice) {
+      if (refs.lot) {
+        // Bill first, send in lots: the invoice this lot travels against, then which lot it is.
+        meta.push(["Against Invoice", withDate(refs.invoice.number, refs.invoice.date)]);
+        meta.push(["Lot No.", `${refs.lot.number}${refs.lot.last ? " (last lot)" : ""}`]);
+      } else {
+        meta.push(["Invoice No.", withDate(refs.invoice.number, refs.invoice.date)]);
+      }
+    }
     if (data.eway_bill_number) meta.push(["E-way Bill No.", data.eway_bill_number]);
 
     let ry = boxTop + 14;
@@ -150,8 +175,9 @@ export async function downloadChallanPDF(
       doc.text(k, mL + half + 8, ry);
       doc.setFont("helvetica", "bold");
       black();
-      doc.text(String(v), mL + half + 90, ry, { maxWidth: half - 98 });
-      ry += 13;
+      const lines = doc.splitTextToSize(String(v), half - 98) as string[];
+      doc.text(lines, mL + half + 90, ry);
+      ry += 13 + (lines.length - 1) * 10;
     });
 
     const boxBottom = Math.max(ly, ry) + 4;
@@ -307,15 +333,24 @@ export async function downloadChallanPDF(
     }
     doc.setFont("helvetica", "italic");
     gray();
+    // A lot of goods billed before dispatch (GST Rule 55(5)): what travels with it.
+    const lotText =
+      refs?.lot && refs.invoice
+        ? refs.lot.last
+          ? ` Last lot against invoice ${refs.invoice.number}: the original invoice travels with these goods.`
+          : ` Lot ${refs.lot.number} against invoice ${refs.invoice.number}: a copy of the invoice travels with these goods.`
+        : "";
     const decl = doc.splitTextToSize(
       `Not a tax invoice. Goods are moved under this delivery challan for: ${reasonLabel(data.reason)}. ` +
         (showValues
           ? "Values are stated for reference only; no GST is charged on this document."
-          : "No GST is charged on this document."),
+          : "No GST is charged on this document.") +
+        lotText,
       innerW,
     );
     doc.text(decl, mL, y);
-    y += 11 * decl.length + 30;
+    // Room for "For <company>" below the note, then space to sign above the line.
+    y += 11 * decl.length + 44;
 
     doc.setDrawColor(120, 120, 120);
     doc.line(mL, y, mL + 180, y);

@@ -13,6 +13,7 @@ import {
   GlobalOutlined,
   IdcardOutlined,
   MailOutlined,
+  NodeIndexOutlined,
   NumberOutlined,
   PhoneOutlined,
   PlusOutlined,
@@ -57,6 +58,7 @@ import {
   websiteText,
 } from "../utils/companyView";
 import NumberingPanel from "../../numbering/NumberingPanel";
+import { SalesFlowPanel } from "../salesFlow/SalesFlowPicker";
 import "../styles/company.scss";
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -382,6 +384,16 @@ const CompanyPage: React.FC = () => {
           sub="Continue your own invoice, quotation and challan numbers — e.g. carry on from your old billing software"
         >
           <NumberingPanel canEdit={canEdit} />
+        </Panel>
+
+        <Panel
+          index={2}
+          icon={<NodeIndexOutlined />}
+          tint="var(--cp-violet)"
+          title="How you sell"
+          sub="Decides which button comes first on an approved quotation — invoice or delivery challan. Nothing is ever blocked."
+        >
+          <SalesFlowPanel canEdit={canEdit} />
         </Panel>
 
         <Panel

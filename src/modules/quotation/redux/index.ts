@@ -45,10 +45,15 @@ class QuotationService {
     return instance.post(`/quotation/${id}/send`, { user_id });
   }
 
-  approveQuotation(payload: any) {
-    console.log('Approving quotation with payload:', payload);
-    const { id, user_id } = payload || {};
-    return instance.post(`/quotation/${id}/approve`, { user_id });
+  /** Approve, optionally with the customer's PO number & date. */
+  approveQuotation(payload: { id: number; customer_po_number?: string | null; customer_po_date?: string | null }) {
+    const { id, customer_po_number, customer_po_date } = payload || ({} as any);
+    return instance.post(`/quotation/${id}/approve`, { customer_po_number, customer_po_date });
+  }
+
+  /** Add, change or clear the customer's PO on an approved quotation (locks once invoiced). */
+  setCustomerPo(id: number, payload: { customer_po_number: string | null; customer_po_date: string | null }) {
+    return instance.put(`/quotation/${id}/po`, payload);
   }
 
   downloadQuotation(id: number) {

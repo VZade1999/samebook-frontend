@@ -8,7 +8,9 @@ import {
   ExclamationCircleFilled,
   FileDoneOutlined,
   FileSearchOutlined,
+  FormOutlined,
   ReloadOutlined,
+  RightOutlined,
   SearchOutlined,
   ThunderboltFilled,
 } from "@ant-design/icons";
@@ -17,6 +19,7 @@ import SeriesField from "@/modules/numbering/SeriesField";
 import InvoiceService from "../../services/invoiceService";
 import { ASYNC_GENERATE_INVOICE_SUCCESS } from "../../redux/invoiceActions";
 import { Avatar, count, errorText, inr, rupees, shortDate } from "./shared";
+import BillingPanel, { type BillState } from "./BillingPanel";
 
 const service = new InvoiceService();
 
@@ -43,6 +46,13 @@ export interface EligibleQuotation {
   items_count: number;
   billing_ok: boolean;
   shipping_ok: boolean;
+  /** Already has an invoice (a quotation can have several). */
+  has_invoice?: boolean;
+  /** Value not billed yet (before GST). */
+  to_bill_value?: number;
+  /** Its dispatched / delivered challans waiting to be billed. */
+  ready_challans?: number;
+  customer_po_number?: string | null;
 }
 
 const NewInvoiceModal: React.FC<{
@@ -53,7 +63,9 @@ const NewInvoiceModal: React.FC<{
   onCreated: (invoice: any) => void;
   /** Open the quotation so its missing address can be filled in. */
   onFixQuotation: (q: EligibleQuotation) => void;
-}> = ({ open, presetQuotationId, onCancel, onCreated, onFixQuotation }) => {
+  /** Make an invoice without a quotation (the full editor). */
+  onDirect?: () => void;
+}> = ({ open, presetQuotationId, onCancel, onCreated, onFixQuotation, onDirect }) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
   const [search, setSearch] = useState("");
@@ -69,6 +81,7 @@ const NewInvoiceModal: React.FC<{
   const [dueDate, setDueDate] = useState<Dayjs>(dayjs().add(30, "day"));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [bill, setBill] = useState<BillState | null>(null);
   const req = useRef(0);
 
   const load = useCallback(async (q: string) => {
@@ -126,6 +139,7 @@ const NewInvoiceModal: React.FC<{
     if (!q.billing_ok || !q.shipping_ok) return;
     setPickedId(q.id);
     setPicked(q);
+    setBill(null);
     setError("");
   };
 
@@ -140,30 +154,40 @@ const NewInvoiceModal: React.FC<{
 
   const problem = useMemo(() => {
     if (!picked) return "Pick the quotation to invoice";
+    if (!bill || bill.busy) return "Working out the invoice…";
+    if (bill.problem || !bill.request) return bill.problem || "Choose what to bill";
     if (invoiceDate.isAfter(dayjs(), "day")) return "The invoice date can't be in the future";
     if (picked.quotation_date && invoiceDate.isBefore(dayjs(picked.quotation_date), "day")) {
       return `The invoice date can't be before the quotation's date (${shortDate(picked.quotation_date)})`;
     }
+    if (bill.request.kind === "challans" && bill.lastChallanDate && invoiceDate.isBefore(dayjs(bill.lastChallanDate), "day")) {
+      return `The invoice date can't be before the challan date (${shortDate(bill.lastChallanDate)})`;
+    }
     if (dueDate.isBefore(invoiceDate, "day")) return "The due date can't be before the invoice date";
     return null;
-  }, [picked, invoiceDate, dueDate]);
+  }, [picked, bill, invoiceDate, dueDate]);
 
   const dueIn = dueDate.startOf("day").diff(invoiceDate.startOf("day"), "day");
 
   const submit = async () => {
-    if (!picked || problem) {
+    if (!picked || problem || !bill?.request) {
       setError(problem || "");
       return;
     }
     setSaving(true);
     setError("");
+    const r = bill.request;
+    const common = {
+      invoice_date: invoiceDate.format("YYYY-MM-DD"),
+      payment_due_date: dueDate.format("YYYY-MM-DD"),
+      series_id: form.getFieldValue("series_id"),
+      transport_charges: r.transport_charges,
+    };
     try {
-      const res: any = await service.generateInvoice({
-        quotation_id: picked.id,
-        invoice_date: invoiceDate.format("YYYY-MM-DD"),
-        payment_due_date: dueDate.format("YYYY-MM-DD"),
-        series_id: form.getFieldValue("series_id"),
-      });
+      const res: any =
+        r.kind === "challans"
+          ? await service.createFromChallans({ ...common, challan_ids: r.challan_ids })
+          : await service.generateInvoice({ ...common, quotation_id: picked.id, lines: r.lines });
       if (res?.data?.success && res.data.data) {
         message.success(res.data.message || "Invoice created");
         dispatch({ type: ASYNC_GENERATE_INVOICE_SUCCESS });
@@ -196,9 +220,22 @@ const NewInvoiceModal: React.FC<{
           </span>
           <div>
             <h3>New invoice</h3>
-            <p>From an approved quotation — items, prices, taxes and the customer carry over.</p>
+            <p>From an approved quotation — bill its delivered challans, or choose how much of each item. Prices, GST and the customer carry over.</p>
           </div>
         </div>
+
+        {onDirect && (
+          <button type="button" className="ip-ni-direct" onClick={onDirect} disabled={saving}>
+            <span className="ip-ni-direct-icon" aria-hidden>
+              <FormOutlined />
+            </span>
+            <span className="ip-ni-direct-text">
+              <b>Without a quotation</b>
+              <small>A walk-in sale, or goods sent on a challan made without one — type the customer, items and prices.</small>
+            </span>
+            <RightOutlined aria-hidden />
+          </button>
+        )}
 
         <span className="ip-pm-label">1 · Quotation</span>
         <label className="qp-search ip-ni-search">
@@ -212,7 +249,7 @@ const NewInvoiceModal: React.FC<{
         </label>
         {presetMissing && (
           <div className="ip-pm-error soft" role="status">
-            <ExclamationCircleFilled /> That quotation can't be invoiced right now — it isn't approved yet, or it already has an invoice.
+            <ExclamationCircleFilled /> That quotation can't be invoiced right now — it isn't approved yet, or it's already billed in full.
           </div>
         )}
         <div className={`ip-ni-list${loading && rows.length ? " busy" : ""}`} role="radiogroup" aria-label="Approved quotations">
@@ -230,7 +267,11 @@ const NewInvoiceModal: React.FC<{
           ) : !rows.length ? (
             <div className="ip-ni-empty">
               <FileSearchOutlined />
-              <span>{search ? "No approved quotation matches that search." : "No approved quotations are waiting for an invoice. Approve a quotation first, then invoice it here."}</span>
+              <span>
+                {search
+                  ? "No approved quotation matches that search."
+                  : `No approved quotations are waiting for an invoice. Approve a quotation first, then invoice it here${onDirect ? " — or make one without a quotation above" : ""}.`}
+              </span>
             </div>
           ) : (
             rows.map((q) => {
@@ -247,11 +288,21 @@ const NewInvoiceModal: React.FC<{
                       <b>{q.customer_name || "—"}</b>
                       <small>
                         <span className="qd-mono">{q.quotation_number}</span> · {shortDate(q.quotation_date)} · {count(q.items_count)} item{q.items_count === 1 ? "" : "s"}
+                        {q.ready_challans ? ` · ${q.ready_challans} challan${q.ready_challans === 1 ? "" : "s"} to bill` : ""}
                       </small>
                     </span>
                     <span className="ip-ni-opt-amt">
-                      <b>{inr(q.grand_total)}</b>
-                      <small>{q.gst > 0 ? "incl. GST" : "no GST"}</small>
+                      {q.has_invoice ? (
+                        <>
+                          <b>{inr(q.to_bill_value || 0)}</b>
+                          <small>left to bill</small>
+                        </>
+                      ) : (
+                        <>
+                          <b>{inr(q.grand_total)}</b>
+                          <small>{q.gst > 0 ? "incl. GST" : "no GST"}</small>
+                        </>
+                      )}
                     </span>
                   </button>
                   {blocked && (
@@ -269,7 +320,14 @@ const NewInvoiceModal: React.FC<{
         </div>
         {total > rows.length && !search && <div className="ip-ni-more">Showing the {count(rows.length)} most recent of {count(total)} — search to find others.</div>}
 
-        <span className="ip-pm-label">2 · Dates</span>
+        {picked && (
+          <>
+            <span className="ip-pm-label">2 · What to bill</span>
+            <BillingPanel source={{ quotationId: picked.id }} onChange={setBill} />
+          </>
+        )}
+
+        <span className="ip-pm-label">{picked ? "3" : "2"} · Dates</span>
         <div className="ip-pm-grid">
           <div>
             <label className="ip-pm-label sub" htmlFor="ip-ni-date">
@@ -318,17 +376,18 @@ const NewInvoiceModal: React.FC<{
           <SeriesField docType="INVOICE" form={form} />
         </Form>
 
-        <div className={`ip-ni-sum${picked ? "" : " empty"}`} aria-live="polite">
-          {picked ? (
+        <div className={`ip-ni-sum${picked && bill?.total != null ? "" : " empty"}`} aria-live="polite">
+          {picked && bill?.total != null ? (
             <>
               <ThunderboltFilled />
               <span>
-                A <b>{rupees(picked.grand_total)}</b> invoice for <b>{picked.customer_name}</b>, dated {invoiceDate.format("D MMM YYYY")},{" "}
-                {dueIn === 0 ? "due on receipt" : <>due {dueDate.format("D MMM YYYY")} ({dueIn} day{dueIn === 1 ? "" : "s"})</>}.
+                A <b>{rupees(bill.total)}</b> invoice for <b>{picked.customer_name}</b>
+                {bill.request?.kind === "challans" ? ` billing ${bill.request.challan_ids.length} challan${bill.request.challan_ids.length === 1 ? "" : "s"}` : ""}, dated{" "}
+                {invoiceDate.format("D MMM YYYY")}, {dueIn === 0 ? "due on receipt" : <>due {dueDate.format("D MMM YYYY")} ({dueIn} day{dueIn === 1 ? "" : "s"})</>}.
               </span>
             </>
           ) : (
-            <span>Pick an approved quotation above.</span>
+            <span>{picked ? "Choose what to bill above." : "Pick an approved quotation above."}</span>
           )}
         </div>
 
@@ -342,7 +401,7 @@ const NewInvoiceModal: React.FC<{
           <button type="button" className="qp-btn ghost" onClick={onCancel} disabled={saving}>
             Cancel
           </button>
-          <button type="button" className="qp-btn primary" onClick={submit} disabled={saving || !picked}>
+          <button type="button" className="qp-btn primary" onClick={submit} disabled={saving || !picked || !bill?.request || !!bill?.problem || !!bill?.busy}>
             {saving ? "Creating…" : "Create invoice"}
           </button>
         </div>

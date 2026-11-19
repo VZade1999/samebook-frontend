@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Col, DatePicker, Form, Input, InputNumber, Row, Select } from "antd";
-import { CalculatorOutlined, CalendarOutlined, GiftOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { CalculatorOutlined, CalendarOutlined, CarOutlined, GiftOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import { StorageService } from "@/storage";
@@ -40,6 +40,26 @@ const ZERO: QuotationTotals = {
 
 const VALIDITY_PRESETS = [7, 15, 30, 45];
 
+/** Payment terms for an invoice made in the editor (days after the invoice date). */
+const DUE_PRESETS = [
+  { days: 0, label: "On receipt" },
+  { days: 15, label: "15 days" },
+  { days: 30, label: "30 days" },
+  { days: 45, label: "45 days" },
+];
+
+/** The same checks as the server's parseDispatch. */
+const VEHICLE_RULE = {
+  validator: (_: unknown, v?: string) =>
+    !v || /^[A-Z0-9][A-Z0-9 -]*$/.test(String(v).trim().toUpperCase())
+      ? Promise.resolve()
+      : Promise.reject(new Error("Only letters, digits, spaces and dashes")),
+};
+const EWAY_RULE = {
+  validator: (_: unknown, v?: string) =>
+    !v || /^\d{12}$/.test(String(v).replace(/\s/g, "")) ? Promise.resolve() : Promise.reject(new Error("An e-way bill number has 12 digits")),
+};
+
 /**
  * Pricing & tax (step 4) and validity & terms (step 5). The totals here are a
  * live preview; the backend recomputes everything from the items on save.
@@ -48,9 +68,17 @@ const QuotationSummary: React.FC<{
   onTotals?: (t: QuotationTotals) => void;
   /** New quotation: fill in the company's default terms once they are known. */
   fillDefaultTerms?: boolean;
-}> = ({ onTotals, fillDefaultTerms }) => {
+  /** "invoice": an invoice made without a quotation — invoice and due dates instead of validity. */
+  mode?: "quotation" | "invoice";
+  /** Invoice mode: also ask for the vehicle / transporter / LR / e-way bill. */
+  showDispatch?: boolean;
+}> = ({ onTotals, fillDefaultTerms, mode = "quotation", showDispatch = true }) => {
   const form = Form.useFormInstance();
   const [totals, setTotals] = useState<QuotationTotals>(ZERO);
+  const invoiceDate = Form.useWatch("invoice_date", form);
+  const dueDate = Form.useWatch("payment_due_date", form);
+  const dueIn =
+    dayjs.isDayjs(invoiceDate) && dayjs.isDayjs(dueDate) ? dueDate.startOf("day").diff(invoiceDate.startOf("day"), "day") : null;
 
   const subTotal = Form.useWatch("subTotal", form);
   const discount = Form.useWatch("discount", form);
@@ -249,6 +277,104 @@ const QuotationSummary: React.FC<{
         </div>
       </FormSection>
 
+      {mode === "invoice" ? (
+        <FormSection
+          id="qf-terms"
+          step={5}
+          icon={<CalendarOutlined />}
+          title={showDispatch ? "Dates, dispatch & terms" : "Dates & terms"}
+          sub={showDispatch ? "When it's dated and due, how the goods travel, and the terms printed on the invoice" : "When it's dated and due, and the terms printed on the invoice"}
+        >
+          <Row gutter={[14, 0]}>
+            <Col xs={24} md={8}>
+              <Form.Item label="Invoice date" name="invoice_date" rules={[{ required: true, message: "Pick the invoice date" }]}>
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format="D MMM YYYY"
+                  allowClear={false}
+                  disabledDate={(d) => !!d && d.isAfter(dayjs(), "day")}
+                  // Keep the same payment terms when the date moves.
+                  onChange={(d) => d && dueIn !== null && form.setFieldsValue({ payment_due_date: d.add(dueIn, "day") })}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item
+                label="Payment due"
+                name="payment_due_date"
+                dependencies={["invoice_date"]}
+                extra={dueIn === null ? undefined : dueIn === 0 ? "Due on receipt" : `${dueIn} day${dueIn === 1 ? "" : "s"} after the invoice date`}
+                rules={[
+                  { required: true, message: "Choose when payment is due" },
+                  ({ getFieldValue }) => ({
+                    validator: (_, v) => {
+                      const inv = getFieldValue("invoice_date");
+                      return !v || !inv || !v.isBefore(inv, "day") ? Promise.resolve() : Promise.reject(new Error("The due date can't be before the invoice date"));
+                    },
+                  }),
+                ]}
+              >
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format="D MMM YYYY"
+                  allowClear={false}
+                  disabledDate={(d) => !!d && dayjs.isDayjs(invoiceDate) && d.isBefore(invoiceDate, "day")}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Payment terms">
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {DUE_PRESETS.map((p) => (
+                    <button
+                      key={p.days}
+                      type="button"
+                      className={`qp-btn ghost sm${dueIn === p.days ? " active" : ""}`}
+                      onClick={() => form.setFieldsValue({ payment_due_date: (dayjs.isDayjs(invoiceDate) ? invoiceDate : dayjs()).add(p.days, "day") })}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {showDispatch && (
+            <>
+              <div className="qs-subhead">
+                <CarOutlined /> Dispatch <em>only if this invoice travels with the goods</em>
+              </div>
+              <Row gutter={[14, 0]}>
+                <Col xs={24} sm={12} lg={6}>
+                  <Form.Item label="Vehicle no." name="vehicle_number" rules={[VEHICLE_RULE]} normalize={(v) => (typeof v === "string" ? v.toUpperCase() : v)}>
+                    <Input placeholder="MH 12 AB 1234" maxLength={20} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                  <Form.Item label="Transporter" name="transporter_name">
+                    <Input placeholder="Optional" maxLength={100} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                  <Form.Item label="LR no." name="lr_number">
+                    <Input placeholder="Lorry receipt, optional" maxLength={50} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                  <Form.Item label="E-way bill no." name="eway_bill_number" rules={[EWAY_RULE]}>
+                    <Input placeholder="12 digits" maxLength={16} inputMode="numeric" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          <Form.Item label="Terms & notes" name="notes" extra="Printed on the invoice. Your company's default terms are filled in.">
+            <TextArea autoSize={{ minRows: 4, maxRows: 12 }} placeholder="e.g. Payment within 30 days · Goods once sold will not be taken back" />
+          </Form.Item>
+        </FormSection>
+      ) : (
       <FormSection id="qf-terms" step={5} icon={<CalendarOutlined />} title="Validity & terms" sub="How long the prices hold, and the terms printed on the quotation">
         <Row gutter={[14, 0]}>
           <Col xs={24} md={12}>
@@ -288,6 +414,7 @@ const QuotationSummary: React.FC<{
           <TextArea autoSize={{ minRows: 4, maxRows: 12 }} placeholder="e.g. Payment: 100% advance · Delivery: within 5 working days · Prices valid for 15 days" />
         </Form.Item>
       </FormSection>
+      )}
     </>
   );
 };

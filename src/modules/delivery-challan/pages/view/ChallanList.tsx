@@ -34,6 +34,7 @@ import {
   count,
   formatQty,
   inr,
+  isLot,
   isToInvoice,
   isTransfer,
   needsEway,
@@ -176,6 +177,14 @@ const StatusChip: React.FC<{ c: any }> = ({ c }) => {
     return (
       <span className="qp-valid inv" title={`Invoice ${c.invoice_number}`}>
         <FileDoneOutlined aria-hidden /> {c.invoice_number}
+      </span>
+    );
+  }
+  // Billed before it left: a lot travelling against that invoice.
+  if (isLot(c) && c.invoice_number) {
+    return (
+      <span className="qp-valid inv" title={`Sent against invoice ${c.invoice_number} (billed first, sent in lots)`}>
+        <FileDoneOutlined aria-hidden /> Against {c.invoice_number}
       </span>
     );
   }

@@ -57,9 +57,24 @@ export const StagePill: React.FC<{ c?: any; stage?: Stage }> = ({ c, stage }) =>
 
 // ── What a challan is waiting for ───────────────────────────────────────────
 
-/** Dispatched or delivered, made from a quotation, no invoice yet (mirrors TO_INVOICE_SQL). */
+/** Sales made without a quotation that are still billed (mirrors BILLABLE_STANDALONE_REASONS). */
+export const BILLABLE_STANDALONE_REASONS = ["SALE", "PARTIAL_SUPPLY", "SUPPLY_ON_APPROVAL"];
+
+/**
+ * Dispatched or delivered, no invoice yet, and made from a quotation — or a
+ * sale to a customer made without one (mirrors TO_INVOICE_SQL).
+ */
 export const isToInvoice = (c: any) =>
-  !!c && (c.status === "DISPATCHED" || c.status === "DELIVERED") && !!c.quotation_id && !c.invoice_id;
+  !!c &&
+  (c.status === "DISPATCHED" || c.status === "DELIVERED") &&
+  !c.invoice_id &&
+  (!!c.quotation_id || (!!c.customer_id && BILLABLE_STANDALONE_REASONS.includes(c.reason)));
+
+/** Sent against an invoice made first (bill first, send in lots — GST Rule 55(5)). */
+export const isLot = (c: any) => !!c && !!c.invoice_id && (c.status === "DISPATCHED" || c.status === "DELIVERED");
+
+/** Goods that end up on an invoice: from a quotation, or a sale to a customer made without one. */
+export const isBillable = (c: any) => !!c && (!!c.quotation_id || (!!c.customer_id && BILLABLE_STANDALONE_REASONS.includes(c.reason)));
 
 export const isTransfer = (c: any) => c?.reason === "STOCK_TRANSFER";
 

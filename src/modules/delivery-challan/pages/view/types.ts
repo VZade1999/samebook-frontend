@@ -84,6 +84,8 @@ export interface ReadyItem {
   id: number;
   challan_number: string;
   customer_name: string;
+  /** Null for a sale made without a quotation (billed in the invoice editor). */
+  quotation_id?: number | null;
   quotation_number: string | null;
   status: string;
   since: string | null;

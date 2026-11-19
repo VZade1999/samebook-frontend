@@ -535,6 +535,15 @@ const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ open, onClose }) =>
                       <Input placeholder="e.g. Manufacturing, IT, Pharma" />
                     </Form.Item>
                   </div>
+                  <div className="acm-switch-row">
+                    <Form.Item name="po_required" valuePropName="checked" noStyle>
+                      <Switch size="small" />
+                    </Form.Item>
+                    <div>
+                      <div className="acm-switch-label">Always sends a purchase order (PO)</div>
+                      <div className="acm-switch-desc">Approving their quotations will then need the PO number, which prints on challans and invoices</div>
+                    </div>
+                  </div>
                 </div>
               )}
 

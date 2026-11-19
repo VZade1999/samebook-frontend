@@ -12,8 +12,10 @@ import {
   EditOutlined,
   EnvironmentOutlined,
   FileDoneOutlined,
+  FileProtectOutlined,
   FileTextOutlined,
   HistoryOutlined,
+  LockOutlined,
   MailOutlined,
   PhoneOutlined,
   PlusCircleOutlined,
@@ -40,12 +42,15 @@ import {
   shortDate,
   stageOf,
 } from "./shared";
+import LinkedDocuments from "@/modules/document-links/LinkedDocuments";
 
 export interface DrawerActions {
   canSend: boolean;
   canApprove: boolean;
   canChallan: boolean;
   canInvoice: boolean;
+  /** "Send first, bill later": Create challan is the main button. */
+  challanFirst?: boolean;
   canEdit: boolean;
   canDelete: boolean;
   canClose: boolean;
@@ -60,10 +65,16 @@ export interface DrawerActions {
   onDelete: () => void;
   onClose: () => void;
   onReopen: () => void;
+  /** Add / change the customer's PO (approved and not yet invoiced). */
+  canEditPo?: boolean;
+  onEditPo?: () => void;
   acting: boolean;
   reopening: boolean;
   downloading: boolean;
 }
+
+/** Approved in any form (dispatching against it keeps it approved) or invoiced. */
+const APPROVED_LIKE = ["APPROVED", "PARTIALLY_DISPATCHED", "FULLY_DISPATCHED", "INVOICED"];
 
 const TRACK: { key: Stage; label: string }[] = [
   { key: "draft", label: "Draft" },
@@ -207,6 +218,40 @@ const QuotationDrawer: React.FC<{
                 </button>
               </Popconfirm>
             )}
+          </div>
+        </div>
+      )}
+      {/* Its challans, invoice and payments — each one click away. */}
+      <LinkedDocuments type="quotation" id={q.id} version={`${q.status}|${q.has_invoice}|${q.customer_po_number}|${q.updated_at}|${q.fully_billed}|${q.ready_challans}`} showBalance />
+      {(APPROVED_LIKE.includes(String(q.status)) || !!q.has_invoice) && (
+        <div className="qd-card">
+          <h4>
+            <FileProtectOutlined /> Customer's PO
+          </h4>
+          <div className="qd-po-row">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {q.customer_po_number ? (
+                <KV
+                  rows={[
+                    ["PO number", <span className="qd-mono">{q.customer_po_number}</span>],
+                    ["PO date", q.customer_po_date ? shortDate(q.customer_po_date) : <span className="qd-muted">Not given</span>],
+                  ]}
+                />
+              ) : (
+                <span className="qd-muted">
+                  {Number(q.customer?.po_required) === 1 ? "This customer always sends a PO, but none is recorded yet." : "No PO recorded. Challans and the invoice print it when there is one."}
+                </span>
+              )}
+            </div>
+            {a.canEditPo && a.onEditPo ? (
+              <button type="button" className="qp-btn ghost sm" onClick={a.onEditPo} disabled={fromCache}>
+                <EditOutlined /> {q.customer_po_number ? "Change" : "Add PO"}
+              </button>
+            ) : q.has_invoice ? (
+              <span className="qd-po-lock">
+                <LockOutlined /> {q.customer_po_number ? "Locked — the invoice prints it" : "Locked — it's invoiced"}
+              </span>
+            ) : null}
           </div>
         </div>
       )}
@@ -446,18 +491,23 @@ const QuotationDrawer: React.FC<{
                 </Popconfirm>
               )}
               {a.canApprove && (
-                <Popconfirm title="Mark this quotation as approved by the customer?" okText="Approve" onConfirm={a.onApprove} disabled={busy}>
-                  <button type="button" className="qp-btn white" disabled={busy}>
-                    {a.acting ? <Spin size="small" /> : <CheckOutlined />} Mark approved
-                  </button>
-                </Popconfirm>
+                // Opens the approve dialog, which also asks for the customer's PO.
+                <button type="button" className="qp-btn white" disabled={busy} onClick={a.onApprove}>
+                  {a.acting ? <Spin size="small" /> : <CheckOutlined />} Mark approved
+                </button>
+              )}
+              {/* The company's way of selling decides which comes first (and is the solid one). */}
+              {a.challanFirst && a.canChallan && (
+                <button type="button" className="qp-btn white" onClick={a.onChallan}>
+                  <CarOutlined /> Create delivery challan
+                </button>
               )}
               {a.canInvoice && (
-                <button type="button" className="qp-btn white" onClick={a.onInvoice}>
+                <button type="button" className={`qp-btn ${a.challanFirst && a.canChallan ? "glass" : "white"}`} onClick={a.onInvoice}>
                   <FileDoneOutlined /> Create invoice
                 </button>
               )}
-              {a.canChallan && (
+              {!a.challanFirst && a.canChallan && (
                 <button type="button" className={`qp-btn ${a.canInvoice ? "glass" : "white"}`} onClick={a.onChallan}>
                   <CarOutlined /> Create delivery challan
                 </button>
@@ -494,7 +544,14 @@ const QuotationDrawer: React.FC<{
             </div>
             {q.has_invoice ? (
               <div className="qd-note">
-                <FileDoneOutlined /> An invoice was made from this quotation, so it can no longer be edited.
+                <FileDoneOutlined />{" "}
+                {Number(q.fully_billed) === 1
+                  ? "Billed in full, so its items and prices are locked."
+                  : "Part billed — its items and prices are locked. “Create invoice” bills what's left."}
+              </div>
+            ) : Number(q.live_challans) > 0 ? (
+              <div className="qd-note">
+                <CarOutlined /> It has delivery challans, so its items and prices are locked.
               </div>
             ) : closed ? (
               <div className="qd-note">

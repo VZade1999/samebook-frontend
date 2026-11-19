@@ -6,6 +6,9 @@ import { useActiveSeries } from "./numberingService";
 import type { DocType } from "./rules";
 import "./numbering.scss";
 
+/** Holds the field's value for the form; always controlled ("" until a series is set). */
+const HiddenValue: React.FC<{ value?: unknown }> = ({ value }) => <input type="hidden" value={value == null ? "" : String(value)} readOnly />;
+
 /**
  * "Numbered as …" line for a new document's form. Shows nothing while the
  * company uses the standard format; one series → the number it will get;
@@ -39,7 +42,7 @@ const SeriesField: React.FC<{
     series.length === 1 ? (
       <div className={`nm-field-one ${className || ""}`}>
         <Form.Item name={name} hidden>
-          <input type="hidden" />
+          <HiddenValue />
         </Form.Item>
         <NumberOutlined />
         <span>

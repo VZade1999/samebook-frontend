@@ -24,6 +24,7 @@ import { useAccess } from "../../permissions/useAccess";
 import { useModules } from "@/session/useModules";
 import { FEATURES } from "@/features/registry";
 import type { FeatureSidebarItem } from "@/features/types";
+import { useSalesFlow } from "@/modules/companies/salesFlow/salesFlow";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -35,6 +36,9 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
   const navigate = useNavigate();
   const location = useLocation();
   const { can } = useAccess();
+  // "Services only": no goods move, so delivery challans stay out of the menu
+  // (old ones are still reachable through Find and linked documents).
+  const { hideChallans } = useSalesFlow();
 
   const handleNav = (key: string) => {
     navigate(key);
@@ -105,7 +109,7 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
       icon: <FileTextOutlined />,
       label: "Quotation",
     },
-    can("challans.view") && {
+    can("challans.view") && !hideChallans && {
       key: "/app/delivery-challans",
       icon: <CarOutlined />,
       label: "Delivery Challans",

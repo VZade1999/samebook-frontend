@@ -32,6 +32,8 @@ import {
 } from "@ant-design/icons";
 import { addressLines, companyAddressLines, companyGstin, warehouseAddressLines } from "../../constants";
 import { dispatchHint } from "./ChallanList";
+import LinkedDocuments from "@/modules/document-links/LinkedDocuments";
+import type { Lot } from "@/modules/document-links/types";
 import {
   Avatar,
   StagePill,
@@ -39,6 +41,8 @@ import {
   daysSince,
   dateTime,
   formatQty,
+  isBillable,
+  isLot,
   isToInvoice,
   isTransfer,
   needsEway,
@@ -93,6 +97,7 @@ const ACTION_META: Record<string, { label: string; icon: React.ReactNode; tone: 
   DISPATCHED: { label: "Dispatched", icon: <SendOutlined />, tone: "var(--dc-transit)" },
   DELIVERED: { label: "Delivered", icon: <CheckCircleFilled />, tone: "var(--dc-delivered)" },
   INVOICED: { label: "Invoiced", icon: <FileDoneOutlined />, tone: "var(--dc-invoiced)" },
+  AGAINST_INVOICE: { label: "Sent against invoice", icon: <FileDoneOutlined />, tone: "var(--dc-invoiced)" },
   CANCELLED: { label: "Cancelled", icon: <StopOutlined />, tone: "var(--qp-bad)" },
   DELETED: { label: "Deleted", icon: <DeleteOutlined />, tone: "var(--qp-bad)" },
 };
@@ -146,6 +151,9 @@ const Timeline: React.FC<{ items: any[] }> = ({ items }) =>
               )}
               {it.action === "DISPATCHED" && (
                 <span className="qd-tl-reason">{v.stock_moved ? "Stock moved out of the warehouse" : "No stock moved"}</span>
+              )}
+              {it.action === "AGAINST_INVOICE" && v.invoice_number && (
+                <span className="qd-tl-reason">Billed first on {v.invoice_number} — this is one lot</span>
               )}
               {it.action === "INVOICED" && v.invoice_number && (
                 <span className="qd-tl-reason">
@@ -212,6 +220,10 @@ const ChallanDrawer: React.FC<{
   isMobile: boolean;
   today: Dayjs;
 }> = ({ open, c, fromCache, company, toWarehouse, actions: a, onClose, isMobile, today }) => {
+  // Bill first, send in lots: the lot number comes with the linked documents.
+  const [lot, setLot] = React.useState<Lot | null>(null);
+  React.useEffect(() => setLot(null), [c?.id]);
+  const lotNow = isLot(c);
   const items: any[] = Array.isArray(c?.items) ? c.items : [];
   const activity: any[] = Array.isArray(c?.activity) ? c.activity : [];
   const stage = stageOf(c);
@@ -227,13 +239,15 @@ const ChallanDrawer: React.FC<{
   const itemsCount = items.length || Number(c?.items_count || 0);
   const onRoadDays = stage === "transit" ? daysSince(c?.dispatched_at, today) : null;
 
-  // Track: made → sent → delivered (→ invoiced for challans made from a
-  // quotation). A cancelled challan shows how far it got, then where it stopped.
+  // Track: made → sent → delivered (→ invoiced for goods that get billed:
+  // from a quotation, or a sale without one; a lot was billed before it left).
+  // A cancelled challan shows how far it got, then where it stopped.
+  const billedAfter = isBillable(c) && !lotNow;
   const allSteps = [
     { key: "made", label: "Made", at: c?.created_at },
     { key: "sent", label: "Sent", at: c?.dispatched_at },
     { key: "delivered", label: "Delivered", at: c?.delivered_at },
-    ...(c?.quotation_id ? [{ key: "invoiced", label: "Invoiced", at: invoicedAt }] : []),
+    ...(billedAfter ? [{ key: "invoiced", label: "Invoiced", at: invoicedAt }] : []),
   ];
   const reached =
     stage === "invoiced"
@@ -250,8 +264,8 @@ const ChallanDrawer: React.FC<{
                 : 0
             : 0;
   const steps = stage === "cancelled" ? [...allSteps.slice(0, reached + 1), { key: "cancelled", label: "Cancelled", at: c?.cancelled_at }] : allSteps;
-  // Nothing left to happen: an invoiced challan, or a delivered one that is never invoiced.
-  const finished = stage === "invoiced" || (stage === "delivered" && !c?.quotation_id);
+  // Nothing left to happen: an invoiced challan, or a delivered one that is never invoiced (or was billed first).
+  const finished = stage === "invoiced" || (stage === "delivered" && !billedAfter);
   const stepClass = (key: string, i: number) =>
     stage === "cancelled"
       ? key === "cancelled"
@@ -297,8 +311,10 @@ const ChallanDrawer: React.FC<{
       <>
         <FileSyncOutlined />{" "}
         {c?.quotation_invoice_number
-          ? `Quotation ${c.quotation_number || ""} already has invoice ${c.quotation_invoice_number} — this challan gets linked to it.`
-          : `Ready to invoice: the invoice is made from quotation ${c?.quotation_number || ""}.`}
+          ? `Quotation ${c.quotation_number || ""} is already billed in full on ${c.quotation_invoice_number} — link this challan to it.`
+          : c?.quotation_id
+            ? `Ready to invoice: the invoice bills exactly these goods, at ${c?.quotation_number || "the quotation"}'s prices.`
+            : "Ready to invoice: the invoice opens with these goods — add the prices and GST there."}
       </>
     ) : stage === "invoiced" ? (
       <>
@@ -308,11 +324,27 @@ const ChallanDrawer: React.FC<{
     ) : (
       complianceNote(c)
     );
-  const extraNote = stage !== "cancelled" && ready ? complianceNote(c) : null;
+  // A lot: what travels with it (GST Rule 55(5) — the original invoice goes with the last lot).
+  const lotNote: React.ReactNode = lotNow ? (
+    <>
+      <FileDoneOutlined />{" "}
+      <b>{lot ? (lot.last ? `Last lot against ${c.invoice_number}` : `Lot ${lot.number} against ${c.invoice_number}`) : `Sent against invoice ${c?.invoice_number || ""}`}</b>
+      {" — billed before dispatch. "}
+      {lot?.last ? "Send the original invoice with these goods." : "Carry a copy of the invoice with these goods; the original goes with the last lot."}
+    </>
+  ) : null;
+  const extraNote = stage !== "cancelled" ? (ready ? complianceNote(c) : lotNote) : null;
 
   const overview = c && (
     <>
-      <div className="qd-grid-2" style={{ marginTop: 0 }}>
+      {/* The quotation this challan came from, its sibling challans and the invoice. */}
+      <LinkedDocuments
+        type="challan"
+        id={c.id}
+        version={`${c.status}|${c.invoice_id}|${c.updated_at}`}
+        onLoaded={(t) => t.focus.id === c.id && setLot(t.references.lot || null)}
+      />
+      <div className="qd-grid-2">
         <div className="qd-card">
           <h4>{transfer ? <HomeOutlined /> : <UserOutlined />} {transfer ? "Destination" : "Consignee"}</h4>
           {transfer ? (

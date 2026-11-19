@@ -52,7 +52,8 @@ export const customerFormFields = (customer: any) => {
   };
 };
 
-const CustomerDetails = () => {
+/** docName: what the editor is making ("quotation", or "invoice" for one made without a quotation). */
+const CustomerDetails = ({ docName = "quotation" }: { docName?: string }) => {
   const form = Form.useFormInstance();
   const [searchValue, setSearchValue] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -143,7 +144,7 @@ const CustomerDetails = () => {
 
   return (
     <>
-      <FormSection id="qf-customer" step={1} icon={<TeamOutlined />} title="Customer" sub="Who is this quotation for?">
+      <FormSection id="qf-customer" step={1} icon={<TeamOutlined />} title="Customer" sub={`Who is this ${docName} for?`}>
         <Form.Item name="customerId" hidden><Input /></Form.Item>
         <Form.Item name="customerType" hidden><Input /></Form.Item>
         <Form.Item name="billingAddressSnapshot" hidden><Input /></Form.Item>

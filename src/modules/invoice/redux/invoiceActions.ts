@@ -33,6 +33,14 @@ export const ASYNC_GET_INVOICE_TIMELINE_SUCCESS =
 export const ASYNC_GET_INVOICE_TIMELINE_FAILED =
   'ASYNC_GET_INVOICE_TIMELINE_FAILED';
 
+// An invoice was cancelled: its challans and quotations change too (billing change).
+export const INVOICE_CANCELLED = 'INVOICE_CANCELLED';
+export const invoiceCancelled = (id: number) => ({ type: INVOICE_CANCELLED, id });
+
+// Vehicle / transporter / LR / e-way bill changed on an invoice (printed on it).
+export const INVOICE_DISPATCH_UPDATED = 'INVOICE_DISPATCH_UPDATED';
+export const invoiceDispatchUpdated = (id: number) => ({ type: INVOICE_DISPATCH_UPDATED, id });
+
 export const getInvoices = (payload?: any) => ({
   type: ASYNC_GET_INVOICES,
   payload,

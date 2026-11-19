@@ -8,7 +8,13 @@ import FormSection from "./FormSection";
 const last4 = (n: any) => String(n || "").slice(-4);
 const grouped = (n: any) => String(n || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
 
-const PaymentDetails: React.FC = () => {
+const isOn = (v: unknown) => v === true || Number(v) === 1;
+
+/**
+ * autoSelectDefault: a new document starts on the company's default bank
+ * account (or its only active one) — never over a choice already made.
+ */
+const PaymentDetails: React.FC<{ autoSelectDefault?: boolean }> = ({ autoSelectDefault = false }) => {
   const form = Form.useFormInstance();
   // Company details (including bank_accounts) are fetched by the Business
   // section and land in the same Redux slice; stay reactive to it so the
@@ -64,6 +70,16 @@ const PaymentDetails: React.FC = () => {
     setSelectedBankId(bankId);
     form.setFieldsValue({ paymentBankId: bankId });
   };
+
+  useEffect(() => {
+    if (!autoSelectDefault || !bankAccounts.length) return;
+    const current = form.getFieldValue("paymentBankId");
+    if ((current != null && current !== "") || form.isFieldTouched("paymentBankId")) return;
+    const active = bankAccounts.filter((b) => b.is_active === undefined || b.is_active === null || isOn(b.is_active));
+    const pick = active.find((b) => isOn(b.is_default)) || (active.length === 1 ? active[0] : null);
+    if (pick) handleBankChange(pick.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSelectDefault, bankAccounts]);
 
   return (
     <FormSection id="qf-payment" step={6} icon={<BankOutlined />} title="Payment details" sub="The bank account your customer pays into">

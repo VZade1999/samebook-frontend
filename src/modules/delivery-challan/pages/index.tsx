@@ -347,8 +347,12 @@ const ChallanPage = () => {
     [freshDetails],
   );
 
+  // Opens the quotation's own panel (falls back to searching its number).
   const openQuotation = useCallback(
-    (c: { quotation_number?: string | null }) => c.quotation_number && navigate(`/app/quotation?q=${encodeURIComponent(c.quotation_number)}`),
+    (c: { quotation_id?: number | null; quotation_number?: string | null }) =>
+      c.quotation_id
+        ? navigate(`/app/quotation?open=${c.quotation_id}`)
+        : c.quotation_number && navigate(`/app/quotation?q=${encodeURIComponent(c.quotation_number)}`),
     [navigate],
   );
   const openInvoice = useCallback((c: { invoice_id?: number | null }) => c.invoice_id && navigate(`/app/invoice?open=${c.invoice_id}`), [navigate]);
@@ -359,6 +363,22 @@ const ChallanPage = () => {
     else if (choice.kind === "transfer") setForm({ open: true, reason: "STOCK_TRANSFER" });
     else setForm({ open: true });
   };
+
+  // "Make invoice": a challan from a quotation is billed at the quotation's
+  // prices (the dialog); one made without a quotation opens the invoice
+  // editor filled with its customer and goods (prices and GST are chosen there).
+  const startInvoice = useCallback(
+    (c: any) => {
+      if (!c) return;
+      if (c.quotation_id || c.quotation_number) return setInvoiceTarget(invoiceTargetOf(c));
+      if (!can("invoices.create")) {
+        message.warning("Billing a challan made without a quotation needs permission to create invoices");
+        return;
+      }
+      navigate(`/app/invoice?direct=1&challan=${c.id}`);
+    },
+    [can, navigate],
+  );
 
   const onInvoiced = (result: InvoiceResult, target: InvoiceTarget) => {
     setInvoiceTarget(null);
@@ -407,7 +427,7 @@ const ChallanPage = () => {
       canDelete,
       onDispatch: doDispatch,
       onDeliver: doDeliver,
-      onInvoice: (c) => setInvoiceTarget(invoiceTargetOf(c)),
+      onInvoice: startInvoice,
       onDownload: download,
       onCopyNumber: copyNumber,
       onEdit: openEdit,
@@ -418,7 +438,7 @@ const ChallanPage = () => {
       busyId,
       downloadingId,
     }),
-    [canEdit, canDispatch, canConvert, canDelete, doDispatch, doDeliver, download, copyNumber, openEdit, canQuotations, openQuotation, canInvoices, openInvoice, busyId, downloadingId],
+    [canEdit, canDispatch, canConvert, canDelete, doDispatch, doDeliver, startInvoice, download, copyNumber, openEdit, canQuotations, openQuotation, canInvoices, openInvoice, busyId, downloadingId],
   );
 
   const status = drawerC?.status;
@@ -431,7 +451,7 @@ const ChallanPage = () => {
     canDelete: !!drawerC && canDelete && status === "DRAFT",
     onDispatch: () => drawerC && doDispatch(drawerC),
     onDeliver: () => drawerC && doDeliver(drawerC),
-    onInvoice: () => drawerC && setInvoiceTarget(invoiceTargetOf(drawerC)),
+    onInvoice: () => drawerC && startInvoice(drawerC),
     onEdit: () => drawerC && openEdit(drawerC),
     onCancel: () => drawerC && setRemove({ target: drawerC, mode: "cancel" }),
     onDelete: () => drawerC && setRemove({ target: drawerC, mode: "delete" }),
@@ -472,14 +492,16 @@ const ChallanPage = () => {
           onInvoice={
             canConvert
               ? (it) =>
-                  setInvoiceTarget({
-                    id: it.id,
-                    challan_number: it.challan_number,
-                    customer_name: it.customer_name,
-                    quotation_number: it.quotation_number,
-                    total_value: it.total_value,
-                    quotation_invoice_number: it.invoice_number,
-                  })
+                  !it.quotation_id && !it.quotation_number
+                    ? startInvoice(it)
+                    : setInvoiceTarget({
+                        id: it.id,
+                        challan_number: it.challan_number,
+                        customer_name: it.customer_name,
+                        quotation_number: it.quotation_number,
+                        total_value: it.total_value,
+                        quotation_invoice_number: it.invoice_number,
+                      })
               : undefined
           }
           onSendQuotation={(id, number) => {

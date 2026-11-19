@@ -1,12 +1,15 @@
 import React from "react";
 import type { Dayjs } from "dayjs";
-import { Drawer, Popconfirm, Spin, Tabs } from "antd";
+import { Drawer, Dropdown, Popconfirm, Spin, Tabs } from "antd";
 import { ago } from "@/modules/dashboard/utils/format";
 import {
   BankOutlined,
+  CarOutlined,
   CheckCircleFilled,
   CloseOutlined,
+  DownOutlined,
   DownloadOutlined,
+  EditOutlined,
   EnvironmentOutlined,
   ExclamationCircleFilled,
   FileDoneOutlined,
@@ -17,6 +20,7 @@ import {
   PhoneOutlined,
   PieChartFilled,
   PlusCircleOutlined,
+  PrinterOutlined,
   SendOutlined,
   ShopOutlined,
   StopOutlined,
@@ -41,6 +45,7 @@ import {
   shortDate,
   stateOf,
 } from "./shared";
+import LinkedDocuments from "@/modules/document-links/LinkedDocuments";
 
 export interface DrawerActions {
   canPay: boolean;
@@ -48,8 +53,14 @@ export interface DrawerActions {
   canExport: boolean;
   onPay: () => void;
   onSend: () => void;
-  onDownload: () => void;
+  /** "original" (default) or all three GST copies for printing. */
+  onDownload: (copies?: "original" | "all") => void;
   onCopyReminder: () => void;
+  /** Cancel (no payments): its challans can be billed again. */
+  canCancel?: boolean;
+  onCancelInvoice?: () => void;
+  /** Add / change the vehicle, transporter, LR and e-way bill (an invoice that travels with the goods). */
+  onEditDispatch?: () => void;
   onOpenQuotation?: () => void;
   sending: boolean;
   downloading: boolean;
@@ -75,7 +86,21 @@ const ACTION_META: Record<string, { label: string; icon: React.ReactNode; tone: 
   INVOICE_PAID: { label: "Paid in full", icon: <CheckCircleFilled />, tone: "var(--ip-paid)" },
   INVOICE_OVERDUE: { label: "Marked overdue", icon: <ExclamationCircleFilled />, tone: "var(--qp-bad)" },
   INVOICE_CANCELLED: { label: "Cancelled", icon: <StopOutlined />, tone: "var(--qp-bad)" },
+  DISPATCH_UPDATED: { label: "Dispatch details saved", icon: <CarOutlined />, tone: "var(--qp-accent)" },
 };
+
+const DISPATCH_LABEL: Record<string, string> = {
+  vehicle_number: "Vehicle",
+  transporter_name: "Transporter",
+  lr_number: "LR",
+  eway_bill_number: "E-way bill",
+};
+/** "Vehicle MH12AB1234 · E-way bill removed" */
+const dispatchChange = (v: Record<string, unknown>) =>
+  Object.keys(DISPATCH_LABEL)
+    .filter((k) => k in v)
+    .map((k) => `${DISPATCH_LABEL[k]} ${v[k] ? String(v[k]) : "removed"}`)
+    .join(" · ");
 const actionMeta = (type?: string) =>
   ACTION_META[String(type || "").toUpperCase()] || {
     label: String(type || "Updated").replace(/^INVOICE_/, "").replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase()),
@@ -102,7 +127,22 @@ const Timeline: React.FC<{ items: any[] }> = ({ items }) =>
                   {v.payment_date ? ` · dated ${shortDate(v.payment_date)}` : ""}
                 </span>
               )}
-              {v.quotation_number && it.action === "INVOICE_GENERATED" && <span className="qd-tl-reason">From quotation {v.quotation_number}</span>}
+              {it.action === "INVOICE_GENERATED" && (v.challan_numbers?.length || v.quotation_number || v.direct) && (
+                <span className="qd-tl-reason">
+                  {v.challan_numbers?.length
+                    ? `Bills ${v.challan_numbers.join(", ")}${(v.quotation_numbers || []).length ? ` · from ${(v.quotation_numbers || []).join(", ")}` : ""}`
+                    : v.quotation_number
+                      ? `From quotation ${v.quotation_number}`
+                      : "Made without a quotation"}
+                </span>
+              )}
+              {it.action === "DISPATCH_UPDATED" && dispatchChange(v) && <span className="qd-tl-reason">{dispatchChange(v)}</span>}
+              {it.action === "INVOICE_CANCELLED" && v.reason && (
+                <span className="qd-tl-reason">
+                  {v.reason}
+                  {v.freed_challans?.length ? ` · ${v.freed_challans.join(", ")} ready to invoice again` : ""}
+                </span>
+              )}
               <small>
                 {who ? `${who} · ` : ""}
                 {it.created_at ? `${ago(it.created_at)} · ${dateTime(it.created_at)}` : ""}
@@ -145,9 +185,16 @@ const InvoiceDrawer: React.FC<{
   const balance = balanceOf(inv);
   const share = paidShare(inv);
   const lastPayment = payments[0];
+  const cancelReason = (() => {
+    const log = timeline.find((t) => t.action === "INVOICE_CANCELLED");
+    return log ? parseJsonField(log.new_value)?.reason || null : null;
+  })();
+  const hasDispatch = !!(inv?.vehicle_number || inv?.transporter_name || inv?.lr_number || inv?.eway_bill_number);
 
   const overview = inv && (
     <>
+      {/* The quotation, challans and payments this invoice belongs with. */}
+      <LinkedDocuments type="invoice" id={inv.id} version={`${inv.status}|${inv.paid_amount}|${inv.updated_at}|${payments.length}`} />
       <div className="qd-card">
         <h4>
           <UserOutlined /> Customer
@@ -176,6 +223,30 @@ const InvoiceDrawer: React.FC<{
           <div className="qd-addr">{joinAddr(shipping) || <span className="qd-muted">{fromCache ? "Loading…" : "No shipping address"}</span>}</div>
         </div>
       </div>
+      {(hasDispatch || a.onEditDispatch) && (
+        <div className="qd-card">
+          <h4>
+            <CarOutlined /> Dispatch
+            {a.onEditDispatch && (
+              <button type="button" className="ip-card-edit" onClick={a.onEditDispatch} disabled={fromCache}>
+                <EditOutlined /> {hasDispatch ? "Edit" : "Add"}
+              </button>
+            )}
+          </h4>
+          {hasDispatch ? (
+            <KV
+              rows={[
+                ["Vehicle", inv.vehicle_number ? <span className="qd-mono">{inv.vehicle_number}</span> : null],
+                ["Transporter", inv.transporter_name],
+                ["LR no.", inv.lr_number ? <span className="qd-mono">{inv.lr_number}</span> : null],
+                ["E-way bill", inv.eway_bill_number ? <span className="qd-mono">{inv.eway_bill_number}</span> : null],
+              ]}
+            />
+          ) : (
+            <div className="ip-dispatch-empty">Add the vehicle and e-way bill when this invoice travels with the goods.</div>
+          )}
+        </div>
+      )}
       {(business.businessName || business.businessAddress) && (
         <div className="qd-card">
           <h4>
@@ -223,7 +294,7 @@ const InvoiceDrawer: React.FC<{
         <KV
           rows={[
             ["Made", `${dateTime(inv.created_at)}${madeBy ? ` by ${madeBy}` : ""}`],
-            ["Quotation", inv.quotation_number || null],
+            ["Quotation", inv.quotation_number || (inv.quotation_id === null && !fromCache ? <span className="qd-muted">None — made directly</span> : null)],
             ["Sent", inv.last_sent_at ? `${dateTime(inv.last_sent_at)} (${ago(inv.last_sent_at)})` : <span className="qd-muted">Not marked as sent yet</span>],
           ]}
         />
@@ -476,13 +547,36 @@ const InvoiceDrawer: React.FC<{
                 </Popconfirm>
               )}
               {a.canExport && (
-                <button type="button" className="qp-btn glass" onClick={a.onDownload} disabled={a.downloading}>
-                  {a.downloading ? <Spin size="small" /> : <DownloadOutlined />} PDF
-                </button>
+                // GST Rule 48: goods invoices are made in triplicate. Email the original; print all three.
+                <Dropdown
+                  trigger={["click"]}
+                  disabled={a.downloading}
+                  menu={{
+                    items: [
+                      { key: "original", icon: <DownloadOutlined />, label: "Original for recipient (to email)", onClick: () => a.onDownload("original") },
+                      { key: "all", icon: <PrinterOutlined />, label: "3 copies for printing (original, duplicate, triplicate)", onClick: () => a.onDownload("all") },
+                    ],
+                  }}
+                >
+                  <button type="button" className="qp-btn glass" disabled={a.downloading}>
+                    {a.downloading ? <Spin size="small" /> : <DownloadOutlined />} PDF <DownOutlined style={{ fontSize: 10 }} />
+                  </button>
+                </Dropdown>
               )}
               {state !== "paid" && state !== "cancelled" && (
                 <button type="button" className="qp-btn glass" onClick={a.onCopyReminder} disabled={fromCache} title="Copy a polite payment reminder to paste into WhatsApp or email">
                   <MessageOutlined /> Copy reminder
+                </button>
+              )}
+              {a.canCancel && a.onCancelInvoice && (
+                <button
+                  type="button"
+                  className="qp-btn glass"
+                  onClick={a.onCancelInvoice}
+                  disabled={fromCache || Number(inv.paid_amount) > 0}
+                  title={Number(inv.paid_amount) > 0 ? "Payments are recorded on this invoice, so it can't be cancelled" : "Cancel this invoice — its challans can be billed again"}
+                >
+                  <StopOutlined /> Cancel invoice
                 </button>
               )}
             </div>
@@ -493,7 +587,7 @@ const InvoiceDrawer: React.FC<{
                 </>
               ) : state === "cancelled" ? (
                 <>
-                  <StopOutlined /> This invoice is cancelled and doesn't count anywhere.
+                  <StopOutlined /> This invoice is cancelled and doesn't count anywhere{cancelReason ? ` — ${cancelReason}` : ""}.
                 </>
               ) : due.tone === "bad" ? (
                 <>

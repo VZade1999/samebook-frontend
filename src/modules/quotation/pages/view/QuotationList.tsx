@@ -204,13 +204,12 @@ const Row: React.FC<{ q: any; i: number; selected: boolean; today: Dayjs; a: Row
           </Popconfirm>
         )}
         {a.canApprove(q) && (
-          <Popconfirm title="Mark this quotation as approved by the customer?" okText="Approve" onConfirm={() => a.onApprove(q)}>
-            <Tooltip title="Approve">
-              <button type="button" className="qp-act approve" disabled={busy} aria-label="Approve">
-                {busy ? <Spin size="small" /> : <CheckOutlined />}
-              </button>
-            </Tooltip>
-          </Popconfirm>
+          // Opens the approve dialog, which also asks for the customer's PO.
+          <Tooltip title="Approve">
+            <button type="button" className="qp-act approve" disabled={busy} aria-label="Approve" onClick={() => a.onApprove(q)}>
+              {busy ? <Spin size="small" /> : <CheckOutlined />}
+            </button>
+          </Tooltip>
         )}
         {a.canInvoice(q) && (
           <Tooltip title="Create invoice">

@@ -27,6 +27,8 @@ import {
   WalletOutlined,
 } from "@ant-design/icons";
 import { StorageService } from "@/storage";
+import { useSalesFlow } from "@/modules/companies/salesFlow/salesFlow";
+import { SalesFlowPrompt } from "@/modules/companies/salesFlow/SalesFlowPicker";
 import { dashboardService, overviewKey } from "../../services/dashboardService";
 import { forgetOverview, rememberOverview } from "../../redux/dashboardSlice";
 import type { Overview, SeriesKey } from "../../types";
@@ -172,15 +174,18 @@ const DashboardPage: React.FC = () => {
   const gran: Granularity = granPick && grans.includes(granPick) ? granPick : autoGranularity(days);
   const [tab, setTab] = useState<TrendTab>("sales");
 
+  // "Services only" companies never move goods: challan figures stay hidden.
+  const { hideChallans } = useSalesFlow();
   const access = data?.access;
+  const showChallans = !!access?.challans && !hideChallans;
   const tabs = useMemo(() => {
     const t: { key: TrendTab; label: string }[] = [];
     if (access?.invoices) t.push({ key: "sales", label: access.insights ? "Sales & collections" : "Invoices" });
     if (access?.quotations) t.push({ key: "quotations", label: "Quotations" });
-    if (access?.challans) t.push({ key: "challans", label: "Challans" });
+    if (showChallans) t.push({ key: "challans", label: "Challans" });
     if (access?.customers) t.push({ key: "customers", label: "New customers" });
     return t;
-  }, [access]);
+  }, [access, showChallans]);
   const activeTab = tabs.some((t) => t.key === tab) ? tab : tabs[0]?.key;
 
   const buckets = useMemo(
@@ -332,7 +337,7 @@ const DashboardPage: React.FC = () => {
         spark={spark("quotations", "n")} onClick={() => navigate("/app/quotation")} />,
     );
   }
-  if (data.access.challans && totals.challans) {
+  if (showChallans && totals.challans) {
     const c = totals.challans;
     tiles.push(
       <StatTile key="dc" index={ti++} icon={<CarOutlined />} tint="var(--db-s3)" label="Delivery challans" value={count(c.count)}
@@ -595,7 +600,7 @@ const DashboardPage: React.FC = () => {
     </Card>
   ) : null;
 
-  const challanCard = data.challans ? (
+  const challanCard = data.challans && showChallans ? (
     <Card icon={<CarOutlined />} tint="var(--db-s3)" title="Deliveries" sub="Challans dated in this period" failed={failed("challans")} onRetry={load}
       link={{ label: "All challans", onClick: () => navigate("/app/delivery-challans") }}>
       <div className="db-pipeline">
@@ -750,6 +755,8 @@ const DashboardPage: React.FC = () => {
       )}
 
       <main className="db-main">
+        {/* Asked once, to a company admin, until a choice (or Skip) is saved. */}
+        <SalesFlowPrompt />
         {nothingVisible ? (
           <Empty icon={<DashboardOutlined />} title="Nothing to show yet" sub="Your role doesn't include any of the areas this dashboard summarises. Ask an admin for access to invoices, quotations or other modules." />
         ) : (

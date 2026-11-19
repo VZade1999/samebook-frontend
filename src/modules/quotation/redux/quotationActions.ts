@@ -44,6 +44,9 @@ export const QUOTATION_CLOSED = 'QUOTATION_CLOSED';
 export const QUOTATION_REOPENED = 'QUOTATION_REOPENED';
 export const quotationClosed = (id: number) => ({ type: QUOTATION_CLOSED, id });
 export const quotationReopened = (id: number) => ({ type: QUOTATION_REOPENED, id });
+// The customer's PO changed — challans and invoices print it, so it is a billing change.
+export const QUOTATION_PO_CHANGED = 'QUOTATION_PO_CHANGED';
+export const quotationPoChanged = (id: number) => ({ type: QUOTATION_PO_CHANGED, id });
 
 export const getQuotations = (payload: any) => ({
   type: ASYNC_GET_QUOTATIONS,

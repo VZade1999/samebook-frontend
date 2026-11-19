@@ -12,6 +12,7 @@ import {
 import ThemeToggle from "@/components/ThemeToggle";
 import CalculatorButton from "@/components/Calculator/Calculator";
 import NotificationBell from "@/components/NotificationBell/NotificationBell";
+import DocumentSearch from "@/modules/document-links/DocumentSearch";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../modules/auth/redux/authActions";
 import { StorageService } from "@/storage";
@@ -73,6 +74,9 @@ const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
       <span className="header-company">{companyName?.name}</span>
 
       <div className="header-right">
+        {/* Find any quotation / challan / invoice by any number on it (Ctrl/⌘ K) */}
+        <DocumentSearch />
+
         {/* Calculator — popover on laptop, bottom sheet on mobile */}
         <CalculatorButton />
 

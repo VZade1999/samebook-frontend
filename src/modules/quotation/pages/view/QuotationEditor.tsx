@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Form, Modal, Spin, message } from "antd";
 import type { FormInstance } from "antd";
-import { ArrowLeftOutlined, CheckOutlined, EditOutlined, FileAddOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CheckOutlined, EditOutlined, FileAddOutlined, FileDoneOutlined } from "@ant-design/icons";
 import SeriesField from "@/modules/numbering/SeriesField";
 import BusinessDetails from "../components/BusinessDetails";
 import CustomerDetails from "../components/CustomerDetails";
@@ -18,6 +18,8 @@ const SECTIONS = [
   { id: "qf-terms", label: "Validity & terms" },
   { id: "qf-payment", label: "Payment" },
 ];
+// An invoice made without a quotation: dates (and dispatch) instead of validity.
+const INVOICE_SECTIONS = SECTIONS.map((s) => (s.id === "qf-terms" ? { ...s, label: "Dates & terms" } : s));
 
 const filled = (v: any) => v !== undefined && v !== null && v !== "";
 
@@ -25,6 +27,10 @@ const filled = (v: any) => v !== undefined && v !== null && v !== "";
  * The create / edit screen: six numbered sections, a step bar that follows
  * the scroll, and a footer with the live total and the save button. The
  * section components own their fields; the page owns saving (onFinish).
+ *
+ * mode="invoice" is the same editor making an invoice without a quotation
+ * (a walk-in sale, or billing a challan made without one): invoice numbering,
+ * invoice and due dates instead of validity, and the dispatch details.
  */
 const QuotationEditor: React.FC<{
   form: FormInstance;
@@ -34,7 +40,14 @@ const QuotationEditor: React.FC<{
   loadingDetails: boolean;
   onFinish: (values: any) => void;
   onCancel: () => void;
-}> = ({ form, editing, saving, canSave, loadingDetails, onFinish, onCancel }) => {
+  mode?: "quotation" | "invoice";
+  /** Shown above the form, e.g. which challan this invoice bills. */
+  banner?: React.ReactNode;
+  /** Invoice mode: ask for vehicle / transporter / LR / e-way bill (not for services). */
+  showDispatch?: boolean;
+}> = ({ form, editing, saving, canSave, loadingDetails, onFinish, onCancel, mode = "quotation", banner, showDispatch = true }) => {
+  const invoice = mode === "invoice";
+  const sections = invoice ? INVOICE_SECTIONS : SECTIONS;
   const [totals, setTotals] = useState<QuotationTotals | null>(null);
   const [active, setActive] = useState(SECTIONS[0].id);
 
@@ -46,6 +59,8 @@ const QuotationEditor: React.FC<{
   const emails = Form.useWatch("selectedEmails", form);
   const items = Form.useWatch("items", form);
   const validity = Form.useWatch("validity_date", form);
+  const invoiceDate = Form.useWatch("invoice_date", form);
+  const dueDate = Form.useWatch("payment_due_date", form);
   const bank = Form.useWatch("paymentBankId", form);
 
   const itemList: any[] = Array.isArray(items) ? items : [];
@@ -54,7 +69,7 @@ const QuotationEditor: React.FC<{
     "qf-business": (addrs?.length || 0) + (locs?.length || 0) > 0 && (phones?.length || 0) > 0 && (emails?.length || 0) > 0,
     "qf-items": itemList.length > 0 && itemList.every((i) => i?.itemName && i?.quantity && filled(i?.price) && i?.hsn_code && i?.unit),
     "qf-pricing": itemList.length > 0,
-    "qf-terms": filled(validity),
+    "qf-terms": invoice ? filled(invoiceDate) && filled(dueDate) : filled(validity),
     "qf-payment": filled(bank),
   };
   const doneCount = Object.values(done).filter(Boolean).length;
@@ -83,7 +98,7 @@ const QuotationEditor: React.FC<{
     if (saving) return;
     if (form.isFieldsTouched()) {
       Modal.confirm({
-        title: editing ? "Discard your changes?" : "Discard this quotation?",
+        title: editing ? "Discard your changes?" : invoice ? "Discard this invoice?" : "Discard this quotation?",
         content: "What you entered here will be lost.",
         okText: "Discard",
         okButtonProps: { danger: true },
@@ -93,7 +108,7 @@ const QuotationEditor: React.FC<{
     } else {
       onCancel();
     }
-  }, [editing, form, onCancel, saving]);
+  }, [editing, form, onCancel, saving, invoice]);
 
   // Ctrl / Cmd + S saves.
   useEffect(() => {
@@ -117,16 +132,18 @@ const QuotationEditor: React.FC<{
     <div className="qf-root">
       <div className="qf-hero">
         <button type="button" className="qf-back" onClick={cancel}>
-          <ArrowLeftOutlined /> Quotations
+          <ArrowLeftOutlined /> {invoice ? "Invoices" : "Quotations"}
         </button>
         <div className="qf-hero-main">
-          <span className="qf-hero-icon">{editing ? <EditOutlined /> : <FileAddOutlined />}</span>
+          <span className="qf-hero-icon">{editing ? <EditOutlined /> : invoice ? <FileDoneOutlined /> : <FileAddOutlined />}</span>
           <div className="qf-hero-text">
-            <h1>{editing ? `Edit ${editing.quotation_number}` : "New quotation"}</h1>
+            <h1>{editing ? `Edit ${editing.quotation_number}` : invoice ? "New invoice" : "New quotation"}</h1>
             <p>
               {editing
                 ? "Saving keeps the current version in this quotation's history."
-                : "Pick a customer and add items — the total updates as you type."}
+                : invoice
+                  ? "Without a quotation — pick the customer, add the items and prices, and it is saved straight as a tax invoice."
+                  : "Pick a customer and add items — the total updates as you type."}
             </p>
           </div>
           {editing && <StagePill q={editing} />}
@@ -135,7 +152,7 @@ const QuotationEditor: React.FC<{
       </div>
 
       <nav className="qf-steps" aria-label="Sections">
-        {SECTIONS.map((s, i) => (
+        {sections.map((s, i) => (
           <button
             key={s.id}
             type="button"
@@ -150,14 +167,15 @@ const QuotationEditor: React.FC<{
       </nav>
 
       <Form form={form} layout="vertical" onFinish={onFinish} onFinishFailed={onFinishFailed} autoComplete="off" scrollToFirstError={false}>
-        {!editing && <SeriesField docType="QUOTATION" form={form} className="qf-series" />}
+        {banner}
+        {!editing && <SeriesField docType={invoice ? "INVOICE" : "QUOTATION"} form={form} className="qf-series" />}
         <div className="qf-grid-2">
-          <CustomerDetails />
-          <BusinessDetails />
+          <CustomerDetails docName={mode} />
+          <BusinessDetails docName={mode} />
         </div>
         <QuotationItems />
-        <QuotationSummary onTotals={setTotals} fillDefaultTerms={!editing} />
-        <PaymentDetails />
+        <QuotationSummary onTotals={setTotals} fillDefaultTerms={!editing} mode={mode} showDispatch={showDispatch} />
+        <PaymentDetails autoSelectDefault={!editing} />
       </Form>
 
       <div className="qf-footer">
@@ -181,7 +199,7 @@ const QuotationEditor: React.FC<{
           <span>
             <small>Ready</small>
             <b>
-              {doneCount} / {SECTIONS.length}
+              {doneCount} / {sections.length}
             </b>
           </span>
         </div>
@@ -192,7 +210,7 @@ const QuotationEditor: React.FC<{
           {canSave && (
             <button type="button" className="qp-btn primary" onClick={() => form.submit()} disabled={saving} title="Ctrl + S">
               {saving ? <Spin size="small" /> : <CheckOutlined />}
-              {saving ? "Saving…" : editing ? "Save changes" : "Save quotation"}
+              {saving ? "Saving…" : editing ? "Save changes" : invoice ? "Save invoice" : "Save quotation"}
             </button>
           )}
         </div>

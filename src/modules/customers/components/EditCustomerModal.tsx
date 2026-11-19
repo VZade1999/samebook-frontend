@@ -128,6 +128,9 @@ const ModalStyles = () => (
     /* ── Grid helpers ── */
     .ecm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .ecm-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .ecm-po-row { display: flex; align-items: center; gap: 10px; padding: 4px 0 12px; }
+    .ecm-po-label { font-size: 12px; font-weight: 600; color: var(--foreground); }
+    .ecm-po-desc { font-size: 11px; color: var(--muted-foreground); }
     .ecm-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
 
     /* ── Ant Design field overrides ── */
@@ -282,6 +285,7 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ open, onClose, cu
         website:       customer.website,
         industry:      customer.industry,
         notes:         customer.notes,
+        po_required:   Number(customer.po_required) === 1,
         contacts: customer.contacts?.length
           ? customer.contacts
           : [{ is_primary: true }],
@@ -443,6 +447,15 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ open, onClose, cu
                     <Form.Item label="Industry" name="industry">
                       <Input placeholder="e.g. Information Technology" />
                     </Form.Item>
+                  </div>
+                  <div className="ecm-po-row">
+                    <Form.Item name="po_required" valuePropName="checked" noStyle>
+                      <Switch size="small" />
+                    </Form.Item>
+                    <div>
+                      <div className="ecm-po-label">Always sends a purchase order (PO)</div>
+                      <div className="ecm-po-desc">Approving their quotations will then need the PO number, which prints on challans and invoices</div>
+                    </div>
                   </div>
                 </>
               )}

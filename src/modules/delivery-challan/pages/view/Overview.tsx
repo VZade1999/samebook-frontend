@@ -356,8 +356,8 @@ export const ChallanInsights: React.FC<{
                   <div className="db-mini-foot">
                     <span>
                       {s.to_invoice.link_count === 1
-                        ? "1 of them belongs to a quotation that already has an invoice — it gets linked to that invoice."
-                        : `${count(s.to_invoice.link_count)} of them belong to quotations that already have an invoice — they get linked to those invoices.`}
+                        ? "1 of them belongs to a quotation already billed in full — link it to that invoice."
+                        : `${count(s.to_invoice.link_count)} of them belong to quotations already billed in full — link them to those invoices.`}
                     </span>
                   </div>
                 )}

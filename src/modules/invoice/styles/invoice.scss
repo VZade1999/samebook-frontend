@@ -495,6 +495,65 @@ $mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 }
 .dark .ip-ni-sum > .anticon { color: #5eead4; }
 
+// What an invoice bills (step 2): delivered challans or chosen quantities
+.ip-bp { display: flex; flex-direction: column; gap: 10px; }
+.ip-bp .ip-chip { display: inline-flex; align-items: center; gap: 6px; }
+.ip-bp-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; padding: 2px; }
+.ip-bp-group { margin: 4px 2px 0; font-size: 11px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted-foreground); }
+.ip-bp-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  &.on { border-color: #14b8a6; background: color-mix(in srgb, #14b8a6 7%, var(--card)); }
+  &.off { cursor: not-allowed; background: var(--muted); .ip-bp-main b, .ip-bp-amt { opacity: 0.65; } }
+}
+.ip-bp-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  b { font-size: 13px; font-weight: 700; color: var(--foreground); }
+  small { font-size: 12px; color: var(--muted-foreground); }
+  .ip-bp-why { color: var(--qp-warn); }
+}
+.ip-bp-amt { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ip-bp-qty { display: flex; flex-direction: column; gap: 4px; }
+.ip-bp-qhead,
+.ip-bp-qrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) 84px 84px 110px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.ip-bp-qhead { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted-foreground); }
+.ip-bp-qrow {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  em { font-style: normal; font-weight: 700; color: var(--ip-paid); }
+  &.done { background: var(--muted); }
+}
+.ip-bp-qname { min-width: 0; display: flex; flex-direction: column; b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } small { font-size: 11.5px; color: var(--muted-foreground); } }
+.ip-bp-hint { align-self: end; padding-bottom: 8px; font-size: 12px; color: var(--muted-foreground); }
+.ip-bp-totals { transition: opacity 0.2s; &.busy { opacity: 0.6; } }
+.ip-pm-grid .ant-input-number,
+.ip-pm-grid .ant-input-number-affix-wrapper { height: 38px; border-radius: 10px; align-items: center; }
+@media (max-width: 560px) {
+  .ip-bp-qhead { display: none; }
+  .ip-bp-qrow { grid-template-columns: minmax(0, 1fr) 96px; > span:nth-child(2), > span:nth-child(3) { display: none; } }
+  .ip-bp-hint { padding-bottom: 0; }
+}
+
 @media (max-width: 560px) {
   .ip-pm-strip { grid-template-columns: minmax(0, 1fr); > div + div { border-left: none; border-top: 1px solid var(--border); } }
   .ip-pm-grid { grid-template-columns: minmax(0, 1fr); }
@@ -503,6 +562,76 @@ $mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   .ip-pm-save { min-width: 0; }
   .ip-ni-opt-main { grid-template-columns: 22px minmax(0, 1fr) auto; .qp-avatar { display: none; } }
   .ip-ni-fix { padding-left: 12px; }
+}
+
+// ── New invoice → "Without a quotation" ───────────────────────────────────
+.ip-ni-direct {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--qp-accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--qp-accent) 4%, var(--card));
+  color: var(--foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  &:hover { border-style: solid; background: color-mix(in srgb, var(--qp-accent) 8%, var(--card)); }
+  &:focus-visible { outline: 2px solid var(--qp-accent); outline-offset: 2px; }
+  > .anticon:last-child { color: var(--muted-foreground); }
+}
+.ip-ni-direct-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--qp-accent);
+  background: color-mix(in srgb, var(--qp-accent) 12%, transparent);
+}
+.ip-ni-direct-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  b { font-size: 13.5px; font-weight: 700; }
+  small { font-size: 12px; color: var(--muted-foreground); }
+}
+
+// ── Dispatch details (an invoice that travels with the goods) ─────────────
+.ip-dispatch-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  label { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .qc-label { margin-top: 0; }
+  .ant-input { height: 38px; border-radius: 10px; }
+}
+.ip-dispatch-empty { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted-foreground); }
+.ip-card-edit {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--qp-accent);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  &:hover { text-decoration: underline; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; text-decoration: none; }
+}
+@media (max-width: 520px) {
+  .ip-dispatch-form { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

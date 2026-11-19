@@ -1,12 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { DatePicker, Form, Modal } from "antd";
-import { ExclamationCircleFilled, FileDoneOutlined, InfoCircleOutlined, LinkOutlined, ThunderboltFilled } from "@ant-design/icons";
+import { ExclamationCircleFilled, FileDoneOutlined, LinkOutlined, ThunderboltFilled } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import SeriesField from "@/modules/numbering/SeriesField";
+import InvoiceService from "@/modules/invoice/services/invoiceService";
+import { ASYNC_GENERATE_INVOICE_SUCCESS } from "@/modules/invoice/redux/invoiceActions";
+import BillingPanel, { type BillState } from "@/modules/invoice/pages/view/BillingPanel";
 import { convertChallanToInvoice } from "../../redux/challanActions";
-import { inr } from "./shared";
+import { inr, rupees } from "./shared";
 import type { InvoiceTarget } from "./types";
+
+const invoiceService = new InvoiceService();
 
 /** Payment terms offered as one-click choices (days after the invoice date). */
 const TERMS = [
@@ -24,11 +29,13 @@ export interface InvoiceResult {
   converted_challan_ids?: number[];
 }
 
+const errorOf = (e: any, fallback: string) => (typeof e === "string" ? e : e?.response?.data?.message || e?.message || fallback);
+
 /**
- * Invoice a challan made from a quotation. When the quotation already has an
- * invoice, the challan is simply linked to it; otherwise a new invoice is made
- * from the whole quotation (all its items, prices and GST). Either way every
- * dispatched or delivered challan of that quotation is marked invoiced.
+ * Bill a challan made from a quotation: exactly the goods it carried —
+ * optionally together with other delivered challans of the same customer on
+ * one invoice. When its quotation is already billed in full, the goods are
+ * on an invoice already: the challan is just linked to it.
  */
 const MakeInvoiceModal: React.FC<{
   target: InvoiceTarget | null;
@@ -40,6 +47,7 @@ const MakeInvoiceModal: React.FC<{
   const [invoiceDate, setInvoiceDate] = useState<Dayjs>(dayjs());
   const [terms, setTerms] = useState<number | "custom">(30);
   const [dueDate, setDueDate] = useState<Dayjs>(dayjs().add(30, "day"));
+  const [bill, setBill] = useState<BillState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const open = !!target;
@@ -50,6 +58,7 @@ const MakeInvoiceModal: React.FC<{
     setInvoiceDate(dayjs());
     setTerms(30);
     setDueDate(dayjs().add(30, "day"));
+    setBill(null);
     setError("");
     // The series form only exists when a new invoice is made.
     if (!link) form.resetFields();
@@ -66,10 +75,18 @@ const MakeInvoiceModal: React.FC<{
 
   const problem = useMemo(() => {
     if (link) return null;
+    if (!bill || bill.busy) return "Working out the invoice…";
+    if (bill.problem || !bill.request) return bill.problem || "Choose what to bill";
     if (invoiceDate.isAfter(dayjs(), "day")) return "The invoice date can't be in the future";
+    if (bill.quotationDate && invoiceDate.isBefore(dayjs(bill.quotationDate), "day")) {
+      return `The invoice date can't be before the quotation's date (${dayjs(bill.quotationDate).format("D MMM YYYY")})`;
+    }
+    if (bill.lastChallanDate && invoiceDate.isBefore(dayjs(bill.lastChallanDate), "day")) {
+      return `The invoice date can't be before the challan date (${dayjs(bill.lastChallanDate).format("D MMM YYYY")})`;
+    }
     if (dueDate.isBefore(invoiceDate, "day")) return "The due date can't be before the invoice date";
     return null;
-  }, [link, invoiceDate, dueDate]);
+  }, [link, bill, invoiceDate, dueDate]);
   const dueIn = dueDate.startOf("day").diff(invoiceDate.startOf("day"), "day");
 
   const submit = async () => {
@@ -81,29 +98,41 @@ const MakeInvoiceModal: React.FC<{
     setSaving(true);
     setError("");
     try {
-      const result: InvoiceResult = await dispatch(
-        convertChallanToInvoice({
-          id: target.id,
-          // A due date is always sent (the API asks for one); it is only used for a new invoice.
-          payment_due_date: (link ? dayjs() : dueDate).format("YYYY-MM-DD"),
-          invoice_date: link ? undefined : invoiceDate.format("YYYY-MM-DD"),
-          series_id: link ? undefined : form.getFieldValue("series_id") || undefined,
-        }),
-      ).unwrap();
-      onDone(result || {}, target);
+      if (link) {
+        const result: InvoiceResult = await dispatch(
+          // A due date is always sent (the API asks for one); only a new invoice uses it.
+          convertChallanToInvoice({ id: target.id, payment_due_date: dayjs().format("YYYY-MM-DD") }),
+        ).unwrap();
+        onDone(result || {}, target);
+        return;
+      }
+      const r = bill!.request!;
+      if (r.kind !== "challans") throw new Error("Choose the challans to bill");
+      const res: any = await invoiceService.createFromChallans({
+        challan_ids: r.challan_ids,
+        invoice_date: invoiceDate.format("YYYY-MM-DD"),
+        payment_due_date: dueDate.format("YYYY-MM-DD"),
+        series_id: form.getFieldValue("series_id") || undefined,
+        transport_charges: r.transport_charges,
+      });
+      // A billing change: quotation, challan and invoice lists all refresh.
+      dispatch({ type: ASYNC_GENERATE_INVOICE_SUCCESS });
+      const data = res?.data?.data || {};
+      onDone({ invoice: data.invoice, invoice_generated: true, converted_challan_ids: data.converted_challan_ids }, target);
     } catch (e: any) {
-      setError(typeof e === "string" ? e : e?.message || "The invoice wasn't made. Please try again.");
+      setError(errorOf(e, link ? "The challan wasn't linked. Please try again." : "The invoice wasn't made. Please try again."));
     } finally {
       setSaving(false);
     }
   };
 
+  const nChallans = bill?.request?.kind === "challans" ? bill.request.challan_ids.length : 0;
   return (
     <Modal
       open={open}
       onCancel={() => !saving && onCancel()}
       footer={null}
-      width={640}
+      width={link ? 640 : 720}
       rootClassName="qp-portal ip-portal dc-portal"
       destroyOnHidden
       title={null}
@@ -129,19 +158,18 @@ const MakeInvoiceModal: React.FC<{
             <div className="ip-ni-sum">
               <LinkOutlined />
               <span>
-                Quotation <b>{target.quotation_number}</b> already has invoice <b>{target.quotation_invoice_number}</b>. This challan — and any other dispatched or delivered challan of the
-                quotation — gets linked to it and marked invoiced. Nothing new is billed.
+                Quotation <b>{target.quotation_number}</b> is already billed in full on invoice <b>{target.quotation_invoice_number}</b>, so these goods are billed. This
+                challan gets linked to that invoice and marked invoiced — nothing new is billed.
               </span>
             </div>
           ) : (
             <>
-              <div className="ip-pm-error soft" role="note">
-                <InfoCircleOutlined />
-                <span>
-                  The invoice is made from quotation <b>{target.quotation_number}</b> as a whole — all its items, prices and GST — not only the goods on this challan.
-                  Every dispatched or delivered challan of that quotation is then marked invoiced.
-                </span>
-              </div>
+              <span className="ip-pm-label">
+                What to bill <em>exactly what the challans carried, at the quotation's prices</em>
+              </span>
+              <BillingPanel source={{ challanId: target.id }} onChange={setBill} />
+
+              <span className="ip-pm-label">Dates</span>
               <div className="ip-pm-grid">
                 <div>
                   <label className="ip-pm-label sub" htmlFor="dc-inv-date">
@@ -188,16 +216,29 @@ const MakeInvoiceModal: React.FC<{
               <Form form={form} layout="vertical" className="ip-ni-series" component={false} initialValues={{ series_id: "" }}>
                 <SeriesField docType="INVOICE" form={form} />
               </Form>
-              <div className="ip-ni-sum" aria-live="polite">
-                <ThunderboltFilled />
-                <span>
-                  A new invoice for <b>{target.customer_name || "the customer"}</b>, dated {invoiceDate.format("D MMM YYYY")},{" "}
-                  {dueIn === 0 ? "due on receipt" : <>due {dueDate.format("D MMM YYYY")} ({dueIn} day{dueIn === 1 ? "" : "s"})</>}.
-                </span>
+              <div className={`ip-ni-sum${bill?.total != null ? "" : " empty"}`} aria-live="polite">
+                {bill?.total != null ? (
+                  <>
+                    <ThunderboltFilled />
+                    <span>
+                      A <b>{rupees(bill.total)}</b> invoice for <b>{bill.customerName || target.customer_name || "the customer"}</b> billing {nChallans} challan
+                      {nChallans === 1 ? "" : "s"}, dated {invoiceDate.format("D MMM YYYY")},{" "}
+                      {dueIn === 0 ? "due on receipt" : <>due {dueDate.format("D MMM YYYY")} ({dueIn} day{dueIn === 1 ? "" : "s"})</>}.
+                    </span>
+                  </>
+                ) : (
+                  <span>Working out the invoice…</span>
+                )}
               </div>
             </>
           )}
 
+          {/* Date problems (the billing panel shows its own). */}
+          {!link && problem && bill && !bill.busy && !bill.problem && (
+            <div className="ip-pm-error soft" role="status">
+              <ExclamationCircleFilled /> {problem}
+            </div>
+          )}
           {error && (
             <div className="ip-pm-error" role="alert">
               <ExclamationCircleFilled /> {error}
@@ -208,8 +249,8 @@ const MakeInvoiceModal: React.FC<{
             <button type="button" className="qp-btn ghost" onClick={onCancel} disabled={saving}>
               Cancel
             </button>
-            <button type="button" className="qp-btn primary" onClick={submit} disabled={saving}>
-              {saving ? (link ? "Linking…" : "Making the invoice…") : link ? "Link invoice" : "Make invoice"}
+            <button type="button" className="qp-btn primary" onClick={submit} disabled={saving || (!link && !!problem)} title={!link && problem ? problem : undefined}>
+              {saving ? (link ? "Linking…" : "Making the invoice…") : link ? "Link invoice" : nChallans > 1 ? `Make invoice for ${nChallans} challans` : "Make invoice"}
             </button>
           </div>
         </div>
