@@ -26,8 +26,8 @@ import ProtectedRoute from "../permissions/ProtectedRoute";
 import InvoicePage from "@/modules/invoice/pages";
 import InvoiceDetailsRedirect from "@/modules/invoice/pages/InvoiceDetailsRedirect";
 import Profile from "@/modules/auth/profile/page";
-import ChallanListPage from "@/modules/delivery-challan/pages/ChallanListPage";
-import ChallanDetailsPage from "@/modules/delivery-challan/pages/ChallanDetailsPage";
+import ChallanPage from "@/modules/delivery-challan/pages";
+import ChallanDetailsRedirect from "@/modules/delivery-challan/pages/ChallanDetailsRedirect";
 
 const PrivateRoutes = () => {
   const storageService = new StorageService();
@@ -156,7 +156,7 @@ const PrivateRoutes = () => {
           path="/delivery-challans"
           element={
             <ProtectedRoute permission="challans.view">
-              <ChallanListPage />
+              <ChallanPage />
             </ProtectedRoute>
           }
         />
@@ -164,7 +164,7 @@ const PrivateRoutes = () => {
           path="/delivery-challans/:id"
           element={
             <ProtectedRoute permission="challans.view">
-              <ChallanDetailsPage />
+              <ChallanDetailsRedirect />
             </ProtectedRoute>
           }
         />

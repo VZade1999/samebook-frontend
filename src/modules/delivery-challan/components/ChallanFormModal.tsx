@@ -1,11 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   AutoComplete,
-  Button,
   Col,
   DatePicker,
-  Divider,
   Form,
   Input,
   InputNumber,
@@ -14,12 +11,24 @@ import {
   Select,
   Spin,
   Switch,
-  Tag,
   Tooltip,
   Typography,
   message,
 } from "antd";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  CarOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  ExclamationCircleFilled,
+  FileTextOutlined,
+  HomeOutlined,
+  InfoCircleOutlined,
+  PlusOutlined,
+  ShoppingOutlined,
+  SwapOutlined,
+  TagOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerService from "@/modules/customers/redux";
@@ -47,6 +56,8 @@ interface Props {
   challan?: any;
   /** Present when creating a challan from an approved quotation. */
   quotationId?: number | string | null;
+  /** Reason to start a new standalone challan with (e.g. STOCK_TRANSFER). */
+  initialReason?: string | null;
 }
 
 const customerService = new CustomerService();
@@ -85,7 +96,18 @@ const clean = (obj: Record<string, any>) => {
   return out;
 };
 
-const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, quotationId }) => {
+/** Section heading inside the form. */
+const Section: React.FC<{ icon: React.ReactNode; title: string; hint?: string }> = ({ icon, title, hint }) => (
+  <div className="dc-sec">
+    <span className="dc-sec-icon" aria-hidden>
+      {icon}
+    </span>
+    <b>{title}</b>
+    {hint && <small>{hint}</small>}
+  </div>
+);
+
+const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, quotationId, initialReason }) => {
   const [form] = Form.useForm();
   const dispatch = useDispatch<any>();
   const saving = useSelector((state: any) => state.challans?.saving);
@@ -309,8 +331,9 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
             challan_date: dayjs(),
             affects_stock: true,
             items: [{}],
+            ...(initialReason ? { reason: initialReason } : {}),
           });
-          searchCustomers("");
+          if (initialReason !== "STOCK_TRANSFER") searchCustomers("");
         }
       } catch (err: any) {
         if (!cancelled) setInitError(errorMessage(err, "Unable to load challan form"));
@@ -323,7 +346,7 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, linkedQuotationId, challan?.id]);
+  }, [open, linkedQuotationId, challan?.id, initialReason]);
 
   // ─── Customer selection ────────────────────────────────────────────────────
   const handleCustomerChange = async (id: any) => {
@@ -484,7 +507,8 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
       const result = isEdit
         ? await dispatch(updateChallan({ id: challan.id, payload })).unwrap()
         : await dispatch(createChallan(payload)).unwrap();
-      message.success(isEdit ? "Delivery challan updated" : "Delivery challan created");
+      const number = result?.challan_number || challan?.challan_number;
+      message.success(isEdit ? `${number || "Challan"} saved` : `${number || "Delivery challan"} created — dispatch it when the goods leave`);
       onSaved(result || challan);
     } catch (err: any) {
       message.error(errorMessage(err, "Unable to save delivery challan"));
@@ -498,63 +522,72 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
   const warehouseOptions = warehouses.map((w) => ({ label: w.name, value: w.id }));
 
   const title = isEdit
-    ? `Edit Delivery Challan ${challan?.challan_number || ""}`
+    ? `Edit ${challan?.challan_number || "delivery challan"}`
     : quotationMode
-      ? "New Delivery Challan from Quotation"
-      : "New Delivery Challan";
+      ? "New challan from a quotation"
+      : isTransfer
+        ? "New stock transfer"
+        : "New delivery challan";
+  const subtitle = isEdit
+    ? "Only drafts can be edited. Nothing moves until you dispatch it."
+    : quotationMode
+      ? "Customer, addresses and items come from the quotation. Lower a quantity to send part of it."
+      : isTransfer
+        ? "Pick the two warehouses and the goods. Stock moves when you dispatch it."
+        : "Pick the customer and add the goods. It stays a draft until you dispatch it.";
 
   const noRemaining = quotationMode && !isEdit && !initLoading && quotation && !(watchedItems || []).length;
 
   return (
     <Modal
-      title={title}
+      title={null}
       open={open}
       onCancel={onClose}
-      width={1080}
+      width={1040}
       destroyOnHidden
+      // A half-filled challan isn't thrown away by a stray click outside or by
+      // Esc (which also closes the item and customer pickers); Cancel / × close it.
       mask={{ closable: false }}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button
-          key="save"
-          type="primary"
-          loading={saving}
-          disabled={initLoading || !!initError || !!noRemaining}
-          onClick={() => form.submit()}
-        >
-          {isEdit ? "Save Changes" : "Create Challan"}
-        </Button>,
-      ]}
+      keyboard={false}
+      footer={null}
+      rootClassName="qp-portal ip-portal dc-portal"
     >
+      <div className="dc-form-head">
+        <span className="ip-pm-icon dc-icon" aria-hidden>
+          {isEdit ? <EditOutlined /> : isTransfer ? <SwapOutlined /> : <CarOutlined />}
+        </span>
+        <div>
+          <h3>{title}</h3>
+          <p>{subtitle}</p>
+        </div>
+      </div>
       <Spin spinning={initLoading}>
-        {initError && <Alert type="error" showIcon title={initError} style={{ marginBottom: 16 }} />}
+        {initError && (
+          <div className="ip-pm-error" role="alert" style={{ marginBottom: 12 }}>
+            <ExclamationCircleFilled /> {initError}
+          </div>
+        )}
 
-        <Form form={form} layout="vertical" onFinish={handleFinish} requiredMark="optional">
+        <div className="qf-root dc-form">
+        {/* series_id starts as "" (not undefined) so the series field's hidden input is controlled from the first render. */}
+        <Form form={form} layout="vertical" onFinish={handleFinish} requiredMark="optional" initialValues={{ series_id: "" }}>
           {quotationMode && quotation && (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-              title={
-                <span>
-                  Quotation <b>{quotation.quotation_number}</b> — {quotation.customer_name || "Customer"}
-                </span>
-              }
-              description="Customer and addresses are copied from the quotation. Quantities default to what is still pending delivery; reduce them for a partial dispatch."
-            />
+            <div className="dc-note">
+              <FileTextOutlined />
+              <span>
+                Quotation <b>{quotation.quotation_number}</b> · {quotation.customer_name || "Customer"}
+                {quotation.place_of_supply ? ` · ${quotation.place_of_supply}` : ""}. Quantities start at what is still to send.
+              </span>
+            </div>
           )}
           {noRemaining && (
-            <Alert
-              type="warning"
-              showIcon
-              style={{ marginBottom: 16 }}
-              title="Every item of this quotation has already been dispatched on other challans."
-            />
+            <div className="ip-pm-error soft" role="status" style={{ marginBottom: 12 }}>
+              <ExclamationCircleFilled /> Every item of this quotation has already gone out on other challans.
+            </div>
           )}
           {!isEdit && <SeriesField docType="DELIVERY_CHALLAN" form={form} />}
 
+          <Section icon={<TagOutlined />} title="The basics" />
           <Row gutter={16}>
             <Col xs={24} sm={12} md={6}>
               <Form.Item name="challan_date" label="Challan Date" rules={[{ required: true, message: "Select a date" }]}>
@@ -582,9 +615,7 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
           {/* ── Consignee / transfer ─────────────────────────────────────── */}
           {!quotationMode && !isTransfer && (
             <>
-              <Divider titlePlacement="start" style={{ marginTop: 0 }}>
-                Consignee
-              </Divider>
+              <Section icon={<UserOutlined />} title="Consignee" hint="Who receives the goods" />
               <Row gutter={16}>
                 <Col xs={24} md={8}>
                   <Form.Item
@@ -631,9 +662,11 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
             </>
           )}
 
-          <Divider titlePlacement="start" style={{ marginTop: 0 }}>
-            {isTransfer ? "Stock Transfer" : "Warehouse & Stock"}
-          </Divider>
+          <Section
+            icon={isTransfer ? <SwapOutlined /> : <HomeOutlined />}
+            title={isTransfer ? "Stock transfer" : "Warehouse & stock"}
+            hint={isTransfer ? "From one of your warehouses to another" : "Where the goods leave from"}
+          />
           <Row gutter={16}>
             <Col xs={24} md={isTransfer ? 8 : 12}>
               <Form.Item
@@ -668,18 +701,16 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
             <Col xs={24} md={isTransfer ? 8 : 12}>
               <Form.Item
                 name="affects_stock"
-                label="Update Inventory"
+                label="Update stock"
                 valuePropName="checked"
-                extra="Turn off for goods that are not tracked in inventory."
+                extra="Turn off for goods you don't track in stock."
               >
                 <Switch checkedChildren="Yes" unCheckedChildren="No" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Divider titlePlacement="start" style={{ marginTop: 0 }}>
-            Transport
-          </Divider>
+          <Section icon={<CarOutlined />} title="Transport" hint="Printed on the challan" />
           <Row gutter={16}>
             <Col xs={24} md={8}>
               <Form.Item name="transporter_name" label="Transporter">
@@ -692,16 +723,30 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
               </Form.Item>
             </Col>
             <Col xs={24} sm={12} md={8}>
-              <Form.Item name="eway_bill_number" label="E-way Bill Number">
+              <Form.Item
+                name="eway_bill_number"
+                label="E-way bill number"
+                extra={
+                  <Form.Item noStyle shouldUpdate>
+                    {() => {
+                      const items = form.getFieldValue("items") || [];
+                      const value = items.reduce((s: number, it: any) => s + Number(it?.quantity || 0) * Number(it?.rate || 0), 0);
+                      return value >= 50000 && !String(form.getFieldValue("eway_bill_number") || "").trim() ? (
+                        <span className="dc-warn-text">
+                          <ExclamationCircleFilled /> Goods worth ₹50,000 or more usually need one
+                        </span>
+                      ) : null;
+                    }}
+                  </Form.Item>
+                }
+              >
                 <Input placeholder="Optional" maxLength={32} />
               </Form.Item>
             </Col>
           </Row>
 
           {/* ── Items ─────────────────────────────────────────────────────── */}
-          <Divider titlePlacement="start" style={{ marginTop: 0 }}>
-            Items
-          </Divider>
+          <Section icon={<ShoppingOutlined />} title="Goods" hint={quotationMode ? "Lower a quantity to send part of it" : "Search your catalogue or type an item"} />
           <Form.List
             name="items"
             rules={[
@@ -714,8 +759,8 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
           >
             {(fields, { add, remove }, { errors }) => (
               <>
-                <Row gutter={8} className="dc-items-head" style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 4 }}>
-                  <Col xs={0} md={8}>Item / Description</Col>
+                <Row gutter={8} className="dc-items-head">
+                  <Col xs={0} md={8}>Item / description</Col>
                   <Col xs={0} md={3}>HSN</Col>
                   <Col xs={0} md={3}>Qty</Col>
                   <Col xs={0} md={2}>Unit</Col>
@@ -727,12 +772,7 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
                   const qItemId = form.getFieldValue(["items", name, "quotation_item_id"]);
                   const maxQty = qItemId != null ? maxQtyMap[qItemId] : undefined;
                   return (
-                    <Row
-                      key={key}
-                      gutter={8}
-                      align="top"
-                      style={{ borderBottom: "1px solid #f0f0f0", paddingTop: 8, marginBottom: 4 }}
-                    >
+                    <Row key={key} gutter={8} align="top" className="dc-item">
                       <Form.Item name={[name, "quotation_item_id"]} hidden><Input /></Form.Item>
                       <Form.Item name={[name, "product_id"]} hidden><Input /></Form.Item>
                       <Form.Item name={[name, "variant_id"]} hidden><Input /></Form.Item>
@@ -762,11 +802,7 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
                           {() => {
                             const row = form.getFieldValue(["items", name]) || {};
                             const linked = row.product_id && (quotationMode || row.item_name === row.catalog_name);
-                            return linked ? (
-                              <Tag color="blue" style={{ marginBottom: 8 }}>
-                                Catalog product
-                              </Tag>
-                            ) : null;
+                            return linked ? <span className="dc-tag">From your catalogue</span> : null;
                           }}
                         </Form.Item>
                       </Col>
@@ -822,14 +858,16 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
                         </Form.Item>
                       </Col>
                       <Col xs={2} md={1} style={{ textAlign: "right" }}>
-                        <Tooltip title="Remove item">
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
+                        <Tooltip title={fields.length <= 1 ? "A challan needs at least one item" : "Remove item"}>
+                          <button
+                            type="button"
+                            className="qp-act del dc-item-del"
+                            aria-label="Remove item"
                             disabled={fields.length <= 1}
                             onClick={() => remove(name)}
-                          />
+                          >
+                            <DeleteOutlined />
+                          </button>
                         </Tooltip>
                       </Col>
                     </Row>
@@ -837,9 +875,9 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
                 })}
                 <Form.ErrorList errors={errors} />
                 {!quotationMode && (
-                  <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({})} style={{ marginTop: 8 }}>
-                    Add Item
-                  </Button>
+                  <button type="button" className="dc-add" onClick={() => add({})}>
+                    <PlusOutlined /> Add an item
+                  </button>
                 )}
               </>
             )}
@@ -854,13 +892,13 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
                 0,
               );
               return (
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 24, margin: "12px 0 16px" }}>
-                  <Text>
-                    Total Qty: <b>{formatQty(qty)}</b>
-                  </Text>
-                  <Text>
-                    Total Value: <b>{formatMoney(value)}</b>
-                  </Text>
+                <div className="dc-form-totals">
+                  <span>
+                    {items.length} item{items.length === 1 ? "" : "s"} · total qty <b>{formatQty(qty)}</b>
+                  </span>
+                  <span>
+                    Goods value <b>{formatMoney(value)}</b>
+                  </span>
                 </div>
               );
             }}
@@ -869,11 +907,25 @@ const ChallanFormModal: React.FC<Props> = ({ open, onClose, onSaved, challan, qu
           <Form.Item name="notes" label="Notes">
             <Input.TextArea rows={2} placeholder="Any remarks to print on the challan" />
           </Form.Item>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            A delivery challan is not a tax invoice — no GST is charged on it. Values are for reference only.
-          </Text>
+          <div className="dc-foot-note">
+            <InfoCircleOutlined /> A delivery challan is not a tax invoice — no GST is charged on it. Values are for reference only.
+          </div>
         </Form>
+        </div>
       </Spin>
+      <div className="ip-pm-foot dc-form-foot">
+        <button type="button" className="qp-btn ghost" onClick={onClose} disabled={saving}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="qp-btn primary"
+          disabled={saving || initLoading || !!initError || !!noRemaining}
+          onClick={() => form.submit()}
+        >
+          {saving ? "Saving…" : isEdit ? "Save changes" : "Create challan"}
+        </button>
+      </div>
     </Modal>
   );
 };

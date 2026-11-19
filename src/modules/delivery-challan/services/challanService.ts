@@ -3,6 +3,13 @@ import api from "@/api/axios";
 export const challanService = {
   listChallans: (params: any) => api.get("/delivery-challan/list", { params }),
 
+  /** Figures above the list (statuses, on the road, ready to invoice, still to send, months). */
+  getSummary: (tz: number) => api.get("/delivery-challan/summary", { params: { tz } }),
+
+  /** Approved quotations with goods still to send, for the "new challan" picker. */
+  getEligibleQuotations: (search?: string) =>
+    api.get("/delivery-challan/eligible-quotations", { params: search ? { search } : {} }),
+
   getChallan: (id: number | string) => api.get(`/delivery-challan/${id}`),
 
   getQuotationRemaining: (quotationId: number | string) =>
@@ -22,10 +29,11 @@ export const challanService = {
   cancelChallan: (id: number | string, reason?: string) =>
     api.post(`/delivery-challan/${id}/cancel`, reason ? { reason } : {}),
 
-  convertToInvoice: (id: number | string, payment_due_date: string, series_id?: number) =>
+  convertToInvoice: (id: number | string, payment_due_date: string, series_id?: number, invoice_date?: string) =>
     api.post(`/delivery-challan/${id}/convert-to-invoice`, {
       payment_due_date,
       ...(series_id ? { series_id } : {}),
+      ...(invoice_date ? { invoice_date } : {}),
     }),
 
   deleteChallan: (id: number | string) => api.delete(`/delivery-challan/${id}`),
