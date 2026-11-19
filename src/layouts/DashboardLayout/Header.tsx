@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../modules/auth/redux/authActions";
 import { StorageService } from "@/storage";
 import { RootState } from "@/app/store";
+import { standingLabel, useStanding } from "@/permissions/standing";
 import { useNavigate } from "react-router-dom";
 
 interface HeaderBarProps {
@@ -58,7 +59,10 @@ const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
 
   const userDetails = JSON.parse(
     storageService.getItem(StorageService.STORAGE_KEYS.USER_DETAILS) ?? "{}"
-  );  
+  );
+  // "Super Admin · Admin", "Manager" … (falls back to the role saved at sign-in).
+  const standing = useStanding();
+  const roleText = standing.rank !== null || standing.platform ? standingLabel(standing) : userDetails.role?.[0];
 
   return (
     <header className="dashboard-header">
@@ -98,7 +102,7 @@ const HeaderBar = ({ onMenuClick }: HeaderBarProps) => {
             />
             <span className="profile-label">
               <span className="profile-name">{userDetails.firstName} {userDetails.lastName}</span>
-              <span className="profile-role">{userDetails.role?.[0]}</span>
+              <span className="profile-role">{roleText}</span>
             </span>
             <CrownOutlined className="profile-chevron" />
           </button>

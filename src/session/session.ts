@@ -3,6 +3,8 @@ import { StorageService } from "@/storage";
 import { sessionChecked, setSession } from "./sessionSlice";
 
 export const MODULES_STORAGE_KEY = "modules";
+/** Super Admin / Admin / level, so the menu is right before the session sync finishes. */
+export const STANDING_STORAGE_KEY = "standing";
 /** Fired by the axios layer when the server says an add-on is not enabled. */
 export const SESSION_STALE_EVENT = "samebook:session-stale";
 
@@ -47,7 +49,12 @@ export const syncSession = async (dispatch: (a: any) => any): Promise<boolean> =
       }
     }
     storeAccess(permissions, modules);
-    dispatch(setSession({ permissions, modules, roles: d.roles }));
+    try {
+      storage.setItem(STANDING_STORAGE_KEY, JSON.stringify({ platform: !!d.platform, admin: !!d.admin, rank: d.rank ?? null, roles: d.roles || [] }));
+    } catch {
+      // storage full / blocked: the live copy in Redux still works
+    }
+    dispatch(setSession({ permissions, modules, roles: d.roles, platform: !!d.platform, admin: !!d.admin, rank: typeof d.rank === "number" ? d.rank : null }));
     return true;
   } catch {
     dispatch(sessionChecked());

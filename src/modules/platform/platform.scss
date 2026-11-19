@@ -1,0 +1,108 @@
+// Platform console (SameBook Super Admins). Prefix pf-. Builds on the
+// Dashboard hero and team.scss; the hero is violet to mark "platform".
+
+.db-hero.pf-hero { background: linear-gradient(125deg, #0b1324 0%, #2e1065 42%, #6d28d9 82%, #8b5cf6 110%); box-shadow: 0 24px 50px -30px rgba(109, 40, 217, 0.7); }
+.pf-portal { --pf-good: #047857; --pf-bad: #c0282d; }
+.dark .pf-portal { --pf-good: #34d399; --pf-bad: #f87171; }
+
+.pf-root .pm-count { margin-left: auto; font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; }
+.pf-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; }
+.pf-card { padding: 14px 16px 16px; }
+.pf-card-h { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--foreground); margin-bottom: 10px; .anticon { color: #7c3aed; } }
+.dark .pf-card-h .anticon { color: #a78bfa; }
+.pf-adopt { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; li { display: grid; grid-template-columns: 150px minmax(0, 1fr) 48px; align-items: center; gap: 10px; font-size: 12.5px; color: var(--foreground); b { text-align: right; font-weight: 700; } } }
+.pf-bar { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--muted) 80%, var(--card)); overflow: hidden; i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #7c3aed, #a78bfa); transform-origin: left; animation: db-grow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); } }
+.pf-supers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; li { display: flex; align-items: center; gap: 10px; > span:last-child { display: flex; flex-direction: column; min-width: 0; b { font-size: 13px; color: var(--foreground); } em { font-style: normal; font-size: 11.5px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } } } }
+
+// ── Company list ────────────────────────────────────────────────────────────
+$cols: minmax(0, 2.2fr) 80px minmax(0, 1.2fr) minmax(0, 1.3fr) minmax(0, 1fr) 100px 44px;
+.pf-head-row {
+  display: grid;
+  grid-template-columns: $cols;
+  gap: 12px;
+  padding: 12px 18px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+}
+.pf-list { list-style: none; margin: 0; padding: 0; }
+.pf-row {
+  display: grid;
+  grid-template-columns: $cols;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  animation: tm-in 0.35s ease both;
+  animation-delay: calc(var(--i, 0) * 25ms);
+  &:last-child { border-bottom: 0; }
+  &:hover { background: color-mix(in srgb, #7c3aed 3%, var(--card)); }
+  &.off .pf-co-text b { opacity: 0.65; }
+}
+.pf-co { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; &:focus-visible { outline: 2px solid var(--tm-accent); outline-offset: 4px; border-radius: 10px; } }
+.pf-co-text { display: flex; flex-direction: column; min-width: 0; b { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--foreground); } > span { font-size: 12px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+.pf-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 7px;
+  border-radius: 99px;
+  &.active { color: #047857; background: rgba(4, 120, 87, 0.1); }
+  &.suspended { color: #b91c1c; background: rgba(185, 28, 28, 0.1); }
+}
+.dark .pf-status.active { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+.dark .pf-status.suspended { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+.pf-cell { min-width: 0; font-size: 13px; color: var(--foreground); b { font-weight: 700; } em { font-style: normal; color: var(--muted-foreground); } }
+.pf-admin-stack { display: inline-flex; align-items: center; .tm-avatar { margin-left: -5px; box-shadow: 0 0 0 2px var(--card); &:first-child { margin-left: 0; } } em { margin-left: 6px; font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+.pf-addons { display: flex; flex-wrap: wrap; gap: 4px; }
+.pf-addon { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 99px; color: var(--foreground); background: color-mix(in srgb, #7c3aed 9%, var(--card)); border: 1px solid color-mix(in srgb, #7c3aed 22%, var(--border)); }
+.pf-go { display: flex; justify-content: flex-end; }
+
+// ── Company drawer ──────────────────────────────────────────────────────────
+.pf-loading { display: flex; align-items: center; justify-content: center; min-height: 240px; }
+.pf-head { background: radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.14), transparent 70%); h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } }
+.pf-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px 22px 4px; > div { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: color-mix(in srgb, var(--muted) 35%, var(--card)); display: flex; flex-direction: column; gap: 2px; min-width: 0; span { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted-foreground); } b { font-size: 13px; color: var(--foreground); overflow-wrap: anywhere; em { font-style: normal; font-weight: 500; color: var(--muted-foreground); } } } }
+.pf-sec { margin: 14px 22px 0; padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); }
+.pf-sec-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; font-weight: 800; color: var(--foreground); margin-bottom: 10px; em { font-style: normal; font-weight: 500; font-size: 12px; color: var(--muted-foreground); } .tm-tool { margin-left: auto; } .anticon { color: #7c3aed; } }
+.dark .pf-sec-h .anticon { color: #a78bfa; }
+.pf-admins { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-admin { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px 5px 6px; border-radius: 99px; border: 1px solid var(--border); background: color-mix(in srgb, #4f46e5 5%, var(--card)); b { font-size: 12.5px; color: var(--foreground); } em { font-style: normal; font-size: 11.5px; color: var(--muted-foreground); } }
+.pf-warnbox { padding: 10px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--tm-warn); background: color-mix(in srgb, var(--tm-warn) 9%, var(--card)); border: 1px solid color-mix(in srgb, var(--tm-warn) 30%, transparent); }
+.pf-adminform { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; border: 1px dashed var(--border); }
+.tm-seg.sm button { height: 28px; font-size: 12px; &:disabled { opacity: 0.5; cursor: not-allowed; } }
+.pf-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pf-row-end { display: flex; justify-content: flex-end; gap: 8px; }
+.pf-mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.pf-mod { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); div { display: flex; flex-direction: column; min-width: 0; b { font-size: 13px; color: var(--foreground); } span { font-size: 11.5px; color: var(--muted-foreground); } } &.on { border-color: color-mix(in srgb, #7c3aed 35%, var(--border)); background: color-mix(in srgb, #7c3aed 5%, var(--card)); } }
+.pf-people { list-style: none; margin: 0; padding: 0; li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 90px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); &:last-child { border-bottom: 0; } &.off { opacity: 0.6; } } }
+.pf-person { display: flex; flex-direction: column; min-width: 0; b { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--foreground); } > span { font-size: 11.5px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+.pf-roles { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.pf-seen { font-size: 11.5px; color: var(--muted-foreground); text-align: right; }
+.pf-none { padding: 14px 0; color: var(--muted-foreground); font-size: 12.5px; display: block !important; }
+.pf-danger { margin-bottom: 22px; border-color: color-mix(in srgb, var(--pf-bad) 30%, var(--border)); p { margin: 0 0 10px; font-size: 12.5px; color: var(--muted-foreground); } .pf-sec-h .anticon { color: var(--pf-bad); } &.back { border-color: color-mix(in srgb, var(--pf-good) 30%, var(--border)); .pf-sec-h .anticon { color: var(--pf-good); } } }
+.tm-btn.danger { color: #fff; background: var(--pf-bad, #c0282d); }
+
+@media (max-width: 1100px) {
+  .pf-head-row { display: none; }
+  .pf-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "co go" "people admins" "addons addons" "docs seen";
+    row-gap: 6px;
+    .pf-co { grid-area: co; }
+    .pf-go { grid-area: go; }
+    .pf-cell[data-label="People"] { grid-area: people; }
+    .pf-cell[data-label="Admins"] { grid-area: admins; justify-self: end; }
+    .pf-addons { grid-area: addons; }
+    .pf-cell[data-label="Documents"] { grid-area: docs; }
+    .pf-cell[data-label="Last active"] { grid-area: seen; text-align: right; }
+    .pf-cell[data-label="People"]::before, .pf-cell[data-label="Documents"]::before, .pf-cell[data-label="Last active"]::before { content: attr(data-label) ": "; color: var(--muted-foreground); font-size: 11.5px; }
+  }
+}
+@media (max-width: 640px) {
+  .pf-facts, .pf-grid2 { grid-template-columns: 1fr; }
+  .pf-people li { grid-template-columns: 40px minmax(0, 1fr); .pf-roles, .pf-seen { grid-column: 2; justify-content: flex-start; text-align: left; } }
+  .pf-adopt li { grid-template-columns: 90px minmax(0, 1fr) 40px; }
+}

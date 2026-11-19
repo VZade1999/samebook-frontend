@@ -18,6 +18,8 @@ import {
   LeftOutlined,
   RightOutlined,
   CarOutlined,
+  GlobalOutlined,
+  ApartmentOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAccess } from "../../permissions/useAccess";
@@ -67,14 +69,20 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
       icon: <DashboardOutlined />,
       label: "Dashboard",
     },
+    // SameBook's own console: every company (Super Admins only).
+    can("tenants.view") && {
+      key: "/app/platform",
+      icon: <GlobalOutlined />,
+      label: "Platform",
+    },
     // Pluggable features (add-ons) — only when the company has connected them
     ...featureMenuItems,
     (can("users.view") || can("roles.view") || can("permissions.view")) && {
       key: "user-management",
       icon: <TeamOutlined />,
-      label: "User Management",
+      label: "Team & Access",
       children: [
-        can("users.view") && { key: "/app/users", icon: <UserOutlined />, label: "Users" },
+        can("users.view") && { key: "/app/users", icon: <ApartmentOutlined />, label: "Team" },
         can("roles.view") && { key: "/app/roles", icon: <UsergroupDeleteOutlined />, label: "Roles" },
         can("permissions.view") && { key: "/app/permissions", icon: <SafetyOutlined />, label: "Permissions" },
       ].filter(Boolean),

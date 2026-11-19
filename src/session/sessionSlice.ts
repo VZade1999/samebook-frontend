@@ -10,10 +10,16 @@ export interface SessionState {
   permissions: string[] | null;
   modules: string[] | null;
   roles: string[];
+  /** SameBook Super Admin (sees the platform console). */
+  platform: boolean;
+  /** The company's Admin (top role). */
+  admin: boolean;
+  /** Highest company role level: 1 = Admin … 5; 99 = none; null = not known yet. */
+  rank: number | null;
   loaded: boolean;
 }
 
-const initialState: SessionState = { permissions: null, modules: null, roles: [], loaded: false };
+const initialState: SessionState = { permissions: null, modules: null, roles: [], platform: false, admin: false, rank: null, loaded: false };
 
 const sessionSlice = createSlice({
   name: "session",
@@ -21,11 +27,14 @@ const sessionSlice = createSlice({
   reducers: {
     setSession: (
       state,
-      action: PayloadAction<{ permissions: string[]; modules: string[]; roles?: string[] }>,
+      action: PayloadAction<{ permissions: string[]; modules: string[]; roles?: string[]; platform?: boolean; admin?: boolean; rank?: number | null }>,
     ) => {
       state.permissions = action.payload.permissions;
       state.modules = action.payload.modules;
       state.roles = action.payload.roles || [];
+      state.platform = !!action.payload.platform;
+      state.admin = !!action.payload.admin;
+      state.rank = action.payload.rank ?? null;
       state.loaded = true;
     },
     // Sync attempted but failed: stop waiting and use the stored copy.

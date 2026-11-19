@@ -8,7 +8,8 @@ import CompanyPage from "@/modules/companies/pages";
 import ProductPage from "@/modules/products/pages";
 import AiAgent from "@/modules/ai-agent/index";
 import QuotationPage from "@/modules/quotation/pages";
-import UsersPage from "@/modules/users/pages";
+import UsersPage from "@/modules/team/TeamPage";
+import PlatformPage from "@/modules/platform/PlatformPage";
 // import UsersList from "../modules/users/pages/UsersList";
 import RolesPage from "../modules/user-management/pages/RolesPage";
 import PermissionsPage from "../modules/user-management/pages/PermissionsPage";
@@ -165,6 +166,14 @@ const PrivateRoutes = () => {
           element={
             <ProtectedRoute permission="challans.view">
               <ChallanDetailsRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/platform"
+          element={
+            <ProtectedRoute permission="tenants.view">
+              <PlatformPage />
             </ProtectedRoute>
           }
         />
