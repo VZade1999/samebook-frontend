@@ -104,7 +104,7 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
       children: [
         can("products.view") && { key: "/app/products", icon: <ShoppingOutlined />, label: "Products" },
         can("categories.view") && { key: "/app/categories", icon: <AppstoreOutlined />, label: "Categories" },
-        can("warehouses.view") && { key: "/app/warehouses", icon: <ShopOutlined />, label: "Warehouses" },
+        can("warehouses.view") && { key: "/app/warehouses", icon: <ShopOutlined />, label: "Stock & warehouses" },
       ].filter(Boolean),
     },
     can("ai_agent.view") && {
