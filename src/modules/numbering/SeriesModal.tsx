@@ -36,6 +36,8 @@ const DEFAULT_NAME: Record<DocType, string> = {
   INVOICE: "Tax invoices",
   QUOTATION: "Quotations",
   DELIVERY_CHALLAN: "Delivery challans",
+  PURCHASE_ORDER: "Purchase orders",
+  GOODS_RECEIPT: "Goods received",
 };
 
 const SeriesModal: React.FC<{

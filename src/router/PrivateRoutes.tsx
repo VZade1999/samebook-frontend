@@ -74,7 +74,7 @@ const PrivateRoutes = () => {
               key={`${f.key}:${r.path}`}
               path={r.path}
               element={
-                <ModuleRoute module={f.module} name={f.name} permission={r.permission}>
+                <ModuleRoute module={f.module} name={f.name} permission={r.permission} anyPermission={r.anyPermission}>
                   {r.element}
                 </ModuleRoute>
               }

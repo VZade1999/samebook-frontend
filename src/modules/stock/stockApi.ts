@@ -3,7 +3,7 @@
 
 import api from "@/api/axios";
 
-export type MovementType = "OPENING" | "RECEIVED" | "COUNTED" | "MOVED" | "DISPATCHED" | "DISPATCH_CANCELLED";
+export type MovementType = "OPENING" | "RECEIVED" | "COUNTED" | "MOVED" | "DISPATCHED" | "DISPATCH_CANCELLED" | "RECEIVE_CANCELLED";
 export type CountReason = "COUNTED" | "DAMAGED" | "LOST" | "FOUND" | "RETURNED" | "OTHER";
 export type StockStatus = "out" | "low" | "ok";
 export type StockFilter = "all" | "in" | "low" | "out";
@@ -157,6 +157,10 @@ export function describeMovement(m: Movement): { title: string; detail: string |
     case "OPENING":
       return { title: "Opening stock", detail: m.note };
     case "RECEIVED":
+      // Goods received against a purchase order (GRN): the note names the PO.
+      if (m.reference?.type === "grn") {
+        return { title: `Received on ${no || "a GRN"}`, detail: [m.note, m.unit_cost ? `cost ₹${m.unit_cost}` : null].filter(Boolean).join(" · ") || null };
+      }
       return {
         title: "Received",
         detail: [no ? `Bill ${no}` : null, m.unit_cost ? `cost ₹${m.unit_cost}` : null, m.note].filter(Boolean).join(" · ") || null,
@@ -169,6 +173,8 @@ export function describeMovement(m: Movement): { title: string; detail: string |
       return { title: m.quantity < 0 ? `Sent on challan ${no || ""}`.trim() : `Arrived on challan ${no || ""}`.trim(), detail: null };
     case "DISPATCH_CANCELLED":
       return { title: `Challan ${no || ""} cancelled`.replace("  ", " "), detail: m.quantity > 0 ? "Stock back" : "Taken back out" };
+    case "RECEIVE_CANCELLED":
+      return { title: `${no || "Goods received"} undone`, detail: [m.note, m.reason].filter(Boolean).join(" · ") || "Taken back out" };
     default:
       return { title: m.type, detail: m.note };
   }

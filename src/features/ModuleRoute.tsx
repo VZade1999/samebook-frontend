@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { Spin } from "antd";
 import { AppstoreAddOutlined, LockOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useModules } from "@/session/useModules";
 import { useAccess } from "@/permissions/useAccess";
 import ProtectedRoute from "@/permissions/ProtectedRoute";
@@ -40,9 +40,11 @@ const ModuleRoute: React.FC<{
   module?: string;
   name: string;
   permission?: string;
+  anyPermission?: string[];
   children: React.ReactNode;
-}> = ({ module, name, permission, children }) => {
+}> = ({ module, name, permission, anyPermission, children }) => {
   const { hasModule, loaded } = useModules();
+  const { canAny } = useAccess();
 
   if (module && !hasModule(module)) {
     // Before the first session sync, stored modules may be stale — wait.
@@ -57,6 +59,7 @@ const ModuleRoute: React.FC<{
   const page = (
     <Suspense fallback={<div className="ft-loading"><Spin /></div>}>{children}</Suspense>
   );
+  if (anyPermission?.length && !canAny(anyPermission)) return <Navigate to="/app/dashboard" replace />;
   return permission ? <ProtectedRoute permission={permission}>{page}</ProtectedRoute> : page;
 };
 

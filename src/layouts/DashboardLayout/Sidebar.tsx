@@ -58,9 +58,13 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
     const children = i.children.map(toMenu).filter(Boolean);
     return children.length ? { key: i.key, icon: i.icon, label: i.label, children } : null;
   };
-  const featureMenuItems = FEATURES.filter((f) => !f.module || hasModule(f.module))
-    .flatMap((f) => f.sidebar.map(toMenu))
-    .filter(Boolean);
+  const menuOf = (placement: "top" | "sales") =>
+    FEATURES.filter((f) => (f.placement || "top") === placement && (!f.module || hasModule(f.module)))
+      .flatMap((f) => f.sidebar.map(toMenu))
+      .filter(Boolean);
+  const featureMenuItems = menuOf("top");
+  // Features that belong with the billing documents (Purchases) follow Invoice.
+  const salesFeatureItems = menuOf("sales");
 
   const menuItems = [
     can("dashboard.view") && {
@@ -121,6 +125,7 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
       icon: <FileTextOutlined />,
       label: "Invoice",
     },
+    ...salesFeatureItems,
     can("company.modules.manage") && {
       key: "/app/settings/apps",
       icon: <AppstoreAddOutlined />,

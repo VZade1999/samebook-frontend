@@ -2,13 +2,15 @@
 // document-series/document-series.rules.ts) — only what the editor needs for
 // instant previews. The server stays the authority: it validates on save.
 
-export type DocType = "INVOICE" | "QUOTATION" | "DELIVERY_CHALLAN";
+export type DocType = "INVOICE" | "QUOTATION" | "DELIVERY_CHALLAN" | "PURCHASE_ORDER" | "GOODS_RECEIPT";
 export type ResetPeriod = "NEVER" | "YEARLY" | "MONTHLY" | "DAILY";
 
 export const DOC_TYPES: { key: DocType; label: string; plural: string }[] = [
   { key: "INVOICE", label: "Invoice", plural: "Invoices" },
   { key: "QUOTATION", label: "Quotation", plural: "Quotations" },
   { key: "DELIVERY_CHALLAN", label: "Delivery challan", plural: "Delivery challans" },
+  { key: "PURCHASE_ORDER", label: "Purchase order", plural: "Purchase orders" },
+  { key: "GOODS_RECEIPT", label: "Goods received (GRN)", plural: "Goods received notes" },
 ];
 export const docLabel = (t: DocType) => DOC_TYPES.find((d) => d.key === t)?.label || t;
 
@@ -109,6 +111,13 @@ export const PRESETS: Record<DocType, Preset[]> = {
   DELIVERY_CHALLAN: [
     { key: "fy-prefix", format: "DC/{FY}/{SEQ}", reset_period: "YEARLY", padding: 4, hint: "Financial year, number" },
     { key: "prefix", format: "{PREFIX}-DC-{SEQ}", reset_period: "NEVER", padding: 4, hint: "One running number" },
+  ],
+  PURCHASE_ORDER: [
+    { key: "fy-prefix", format: "PO/{FY}/{SEQ}", reset_period: "YEARLY", padding: 4, hint: "Financial year, number (standard)" },
+    { key: "prefix", format: "{PREFIX}/PO/{FY}/{SEQ}", reset_period: "YEARLY", padding: 4, hint: "With your prefix" },
+  ],
+  GOODS_RECEIPT: [
+    { key: "fy-prefix", format: "GRN/{FY}/{SEQ}", reset_period: "YEARLY", padding: 4, hint: "Financial year, number (standard)" },
   ],
 };
 

@@ -10,6 +10,7 @@ const ICON: Record<MovementType, React.ReactNode> = {
   MOVED: <SwapOutlined />,
   DISPATCHED: <CarOutlined />,
   DISPATCH_CANCELLED: <RollbackOutlined />,
+  RECEIVE_CANCELLED: <RollbackOutlined />,
 };
 const warehouseName = (m: Movement) => (typeof m.warehouse === "string" ? m.warehouse : m.warehouse?.name) || "—";
 

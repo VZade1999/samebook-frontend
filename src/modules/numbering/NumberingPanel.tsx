@@ -7,10 +7,12 @@ import {
   EditOutlined,
   FileDoneOutlined,
   FileTextOutlined,
+  ImportOutlined,
   InboxOutlined,
   MoreOutlined,
   PlusOutlined,
   ReloadOutlined,
+  ShoppingCartOutlined,
   StarFilled,
   StarOutlined,
   UndoOutlined,
@@ -24,6 +26,8 @@ const ICON: Record<DocType, React.ReactNode> = {
   INVOICE: <FileDoneOutlined />,
   QUOTATION: <FileTextOutlined />,
   DELIVERY_CHALLAN: <CarOutlined />,
+  PURCHASE_ORDER: <ShoppingCartOutlined />,
+  GOODS_RECEIPT: <ImportOutlined />,
 };
 
 /**

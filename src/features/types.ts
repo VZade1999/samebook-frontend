@@ -14,6 +14,8 @@ export interface FeatureRoute {
   element: ReactNode;
   /** Permission required to open the route. */
   permission?: string;
+  /** …or any one of these (e.g. a store keeper who can only receive goods). */
+  anyPermission?: string[];
 }
 
 export interface FeatureSidebarItem {
@@ -31,6 +33,11 @@ export interface FeatureSidebarItem {
 export interface FeatureManifest {
   key: string;
   module?: string;
+  /**
+   * Where its sidebar entries go: "top" (default, after Dashboard) or "sales"
+   * (after Invoice — for features that belong with the billing documents).
+   */
+  placement?: "top" | "sales";
   /** Human name, used on the "feature not enabled" screen. */
   name: string;
   routes: FeatureRoute[];

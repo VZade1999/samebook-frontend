@@ -14,6 +14,7 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
+  ShoppingCartOutlined,
   StarFilled,
   StarOutlined,
   SwapOutlined,
@@ -26,6 +27,8 @@ import { useAccess } from "@/permissions/useAccess";
 import { StorageService } from "@/storage";
 import type { CatalogProduct } from "@/modules/products/catalog/productsApi";
 import "@/modules/products/catalog/products.scss";
+import { useModules } from "@/session/useModules";
+import { getOnOrder } from "@/modules/purchases/api";
 import HistoryList from "./HistoryList";
 import StockDialog, { type StockMode, type StockPreset } from "./StockDialog";
 import WarehouseForm from "./WarehouseForm";
@@ -95,6 +98,19 @@ const StockPage: React.FC = () => {
   const [cards, setCards] = useState<WarehouseCards | null>(null);
   const [levels, setLevels] = useState<StockLevels | null>(null);
   const [failed, setFailed] = useState(false);
+  // Purchases (add-on): what is still coming from suppliers, and "Order these" for low stock.
+  const { hasModule } = useModules();
+  const purchases = hasModule("purchases");
+  const seesOnOrder = purchases && (can("purchases.view") || can("purchases.receive") || can("purchases.create"));
+  const canOrder = purchases && can("purchases.create");
+  const [onOrder, setOnOrder] = useState<Map<number, { on_order: number; next_date: string | null }>>(new Map());
+  useEffect(() => {
+    if (!seesOnOrder || !levels?.products.length) return setOnOrder(new Map());
+    getOnOrder(levels.products.map((p) => p.id))
+      .then((list) => setOnOrder(new Map(list.map((x) => [x.product_id, { on_order: x.on_order, next_date: x.next_date }]))))
+      .catch(() => setOnOrder(new Map()));
+  }, [levels, seesOnOrder]);
+  const toOrder = (levels?.products || []).filter((p) => (p.status === "low" || p.status === "out") && !onOrder.get(p.id));
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"stock" | "history">(params.get("tab") === "history" ? "history" : "stock");
   const [searchText, setSearchText] = useState("");
@@ -526,6 +542,12 @@ const StockPage: React.FC = () => {
                     Clear
                   </button>
                 )}
+                {/* Low or out of stock, nothing on order yet: a draft PO with them, last supplier and price filled in. */}
+                {canOrder && (status === "low" || status === "out") && toOrder.length > 0 && (
+                  <button type="button" className="pc-link" onClick={() => navigate(`/app/purchase-orders?new=1&products=${toOrder.map((p) => p.id).join(",")}`)}>
+                    <ShoppingCartOutlined /> Order these ({toOrder.length})
+                  </button>
+                )}
               </div>
 
               {levels && levels.products.length > 0 ? (
@@ -553,7 +575,16 @@ const StockPage: React.FC = () => {
                           <button type="button" onClick={() => openProduct(r.id)} title={r.name}>
                             {r.name}
                           </button>
-                          <em>{[r.hsn ? `HSN ${r.hsn}` : null, r.category, r.min ? `alert at ${r.min}` : null].filter(Boolean).join(" · ") || "—"}</em>
+                          <em>
+                            {[
+                              r.hsn ? `HSN ${r.hsn}` : null,
+                              r.category,
+                              r.min ? `alert at ${r.min}` : null,
+                              onOrder.get(r.id) ? `${count(onOrder.get(r.id)!.on_order)} on order${onOrder.get(r.id)!.next_date ? ` (due ${onOrder.get(r.id)!.next_date})` : ""}` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "—"}
+                          </em>
                         </span>
                         {wide &&
                           columns.map((c) => {

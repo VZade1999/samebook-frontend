@@ -12,6 +12,7 @@ import {
   LinkOutlined,
   ReloadOutlined,
   RobotOutlined,
+  ShoppingCartOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
@@ -105,6 +106,21 @@ const LOOK: Record<string, ModuleLook> = {
     accessHint:
       "Ticked roles can work on their own and unassigned leads and add leads. Give crm.manage in Roles & Permissions to anyone who should see all leads, assign them and connect lead sources.",
     afterConnect: "Next: open CRM → Lead sources to connect IndiaMART or your website form.",
+  },
+  purchases: {
+    icon: <ShoppingCartOutlined />,
+    color: "#1D4ED8",
+    bg: "#EFF6FF",
+    openPath: "/app/purchase-orders",
+    features: [
+      "Purchase orders in Indian GST format, with approval",
+      "Goods received straight into stock (GRN)",
+      "Supplier bills, payments and advances",
+      "MSME 45-day and GST-credit reminders",
+    ],
+    accessHint:
+      "Ticked roles can see suppliers and make purchase orders. In Roles & Permissions give \"Approve\" to whoever approves POs, \"Receive\" to the store, and \"Bills\" to accounts.",
+    afterConnect: "Next: add your suppliers, then make your first purchase order.",
   },
   ai_agent: {
     icon: <RobotOutlined />,
