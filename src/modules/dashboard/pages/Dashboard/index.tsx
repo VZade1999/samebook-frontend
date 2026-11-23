@@ -29,6 +29,7 @@ import {
 import { StorageService } from "@/storage";
 import { useSalesFlow } from "@/modules/companies/salesFlow/salesFlow";
 import { SalesFlowPrompt } from "@/modules/companies/salesFlow/SalesFlowPicker";
+import PurchasesCard, { useShowsPurchases } from "@/modules/purchases/DashboardCard";
 import { dashboardService, overviewKey } from "../../services/dashboardService";
 import { forgetOverview, rememberOverview } from "../../redux/dashboardSlice";
 import type { Overview, SeriesKey } from "../../types";
@@ -105,6 +106,7 @@ const Row: React.FC<{ spans: number[]; children: React.ReactNode[] }> = ({ spans
 
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch();
+  const showsPurchases = useShowsPurchases();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const today = useMemo(() => dayjs().startOf("day"), []);
@@ -767,6 +769,8 @@ const DashboardPage: React.FC = () => {
             <Row spans={[6, 6]}>{[customersCard, productsCard]}</Row>
             <Row spans={[8, 4]}>{[heatCard, gstCard]}</Row>
             <Row spans={[6, 6]}>{[challanCard, stockCard]}</Row>
+            {/* Purchases (add-on): on order, late, what you owe suppliers. */}
+            <Row spans={[12]}>{[showsPurchases ? <PurchasesCard key="pu" /> : null]}</Row>
             {addOns.some(Boolean) && (
               <>
                 <div className="db-section-head">Workspace</div>

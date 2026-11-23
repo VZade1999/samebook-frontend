@@ -1,11 +1,27 @@
 import api from "@/api/axios";
-import type { DocType, SearchResult, Trail } from "./types";
+import type { DocType, SearchResult, SearchType, Trail } from "./types";
 
 /** Where each document opens (its page with the side panel open). */
-export const docPath = (type: DocType, id: number) =>
-  type === "quotation" ? `/app/quotation?open=${id}` : type === "challan" ? `/app/delivery-challans?open=${id}` : `/app/invoice?open=${id}`;
+// A goods received note opens its purchase order (its id is the PO's).
+export const docPath = (type: SearchType, id: number) =>
+  type === "quotation"
+    ? `/app/quotation?open=${id}`
+    : type === "challan"
+      ? `/app/delivery-challans?open=${id}`
+      : type === "purchase_order" || type === "grn"
+        ? `/app/purchase-orders?open=${id}`
+        : type === "supplier_bill"
+          ? `/app/purchase-bills?open=${id}`
+          : `/app/invoice?open=${id}`;
 
-export const DOC_LABEL: Record<DocType, string> = { quotation: "Quotation", challan: "Delivery challan", invoice: "Invoice" };
+export const DOC_LABEL: Record<SearchType, string> = {
+  quotation: "Quotation",
+  challan: "Delivery challan",
+  invoice: "Invoice",
+  purchase_order: "Purchase order",
+  grn: "Goods received",
+  supplier_bill: "Supplier bill",
+};
 
 const dataOf = <T,>(res: any): T => {
   const body = res?.data;

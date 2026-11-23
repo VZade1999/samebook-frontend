@@ -177,7 +177,7 @@ export interface Receipt {
   cancel_reason: string | null;
   received_by: string | null;
   created_at: string;
-  lines: { item_name: string; unit: string | null; received_qty: number; accepted_qty: number; rejected_qty: number; reject_reason: string | null }[];
+  lines: { po_item_id: number; item_name: string; unit: string | null; received_qty: number; accepted_qty: number; rejected_qty: number; reject_reason: string | null }[];
 }
 export interface PoDetail {
   id: number;
@@ -189,6 +189,8 @@ export interface PoDetail {
   supplier_id: number;
   supplier: any;
   supplier_ref: string | null;
+  /** The customer quotation this PO was ordered for. */
+  quotation: { id: number; number: string; customer_name: string | null } | null;
   buyer: any;
   ship_to: any;
   warehouse_id: number | null;
@@ -258,7 +260,7 @@ export interface PurchaseSettings {
   can_edit: boolean;
 }
 
-export const getPos = async (q: { q?: string; status?: string; supplier_id?: number; page?: number; limit?: number }) =>
+export const getPos = async (q: { q?: string; status?: string; supplier_id?: number; quotation_id?: number; page?: number; limit?: number }) =>
   body<Paged<PoRow>>(await api.get("/purchase-orders", { params: clean(q) }));
 export const getPoSummary = async () => body<PoSummary>(await api.get("/purchase-orders/summary"));
 export const getPo = async (id: number) => body<PoDetail>(await api.get(`/purchase-orders/${id}`));
@@ -274,6 +276,28 @@ export const getSettings = async () => body<PurchaseSettings>(await api.get("/pu
 export const saveSettings = async (s: Partial<PurchaseSettings>) => body<PurchaseSettings>(await api.put("/purchase-orders/settings", s));
 export const getOnOrder = async (ids: number[]) =>
   body<{ product_id: number; on_order: number; next_date: string | null; pos: number }[]>(await api.get("/purchase-orders/on-order", { params: { ids: ids.join(",") } }));
+/** What to order for an approved customer quotation: still to send, less stock and what is already on order. */
+export interface QuotationPlan {
+  quotation: { id: number; number: string; customer_name: string | null };
+  supplier_id: number | null;
+  lines: {
+    item_name: string;
+    product_id: number | null;
+    hsn_code: string | null;
+    unit: string | null;
+    need: number;
+    in_stock: number | null;
+    on_order: number | null;
+    to_order: number;
+    rate: number | null;
+    discount_percent?: number;
+    gst_rate: number | null;
+    supplier_id: number | null;
+    in_list: boolean;
+  }[];
+  already: { id: number; po_number: string; status: PoStatus }[];
+}
+export const getForQuotation = async (quotationId: number) => body<QuotationPlan>(await api.get(`/purchase-orders/for-quotation/${quotationId}`));
 export const getLastBought = async (ids: number[]) =>
   body<{ product_id: number; supplier_id: number; supplier_name: string; rate: number; discount_percent: number; gst_rate: number; po_date: string }[]>(
     await api.get("/purchase-orders/last-bought", { params: { ids: ids.join(",") } }),

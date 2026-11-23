@@ -37,6 +37,10 @@
   &.challan { --tone: var(--dl-c); }
   &.invoice { --tone: var(--dl-i); }
   &.pay { --tone: var(--dl-pay); }
+  // Purchases: blue, like the PO PDF.
+  &.purchase_order,
+  &.grn,
+  &.supplier_bill { --tone: #2563eb; }
 }
 .dl-main {
   display: flex;

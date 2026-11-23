@@ -24,6 +24,9 @@ export interface EditorLine {
 export interface EditorPreset {
   supplier_id?: number;
   items?: Omit<EditorLine, "key">[];
+  /** Ordered for a customer quotation ("Order from supplier"). */
+  quotation?: { id: number; number: string; customer_name: string | null } | null;
+  notes?: string;
 }
 
 let seq = 0;
@@ -153,7 +156,7 @@ const PoEditor: React.FC<{
         setSupplier(s[0] || null);
       });
     } else {
-      form.setFieldsValue({ po_date: dayjs(), supplier_id: preset?.supplier_id });
+      form.setFieldsValue({ po_date: dayjs(), supplier_id: preset?.supplier_id, notes: preset?.notes });
       setLines(preset?.items?.length ? preset.items.map((i) => ({ ...i, key: newKey() })) : [blank()]);
       if (preset?.supplier_id) {
         supplierOptions({ id: preset.supplier_id }).then((s) => {
@@ -265,7 +268,7 @@ const PoEditor: React.FC<{
     try {
       let saved: PoDetail;
       if (kind === "amend" && po) saved = await amendPo(po.id, { ...body, amend_note: form.getFieldValue("amend_note") || undefined });
-      else saved = await savePo(mode === "edit" && po ? po.id : null, { ...body, submit: kind === "submit" });
+      else saved = await savePo(mode === "edit" && po ? po.id : null, { ...body, submit: kind === "submit", ...(mode === "new" && preset?.quotation ? { quotation_id: preset.quotation.id } : {}) });
       message.success(saved.message || "Saved");
       onClose(saved);
     } catch (e) {
@@ -364,6 +367,15 @@ const PoEditor: React.FC<{
             </Col>
           </Row>
 
+          {mode === "new" && preset?.quotation && (
+            <div className="pu-note good" style={{ marginBottom: 12 }}>
+              <InfoCircleOutlined />
+              <span>
+                For customer quotation <b>{preset.quotation.number}</b>
+                {preset.quotation.customer_name ? ` (${preset.quotation.customer_name})` : ""} — the lines are what's still to send after your stock and open POs. The PO stays linked to it.
+              </span>
+            </div>
+          )}
           {preview && (
             <div className="pu-note" style={{ marginBottom: 12 }}>
               <InfoCircleOutlined />

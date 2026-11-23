@@ -10,6 +10,7 @@ import {
   FileDoneOutlined,
   ImportOutlined,
   MailOutlined,
+  PrinterOutlined,
   RollbackOutlined,
   SendOutlined,
   StopOutlined,
@@ -22,7 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { useWarehouseList } from "@/modules/stock/pickers";
 import { type PoDetail, apiError, cancelReceipt, deletePo, getPo, poAction, receiveGoods } from "./api";
 import { ACTIVITY, BILL_STATUS, PO_STATUS, TAX_TYPE, day, qtyText, rs, rs2, when } from "./format";
-import { downloadPoPdf } from "./poPdf";
+import { downloadGrnPdf, downloadPoPdf } from "./poPdf";
 
 /** Ask for a short reason (cancel, close, send back…); resolves null when dismissed. */
 export const askReason = (title: string, placeholder: string, okText: string, danger = true) =>
@@ -403,6 +404,15 @@ const PoDrawer: React.FC<{
                 <span>Supplier's ref.</span>
                 <b>{po.supplier_ref || "—"}</b>
               </div>
+              {po.quotation && (
+                <div>
+                  <span>For customer order</span>
+                  <b>
+                    <a onClick={() => navigate(`/app/quotation?open=${po.quotation!.id}`)}>{po.quotation.number}</a>
+                    {po.quotation.customer_name ? ` · ${po.quotation.customer_name}` : ""}
+                  </b>
+                </div>
+              )}
               <div>
                 <span>Made by</span>
                 <b>{po.created_by || "—"}</b>
@@ -525,6 +535,9 @@ const PoDrawer: React.FC<{
                     <span>· {r.warehouse_name}</span>
                     {r.status === "CANCELLED" && <span className="pu-chip bad">Undone</span>}
                     <span style={{ flex: 1 }} />
+                    <Button size="small" type="text" icon={<PrinterOutlined />} loading={busy === `print${r.id}`} onClick={async () => { setBusy(`print${r.id}`); try { await downloadGrnPdf(po, r); } finally { setBusy(null); } }}>
+                      Print
+                    </Button>
                     {r.status === "RECEIVED" && po.can.undo_receipt && (
                       <Button
                         size="small"

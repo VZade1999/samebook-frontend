@@ -21,6 +21,7 @@ import {
   PlusCircleOutlined,
   SendOutlined,
   ShopOutlined,
+  ShoppingCartOutlined,
   StopOutlined,
   UndoOutlined,
   UserOutlined,
@@ -44,6 +45,8 @@ import {
 } from "./shared";
 import LinkedDocuments from "@/modules/document-links/LinkedDocuments";
 import { docTaxesTransport, gstBase } from "@/utils/transportGst";
+import { useNavigate } from "react-router-dom";
+import QuotationPurchases, { useCanOrderFor } from "@/modules/purchases/QuotationPurchases";
 
 export interface DrawerActions {
   canSend: boolean;
@@ -193,6 +196,9 @@ const QuotationDrawer: React.FC<{
   const tax = Number(q?.cgst_amount || 0) + Number(q?.sgst_amount || 0) + Number(q?.igst_amount || 0);
   const createdBy = personName(q?.created_by_user);
   const busy = a.acting || fromCache;
+  // Purchases (add-on): buy what this approved order needs from a supplier.
+  const navigate = useNavigate();
+  const canOrder = useCanOrderFor(q);
 
   const closed = !!q && isClosed(q);
   const closeEvent = timeline.find((e) => e.action_type === q?.status);
@@ -224,6 +230,7 @@ const QuotationDrawer: React.FC<{
       )}
       {/* Its challans, invoice and payments — each one click away. */}
       <LinkedDocuments type="quotation" id={q.id} version={`${q.status}|${q.has_invoice}|${q.customer_po_number}|${q.updated_at}|${q.fully_billed}|${q.ready_challans}`} showBalance />
+      <QuotationPurchases quotationId={q.id} />
       {(APPROVED_LIKE.includes(String(q.status)) || !!q.has_invoice) && (
         <div className="qd-card">
           <h4>
@@ -524,6 +531,11 @@ const QuotationDrawer: React.FC<{
               {!a.challanFirst && a.canChallan && (
                 <button type="button" className={`qp-btn ${a.canInvoice ? "glass" : "white"}`} onClick={a.onChallan}>
                   <CarOutlined /> Create delivery challan
+                </button>
+              )}
+              {canOrder && (
+                <button type="button" className="qp-btn glass" onClick={() => navigate(`/app/purchase-orders?new=1&quotation=${q.id}`)} title="A draft PO for what this order still needs after your stock and open POs">
+                  <ShoppingCartOutlined /> Order from supplier
                 </button>
               )}
               {a.canExport && (

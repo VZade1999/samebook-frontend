@@ -2,17 +2,20 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import { Modal } from "antd";
 import { useNavigate } from "react-router-dom";
-import { CarOutlined, FileDoneOutlined, FileTextOutlined, LoadingOutlined, SearchOutlined } from "@ant-design/icons";
+import { CarOutlined, FileDoneOutlined, FileTextOutlined, ImportOutlined, LoadingOutlined, SearchOutlined, ShoppingCartOutlined, WalletOutlined } from "@ant-design/icons";
 import { inr } from "@/modules/dashboard/utils/format";
 import { useAccess } from "@/permissions/useAccess";
 import { DOC_LABEL, docPath, searchDocuments } from "./documentLinksService";
-import type { DocType, SearchResult } from "./types";
+import type { SearchResult, SearchType } from "./types";
 import "./documentLinks.scss";
 
-const ICON: Record<DocType, React.ReactNode> = {
+const ICON: Record<SearchType, React.ReactNode> = {
   quotation: <FileTextOutlined />,
   challan: <CarOutlined />,
   invoice: <FileDoneOutlined />,
+  purchase_order: <ShoppingCartOutlined />,
+  grn: <ImportOutlined />,
+  supplier_bill: <WalletOutlined />,
 };
 
 const STATUS: Record<string, string> = {
@@ -33,9 +36,15 @@ const STATUS: Record<string, string> = {
   PARTIAL: "Part paid",
   PARTIALLY_PAID: "Part paid",
   OVERDUE: "Overdue",
+  PENDING_APPROVAL: "Waiting approval",
+  PARTLY_RECEIVED: "Part received",
+  RECEIVED: "Received",
+  CLOSED: "Closed",
+  UNPAID: "Unpaid",
+  PARTLY_PAID: "Part paid",
 };
 
-const MATCHED: Record<string, string> = { po: "PO", vehicle: "Vehicle", eway: "E-way bill" };
+const MATCHED: Record<string, string> = { po: "PO", vehicle: "Vehicle", eway: "E-way bill", ref: "Supplier ref", bill: "Supplier bill", challan: "Supplier challan" };
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
 
@@ -47,7 +56,8 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 const DocumentSearch: React.FC = () => {
   const { can } = useAccess();
   const navigate = useNavigate();
-  const allowed = can("quotations.view") || can("challans.view") || can("invoices.view");
+  const buys = can("purchases.view") || can("purchases.receive") || can("purchases.bills");
+  const allowed = can("quotations.view") || can("challans.view") || can("invoices.view") || buys;
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -164,7 +174,7 @@ const DocumentSearch: React.FC = () => {
               ref={inputRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Quotation, challan or invoice no. · PO · vehicle · e-way bill"
+              placeholder={buys ? "Any document no. · PO · GRN · supplier bill · vehicle · e-way bill" : "Quotation, challan or invoice no. · PO · vehicle · e-way bill"}
               aria-label="Find a document by any number"
               role="combobox"
               aria-expanded={results.length > 0}
@@ -185,7 +195,10 @@ const DocumentSearch: React.FC = () => {
           ) : q.length < 2 ? (
             <div className="dl-empty">
               <b>Type any number from a document</b>
-              <span>For example the invoice's running number (0150), the customer's PO number, a vehicle number (MH12AB1234) or an e-way bill number.</span>
+              <span>
+                For example the invoice's running number (0150), the customer's PO number, a vehicle number (MH12AB1234) or an e-way bill number
+                {buys ? " — and your purchase orders, goods received (GRN) and supplier bill numbers." : "."}
+              </span>
             </div>
           ) : results.length ? (
             <ul className="dl-results" id="dl-results" role="listbox" ref={listRef}>

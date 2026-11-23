@@ -18,7 +18,7 @@ import { StatTile } from "@/modules/dashboard/components/Bits";
 import { useAccess } from "@/permissions/useAccess";
 import { StorageService } from "@/storage";
 import { getCatalog } from "@/modules/products/catalog/productsApi";
-import { type PoDetail, type PoRow, type PoSummary, type PurchaseSettings, apiError, getLastBought, getPoSummary, getPos, getSettings, saveSettings } from "./api";
+import { type PoDetail, type PoRow, type PoSummary, type PurchaseSettings, apiError, getForQuotation, getLastBought, getPoSummary, getPos, getSettings, saveSettings } from "./api";
 import { PO_STATUS, day, rs } from "./format";
 import PoEditor, { type EditorPreset } from "./PoEditor";
 import PoDrawer from "./PoDrawer";
@@ -153,12 +153,35 @@ const OrdersPage: React.FC = () => {
     if (params.get("new") !== "1" || !can("purchases.create")) return;
     const supplier = Number(params.get("supplier")) || undefined;
     const productIds = (params.get("products") || "").split(",").map(Number).filter((x) => x > 0);
+    const quotationId = Number(params.get("quotation")) || null;
     params.delete("new");
     params.delete("supplier");
     params.delete("products");
+    params.delete("quotation");
     setParams(params, { replace: true });
     (async () => {
       let preset: EditorPreset = { supplier_id: supplier };
+      // "Order from supplier" on a customer quotation: what is short after stock and open POs.
+      if (quotationId) {
+        try {
+          const plan = await getForQuotation(quotationId);
+          const short = plan.lines.filter((l) => l.to_order > 0);
+          if (plan.already.length) message.info(`Already ordered for ${plan.quotation.number}: ${plan.already.map((p) => p.po_number).join(", ")}`);
+          if (!short.length) {
+            message.success(`Nothing to order for ${plan.quotation.number} — your stock and open POs cover it`);
+            return;
+          }
+          preset = {
+            supplier_id: plan.supplier_id ?? undefined,
+            quotation: plan.quotation,
+            notes: `For customer order ${plan.quotation.number}${plan.quotation.customer_name ? ` (${plan.quotation.customer_name})` : ""}`,
+            items: short.map((l) => ({ product_id: l.product_id, item_name: l.item_name, hsn_code: l.hsn_code, unit: l.unit, qty: l.to_order, rate: l.rate, discount_percent: l.discount_percent ?? 0, gst_rate: l.gst_rate })),
+          };
+        } catch (e) {
+          message.error(apiError(e, "Couldn't read the quotation"));
+          return;
+        }
+      }
       if (productIds.length) {
         try {
           const ids = productIds.slice(0, 30);
