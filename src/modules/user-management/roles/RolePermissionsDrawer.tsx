@@ -34,7 +34,7 @@ const AREAS: { section: string; keys: { key: string; label: string }[] }[] = [
   {
     section: "Apps",
     keys: [
-      { key: "ai_agent", label: "AI Agent" },
+      { key: "ai_agent", label: "AI Assistant" },
       { key: "attendance", label: "Attendance & leave" },
       { key: "leave", label: "Leave" },
       { key: "tasks", label: "Tasks" },

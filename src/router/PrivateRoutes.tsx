@@ -6,7 +6,6 @@ import DashboardPage from "../modules/dashboard/pages/Dashboard/index";
 import CustomerPage from "@/modules/customers/pages";
 import CompanyPage from "@/modules/companies/pages";
 import ProductPage from "@/modules/products/pages";
-import AiAgent from "@/modules/ai-agent/index";
 import QuotationPage from "@/modules/quotation/pages";
 import UsersPage from "@/modules/team/TeamPage";
 import PlatformPage from "@/modules/platform/PlatformPage";
@@ -115,15 +114,6 @@ const PrivateRoutes = () => {
           element={
             <ProtectedRoute permission="companies.view">
               <CompanyPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/ai-agent"
-          element={
-            <ProtectedRoute permission="ai_agent.view">
-              <AiAgent />
             </ProtectedRoute>
           }
         />

@@ -18,7 +18,7 @@ import {
   UserOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { StatTile } from "@/modules/dashboard/components/Bits";
 import "@/modules/dashboard/styles/dashboard.scss";
 import { count, inr, inrCompact } from "@/modules/dashboard/utils/format";
@@ -59,6 +59,23 @@ const CustomerPage: React.FC = () => {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const seq = useRef(0);
+  const [params, setParams] = useSearchParams();
+
+  // ?open=<id> opens that customer's profile (links from the AI Assistant and elsewhere).
+  useEffect(() => {
+    const id = Number(params.get("open"));
+    if (!Number.isInteger(id) || id <= 0) return;
+    const next = new URLSearchParams(params);
+    next.delete("open");
+    setParams(next, { replace: true });
+    getDirectory({ id })
+      .then((d) => {
+        const c = d.customers?.[0];
+        if (c) setOpen(c);
+        else message.warning("That customer was not found");
+      })
+      .catch((e) => message.error(apiError(e, "Couldn't open this customer")));
+  }, [params, setParams]);
 
   // Typing settles for a moment before searching.
   useEffect(() => {

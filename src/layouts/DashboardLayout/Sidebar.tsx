@@ -5,7 +5,6 @@ import {
   UserOutlined,
   FileTextOutlined,
   ShoppingOutlined,
-  RobotOutlined,
   TeamOutlined,
   BankOutlined,
   KeyOutlined,
@@ -106,11 +105,6 @@ const Sidebar = ({ collapsed = false, onClose, onToggleCollapse }: SidebarProps)
         can("categories.view") && { key: "/app/categories", icon: <AppstoreOutlined />, label: "Categories" },
         can("warehouses.view") && { key: "/app/warehouses", icon: <ShopOutlined />, label: "Stock & warehouses" },
       ].filter(Boolean),
-    },
-    can("ai_agent.view") && {
-      key: "/app/ai-agent",
-      icon: <RobotOutlined />,
-      label: "AI Agent",
     },
     can("quotations.view") && {
       key: "/app/quotation",

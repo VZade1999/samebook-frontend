@@ -28,7 +28,6 @@ import {
   listenGetCompanyDetails,
   listenUpdateCompany,
 } from "@/modules/companies/redux/companySaga";
-import { listenAiChat } from "@/modules/ai-agent/redux/aiAgentSaga";
 import { listenAddPayment, listenGenerateInvoice, listenGetInvoiceDetails, listenGetInvoices, listenGetInvoiceTimeline, listenSendInvoice } from "@/modules/invoice/redux/invoiceSaga";
 
 export default function* rootSaga() {
@@ -53,7 +52,6 @@ export default function* rootSaga() {
     listenGetQuotationHistory(),
     listenGetQuotationTimeline(),
     listenSendQuotation(),
-    listenAiChat(),
     listenGetInvoices(),
     listenGetInvoiceDetails(),
     listenGenerateInvoice(),

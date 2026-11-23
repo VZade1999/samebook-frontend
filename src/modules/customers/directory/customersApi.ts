@@ -70,6 +70,8 @@ export interface DirQuery {
   sort?: DirSort;
   page?: number;
   limit?: number;
+  /** One customer by id (for ?open= links). */
+  id?: number;
 }
 
 export interface Activity {

@@ -11,6 +11,7 @@ import {
   FunnelPlotOutlined,
   LinkOutlined,
   ReloadOutlined,
+  RobotOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
@@ -104,6 +105,21 @@ const LOOK: Record<string, ModuleLook> = {
     accessHint:
       "Ticked roles can work on their own and unassigned leads and add leads. Give crm.manage in Roles & Permissions to anyone who should see all leads, assign them and connect lead sources.",
     afterConnect: "Next: open CRM → Lead sources to connect IndiaMART or your website form.",
+  },
+  ai_agent: {
+    icon: <RobotOutlined />,
+    color: "#DB2777",
+    bg: "#FDF2F8",
+    openPath: "/app/ai-agent",
+    features: [
+      "Answers about sales, dues, stock and documents",
+      "Makes quotations, records payments, moves stock",
+      "Only what each role allows — Confirm before anything risky",
+      "Daily limit, look-up-only mode and a log of every change",
+    ],
+    accessHint:
+      "Ticked roles can open the assistant and talk to it. Give \"Configure AI Assistant\" in Roles & Permissions to anyone who should change its settings or see the team's usage.",
+    afterConnect: "Admins can set a daily message limit or switch it to look-up only from the assistant's Settings.",
   },
 };
 
