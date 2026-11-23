@@ -46,6 +46,7 @@ import {
   stateOf,
 } from "./shared";
 import LinkedDocuments from "@/modules/document-links/LinkedDocuments";
+import { docTaxesTransport, gstBase } from "@/utils/transportGst";
 
 export interface DrawerActions {
   canPay: boolean;
@@ -347,6 +348,19 @@ const InvoiceDrawer: React.FC<{
             <b>−{rupees(inv.discount_amount)}</b>
           </div>
         )}
+        {/* Transport that carried GST is part of the taxable value, so it comes before the GST. */}
+        {Number(inv.transport_charges) > 0 && docTaxesTransport(inv) && (
+          <>
+            <div>
+              <span>Transport</span>
+              <b>{rupees(inv.transport_charges)}</b>
+            </div>
+            <div>
+              <span>Taxable value</span>
+              <b>{rupees(gstBase(Number(inv.sub_total) - Number(inv.discount_amount || 0), inv.transport_charges, true))}</b>
+            </div>
+          </>
+        )}
         {Number(inv.cgst_amount) > 0 && (
           <div>
             <span>CGST ({Number(inv.cgst_percent)}%)</span>
@@ -365,9 +379,9 @@ const InvoiceDrawer: React.FC<{
             <b>{rupees(inv.igst_amount)}</b>
           </div>
         )}
-        {Number(inv.transport_charges) > 0 && (
+        {Number(inv.transport_charges) > 0 && !docTaxesTransport(inv) && (
           <div>
-            <span>Transport</span>
+            <span>Transport (no GST)</span>
             <b>{rupees(inv.transport_charges)}</b>
           </div>
         )}

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Tooltip } from "antd";
 import {
   BankOutlined,
+  CarOutlined,
   CheckCircleFilled,
   CopyOutlined,
   EditOutlined,
@@ -60,6 +61,7 @@ import {
 } from "../utils/companyView";
 import NumberingPanel from "../../numbering/NumberingPanel";
 import { SalesFlowPanel } from "../salesFlow/SalesFlowPicker";
+import { TransportGstPanel } from "../taxSettings/TransportGstPanel";
 import SignaturePanel from "../signature/SignaturePanel";
 import SignatureModal from "../signature/SignatureModal";
 import { useCompanySignature } from "../signature/signatureStore";
@@ -432,6 +434,16 @@ const CompanyPage: React.FC = () => {
           sub="Decides which button comes first on an approved quotation — invoice or delivery challan. Nothing is ever blocked."
         >
           <SalesFlowPanel canEdit={canEdit} />
+        </Panel>
+
+        <Panel
+          index={2}
+          icon={<CarOutlined />}
+          tint="var(--cp-good)"
+          title="GST on transport"
+          sub="Transport you charge on quotations and invoices is part of the sale, so it gets the goods' GST rate"
+        >
+          <TransportGstPanel canEdit={canEdit} />
         </Panel>
 
         <Panel

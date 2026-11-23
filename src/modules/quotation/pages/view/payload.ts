@@ -3,7 +3,8 @@ import { parseJsonField } from "./shared";
 /**
  * The editor's form values as API document fields — shared by quotations and
  * by invoices made without a quotation (the same editor). The server
- * recomputes every total from the items; these are what the user saw.
+ * recomputes every total from the items — GST on transport included, per the
+ * company's setting — so the amounts here are only a rough copy and never saved.
  */
 export const documentPayload = (values: any) => {
   const items = (values.items || []).map((item: any) => ({

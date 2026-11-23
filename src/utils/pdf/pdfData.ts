@@ -3,6 +3,7 @@
 // the grand total) and the HSN-wise tax summary.
 
 import { StorageService } from "@/storage";
+import { docTaxesTransport, gstBase } from "@/utils/transportGst";
 import { amount, parseJson, pct } from "./pdfFormat";
 import type { Seller, TotalRow } from "./pdfKit";
 
@@ -84,30 +85,34 @@ export const lineNet = (it: any) =>
  * The totals rows, adding up to the grand total: items (after their own
  * discounts), the overall discount, taxable value, GST that applies,
  * transport, and a round-off line only when the stored figures need one.
+ * Transport that carried GST (transport_gst) is part of the taxable value,
+ * so it is listed before it; older documents list it after the GST.
  */
 export const totalRows = (data: any, items: any[], money: (v: unknown) => string, minus = "−"): TotalRow[] => {
   const itemsNet = round2(items.reduce((s, it) => s + lineNet(it), 0));
   const sub = num(data.sub_total);
   const disc = num(data.discount_amount);
   const taxable = round2(sub - disc);
+  const transport = num(data.transport_charges);
+  const taxedTransport = transport > 0 && docTaxesTransport(data);
   // Older documents stored the subtotal after line discounts.
   const subIsNet = Math.abs(itemsNet - sub) < 0.01;
   const overall = subIsNet ? disc : round2(itemsNet - taxable);
   const rows: TotalRow[] = [];
-  // Items total and discount only when there is a discount; otherwise they equal the taxable value.
-  if (overall > 0.005) {
+  // Items total only when something is added to or taken off it; otherwise it equals the taxable value.
+  if (overall > 0.005 || taxedTransport) {
     rows.push({ label: subIsNet ? "Subtotal" : "Items total", value: money(subIsNet ? sub : itemsNet) });
-    rows.push({ label: "Discount", value: `${minus} ${money(overall)}` });
   }
-  rows.push({ label: "Taxable value", value: money(taxable) });
+  if (overall > 0.005) rows.push({ label: "Discount", value: `${minus} ${money(overall)}` });
+  if (taxedTransport) rows.push({ label: "Transport", value: money(transport) });
+  rows.push({ label: "Taxable value", value: money(gstBase(taxable, transport, taxedTransport)) });
   const cgst = num(data.cgst_amount);
   const sgst = num(data.sgst_amount);
   const igst = num(data.igst_amount);
   if (cgst > 0) rows.push({ label: `CGST @ ${pct(data.cgst_percent)}`, value: money(cgst) });
   if (sgst > 0) rows.push({ label: `SGST @ ${pct(data.sgst_percent)}`, value: money(sgst) });
   if (igst > 0) rows.push({ label: `IGST @ ${pct(data.igst_percent)}`, value: money(igst) });
-  const transport = num(data.transport_charges);
-  if (transport > 0) rows.push({ label: "Transport", value: money(transport) });
+  if (transport > 0 && !taxedTransport) rows.push({ label: "Transport", value: money(transport) });
   const off = round2(num(data.grand_total) - (taxable + cgst + sgst + igst + transport));
   if (Math.abs(off) >= 0.01) rows.push({ label: "Round off", value: `${off < 0 ? `${minus} ` : "+ "}${money(Math.abs(off))}` });
   return rows;
@@ -116,7 +121,8 @@ export const totalRows = (data: any, items: any[], money: (v: unknown) => string
 /**
  * HSN-wise tax summary (as Tally prints it): each HSN's share of the taxable
  * value and its tax, adjusted so the columns add up to the invoice's totals.
- * Null when no GST is charged.
+ * Transport that carried GST is shared out over the HSNs by value — it goes
+ * with the goods it delivers (a composite supply). Null when no GST is charged.
  */
 export const hsnSummary = (data: any, items: any[]) => {
   const tax = { cgst: num(data.cgst_amount), sgst: num(data.sgst_amount), igst: num(data.igst_amount) };
@@ -128,7 +134,7 @@ export const hsnSummary = (data: any, items: any[]) => {
     groups.set(k, (groups.get(k) || 0) + lineNet(it));
   });
   const itemsNet = [...groups.values()].reduce((s, v) => s + v, 0);
-  const taxable = round2(num(data.sub_total) - num(data.discount_amount));
+  const taxable = gstBase(round2(num(data.sub_total) - num(data.discount_amount)), data.transport_charges, docTaxesTransport(data));
   const share = itemsNet > 0 ? taxable / itemsNet : 0;
   const rows = [...groups.entries()].map(([hsn, net]) => ({ hsn, taxable: round2(net * share), cgst: 0, sgst: 0, igst: 0 }));
   const fix = (key: "taxable" | "cgst" | "sgst" | "igst", want: number) => {

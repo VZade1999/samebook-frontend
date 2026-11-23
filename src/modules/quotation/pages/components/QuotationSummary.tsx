@@ -11,6 +11,7 @@ import {
 } from "@/utils/taxType";
 import FormSection from "./FormSection";
 import { rupees } from "../view/shared";
+import { useTaxSettings } from "@/modules/companies/taxSettings/taxSettings";
 
 const { TextArea } = Input;
 
@@ -23,6 +24,10 @@ export interface QuotationTotals {
   cgstAmount: number;
   igstAmount: number;
   transport: number;
+  /** GST is charged on the transport too (the company's "GST on transport" setting). */
+  transportTaxed: boolean;
+  /** The value GST is charged on: items after the discount, plus transport when it is taxed. */
+  taxable: number;
   grandTotal: number;
 }
 
@@ -35,6 +40,8 @@ const ZERO: QuotationTotals = {
   cgstAmount: 0,
   igstAmount: 0,
   transport: 0,
+  transportTaxed: false,
+  taxable: 0,
   grandTotal: 0,
 };
 
@@ -75,6 +82,9 @@ const QuotationSummary: React.FC<{
 }> = ({ onTotals, fillDefaultTerms, mode = "quotation", showDispatch = true }) => {
   const form = Form.useFormInstance();
   const [totals, setTotals] = useState<QuotationTotals>(ZERO);
+  // Transport is part of the sale under GST, so it is taxed like the goods —
+  // unless an Admin turned that off on the Company page. The server does the same.
+  const { transportGst } = useTaxSettings();
   const invoiceDate = Form.useWatch("invoice_date", form);
   const dueDate = Form.useWatch("payment_due_date", form);
   const dueIn =
@@ -136,9 +146,11 @@ const QuotationSummary: React.FC<{
 
     const discountAmount = (sub * discountPercent) / 100;
     const taxable = sub - discountAmount;
-    const cgstAmount = !isNoGst && isIntraState ? (taxable * safe(cgst)) / 100 : 0;
-    const sgstAmount = !isNoGst && isIntraState ? (taxable * safe(sgst)) / 100 : 0;
-    const igstAmount = !isNoGst && !isIntraState ? (taxable * safe(igst)) / 100 : 0;
+    // The GST base: transport joins the items when it is taxed.
+    const base = taxable + (transportGst ? transportCharges : 0);
+    const cgstAmount = !isNoGst && isIntraState ? (base * safe(cgst)) / 100 : 0;
+    const sgstAmount = !isNoGst && isIntraState ? (base * safe(sgst)) / 100 : 0;
+    const igstAmount = !isNoGst && !isIntraState ? (base * safe(igst)) / 100 : 0;
     const totalTax = cgstAmount + sgstAmount + igstAmount;
     const combinedTaxPercent = isNoGst ? 0 : isIntraState ? safe(cgst) + safe(sgst) : safe(igst);
     const round = (v: number) => parseFloat(safe(v).toFixed(2));
@@ -152,6 +164,8 @@ const QuotationSummary: React.FC<{
       cgstAmount: round(cgstAmount),
       igstAmount: round(igstAmount),
       transport: transportCharges,
+      transportTaxed: transportGst && transportCharges > 0,
+      taxable: round(base),
       grandTotal: round(taxable + totalTax + transportCharges),
     };
     setTotals(next);
@@ -164,7 +178,7 @@ const QuotationSummary: React.FC<{
       transport: transportCharges,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subTotal, discount, cgst, sgst, igst, transport, placeOfOrder, form, isIntraState, isNoGst]);
+  }, [subTotal, discount, cgst, sgst, igst, transport, placeOfOrder, form, isIntraState, isNoGst, transportGst]);
 
   const validityDays = validity && dayjs.isDayjs(validity) ? validity.startOf("day").diff(dayjs().startOf("day"), "day") : null;
 
@@ -239,7 +253,17 @@ const QuotationSummary: React.FC<{
             </Col>
           )}
           <Col xs={24} sm={12} lg={6}>
-            <Form.Item label="Transport" name="transport">
+            <Form.Item
+              label="Transport"
+              name="transport"
+              extra={
+                totals.transport > 0 && !isNoGst
+                  ? transportGst
+                    ? "GST is added on transport too, like the goods"
+                    : "Added without GST (Company page setting)"
+                  : undefined
+              }
+            >
               <InputNumber min={0} step={0.01} prefix="₹" placeholder="0.00" />
             </Form.Item>
           </Col>
@@ -261,13 +285,23 @@ const QuotationSummary: React.FC<{
                 <b>−{rupees(totals.discountAmount)}</b>
               </div>
             )}
+            {/* Taxed transport is part of the value GST is charged on, so it comes first. */}
+            {totals.transportTaxed && (
+              <div>
+                <span>Transport</span>
+                <b>+{rupees(totals.transport)}</b>
+              </div>
+            )}
             {totals.gstAmount > 0 && (
               <div>
-                <span>{isIntraState ? "CGST + SGST" : "IGST"}</span>
+                <span>
+                  {isIntraState ? "CGST + SGST" : "IGST"}
+                  {totals.transportTaxed ? ` on ${rupees(totals.taxable)}` : ""}
+                </span>
                 <b>+{rupees(totals.gstAmount)}</b>
               </div>
             )}
-            {totals.transport > 0 && (
+            {totals.transport > 0 && !totals.transportTaxed && (
               <div>
                 <span>Transport</span>
                 <b>+{rupees(totals.transport)}</b>

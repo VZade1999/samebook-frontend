@@ -49,7 +49,8 @@ interface Billable {
 
 interface Preview {
   lines: { product_name: string; qty: number; unit: string | null; total: number }[];
-  totals: { taxable: number; cgst_amount: number; sgst_amount: number; igst_amount: number; transport_charges: number; grand_total: number };
+  /** `taxable` is the value GST is charged on — it includes transport when transport_gst is 1. */
+  totals: { taxable: number; cgst_amount: number; sgst_amount: number; igst_amount: number; transport_charges: number; transport_gst?: number; grand_total: number };
   transport_suggested: number;
 }
 
@@ -335,7 +336,7 @@ const BillingPanel: React.FC<{
           <b>{preview ? preview.lines.length : "—"}</b>
         </div>
         <div>
-          <span>Taxable · GST</span>
+          <span>{preview && Number(preview.totals.transport_gst) && Number(preview.totals.transport_charges) > 0 ? "Taxable (with transport) · GST" : "Taxable · GST"}</span>
           <b>{preview ? `${rupees(preview.totals.taxable)} · ${rupees(tax)}` : "—"}</b>
         </div>
         <div>
