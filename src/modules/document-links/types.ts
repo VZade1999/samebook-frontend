@@ -105,8 +105,8 @@ export interface Trail {
   place_of_supply: { state: string; code: string | null } | null;
 }
 
-/** What Find returns: the sales documents, plus purchase orders, goods received notes (open their PO) and supplier bills. */
-export type SearchType = DocType | "purchase_order" | "grn" | "supplier_bill";
+/** What Find returns: the sales documents, plus purchase orders, goods received notes (open their PO) and supplier bills, and the Accounts vouchers and notes. */
+export type SearchType = DocType | "purchase_order" | "grn" | "supplier_bill" | "receipt" | "expense" | "refund" | "credit_note" | "debit_note";
 
 export interface SearchResult {
   type: SearchType;

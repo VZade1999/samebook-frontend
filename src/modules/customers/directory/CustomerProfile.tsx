@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Drawer, message, Popconfirm, Spin, Tooltip } from "antd";
 import {
   BankOutlined,
+  BookOutlined,
   CarOutlined,
   CopyOutlined,
   DeleteOutlined,
@@ -21,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { inr } from "@/modules/dashboard/utils/format";
 import { initialsOf } from "@/permissions/standing";
+import { ledgerPath, useShowsLedger } from "@/modules/accounts/useShowsLedger";
 import { type Activity, type DirCustomer, apiError, getActivity, getCustomer, shortDate, sinceText, telOf, waOf } from "./customersApi";
 
 type Tone = "good" | "warn" | "bad" | "muted" | "accent";
@@ -65,6 +67,7 @@ const CustomerProfile: React.FC<{
   onDelete: (c: DirCustomer) => Promise<void>;
 }> = ({ customer, can, onClose, onEdit, onDelete }) => {
   const navigate = useNavigate();
+  const showsLedger = useShowsLedger();
   const [full, setFull] = useState<any>(null);
   const [act, setAct] = useState<Activity | null>(null);
   const [failed, setFailed] = useState(false);
@@ -139,6 +142,11 @@ const CustomerProfile: React.FC<{
           <a className={`cu-qa${email ? "" : " off"}`} href={email ? `mailto:${email}` : undefined} aria-disabled={!email}>
             <MailOutlined /> Email
           </a>
+          {showsLedger && (
+            <button type="button" className="cu-qa" onClick={() => go(ledgerPath("customer", c.id))}>
+              <BookOutlined /> Ledger
+            </button>
+          )}
           {can.quote && (
             <button type="button" className="cu-qa primary" onClick={() => go(`/app/quotation?new=1&customer=${c.id}&returnTo=/app/customers`)}>
               <PlusOutlined /> New quotation

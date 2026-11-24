@@ -13,6 +13,7 @@ import {
   ReloadOutlined,
   RobotOutlined,
   ShoppingCartOutlined,
+  BookOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
@@ -121,6 +122,21 @@ const LOOK: Record<string, ModuleLook> = {
     accessHint:
       "Ticked roles can see suppliers and make purchase orders. In Roles & Permissions give \"Approve\" to whoever approves POs, \"Receive\" to the store, and \"Bills\" to accounts.",
     afterConnect: "Next: add your suppliers, then make your first purchase order.",
+  },
+  accounts: {
+    icon: <BookOutlined />,
+    color: "#0E7490",
+    bg: "#ECFEFF",
+    openPath: "/app/ledger",
+    features: [
+      "Customer & supplier ledgers, recorded from your invoices and bills",
+      "Statements as PDF — share on WhatsApp",
+      "Opening balances, cash and bank",
+      "Cash-limit warnings (Sections 269ST and 40A(3))",
+    ],
+    accessHint:
+      "Ticked roles can see ledgers and statements. In Roles & Permissions give \"Record\" to whoever enters opening balances and payments, and \"Reports\" for profit & loss and GST.",
+    afterConnect: "Next: open Accounts → Ledgers and enter your opening balances.",
   },
   ai_agent: {
     icon: <RobotOutlined />,

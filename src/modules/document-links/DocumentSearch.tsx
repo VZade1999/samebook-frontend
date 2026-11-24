@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import { Modal } from "antd";
 import { useNavigate } from "react-router-dom";
-import { CarOutlined, FileDoneOutlined, FileTextOutlined, ImportOutlined, LoadingOutlined, SearchOutlined, ShoppingCartOutlined, WalletOutlined } from "@ant-design/icons";
+import { CarOutlined, FileDoneOutlined, FileTextOutlined, ImportOutlined, LoadingOutlined, MinusCircleOutlined, MoneyCollectOutlined, RollbackOutlined, SearchOutlined, ShoppingCartOutlined, UndoOutlined, WalletOutlined } from "@ant-design/icons";
 import { inr } from "@/modules/dashboard/utils/format";
 import { useAccess } from "@/permissions/useAccess";
 import { DOC_LABEL, docPath, searchDocuments } from "./documentLinksService";
@@ -16,6 +16,11 @@ const ICON: Record<SearchType, React.ReactNode> = {
   purchase_order: <ShoppingCartOutlined />,
   grn: <ImportOutlined />,
   supplier_bill: <WalletOutlined />,
+  receipt: <MoneyCollectOutlined />,
+  expense: <MinusCircleOutlined />,
+  refund: <UndoOutlined />,
+  credit_note: <RollbackOutlined />,
+  debit_note: <RollbackOutlined />,
 };
 
 const STATUS: Record<string, string> = {
@@ -46,6 +51,10 @@ const STATUS: Record<string, string> = {
 
 const MATCHED: Record<string, string> = { po: "PO", vehicle: "Vehicle", eway: "E-way bill", ref: "Supplier ref", bill: "Supplier bill", challan: "Supplier challan" };
 
+/** What matched, in words (a receipt's or expense's reference is its own, not a supplier's). */
+const matchedWord = (r: SearchResult) =>
+  r.type === "expense" && r.matched === "bill" ? "Bill" : (r.type === "receipt" || r.type === "refund" || r.type === "expense") && r.matched === "ref" ? "Ref" : MATCHED[r.matched];
+
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
 
 /**
@@ -57,7 +66,8 @@ const DocumentSearch: React.FC = () => {
   const { can } = useAccess();
   const navigate = useNavigate();
   const buys = can("purchases.view") || can("purchases.receive") || can("purchases.bills");
-  const allowed = can("quotations.view") || can("challans.view") || can("invoices.view") || buys;
+  const books = can("accounts.view") || can("accounts.record") || can("accounts.reports");
+  const allowed = can("quotations.view") || can("challans.view") || can("invoices.view") || buys || books;
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -174,7 +184,7 @@ const DocumentSearch: React.FC = () => {
               ref={inputRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={buys ? "Any document no. · PO · GRN · supplier bill · vehicle · e-way bill" : "Quotation, challan or invoice no. · PO · vehicle · e-way bill"}
+              placeholder={buys || books ? "Any document no. · PO · GRN · bill · receipt · credit note · vehicle" : "Quotation, challan or invoice no. · PO · vehicle · e-way bill"}
               aria-label="Find a document by any number"
               role="combobox"
               aria-expanded={results.length > 0}
@@ -197,7 +207,8 @@ const DocumentSearch: React.FC = () => {
               <b>Type any number from a document</b>
               <span>
                 For example the invoice's running number (0150), the customer's PO number, a vehicle number (MH12AB1234) or an e-way bill number
-                {buys ? " — and your purchase orders, goods received (GRN) and supplier bill numbers." : "."}
+                {buys ? " — and your purchase orders, goods received (GRN) and supplier bill numbers" : ""}
+                {books ? `${buys ? "," : " — and"} receipts (RCT), expenses (EXP), refunds (RFD), credit notes (CN) and debit notes (DN).` : buys ? "." : "."}
               </span>
             </div>
           ) : results.length ? (
@@ -214,7 +225,7 @@ const DocumentSearch: React.FC = () => {
                         <span className="dl-kind">{DOC_LABEL[r.type]}</span>
                         {r.matched !== "number" && r.matched_value ? (
                           <span className="dl-hit">
-                            {MATCHED[r.matched]} {r.matched_value}
+                            {matchedWord(r)} {r.matched_value}
                           </span>
                         ) : null}
                       </span>

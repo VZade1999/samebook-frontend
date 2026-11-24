@@ -3,7 +3,18 @@
 
 import api from "@/api/axios";
 
-export type MovementType = "OPENING" | "RECEIVED" | "COUNTED" | "MOVED" | "DISPATCHED" | "DISPATCH_CANCELLED" | "RECEIVE_CANCELLED";
+export type MovementType =
+  | "OPENING"
+  | "RECEIVED"
+  | "COUNTED"
+  | "MOVED"
+  | "DISPATCHED"
+  | "DISPATCH_CANCELLED"
+  | "RECEIVE_CANCELLED"
+  | "RETURN_IN"
+  | "RETURN_IN_CANCELLED"
+  | "RETURN_OUT"
+  | "RETURN_OUT_CANCELLED";
 export type CountReason = "COUNTED" | "DAMAGED" | "LOST" | "FOUND" | "RETURNED" | "OTHER";
 export type StockStatus = "out" | "low" | "ok";
 export type StockFilter = "all" | "in" | "low" | "out";
@@ -175,6 +186,14 @@ export function describeMovement(m: Movement): { title: string; detail: string |
       return { title: `Challan ${no || ""} cancelled`.replace("  ", " "), detail: m.quantity > 0 ? "Stock back" : "Taken back out" };
     case "RECEIVE_CANCELLED":
       return { title: `${no || "Goods received"} undone`, detail: [m.note, m.reason].filter(Boolean).join(" · ") || "Taken back out" };
+    case "RETURN_IN":
+      return { title: `Returned by the customer${no ? ` (${no})` : ""}`, detail: m.note };
+    case "RETURN_IN_CANCELLED":
+      return { title: `Credit note ${no || ""} cancelled`.replace("  ", " "), detail: m.note || "Taken back out" };
+    case "RETURN_OUT":
+      return { title: `Returned to the supplier${no ? ` (${no})` : ""}`, detail: m.note };
+    case "RETURN_OUT_CANCELLED":
+      return { title: `Debit note ${no || ""} cancelled`.replace("  ", " "), detail: m.note || "Back in stock" };
     default:
       return { title: m.type, detail: m.note };
   }

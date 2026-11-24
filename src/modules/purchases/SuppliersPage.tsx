@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Col, Drawer, Form, Input, InputNumber, Modal, Pagination, Row, Select, Spin, message } from "antd";
 import {
   BankOutlined,
+  BookOutlined,
   DeleteOutlined,
   EditOutlined,
   FileAddOutlined,
@@ -16,6 +17,7 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import "@/modules/dashboard/styles/dashboard.scss";
 import { useAccess } from "@/permissions/useAccess";
+import { ledgerPath, useShowsLedger } from "@/modules/accounts/useShowsLedger";
 import { StorageService } from "@/storage";
 import {
   type Supplier,
@@ -294,6 +296,7 @@ const SupplierForm: React.FC<{ open: boolean; supplier: Supplier | null; onClose
 const SupplierProfile: React.FC<{ id: number | null; onClose: () => void; onChanged: () => void; onEdit: (s: Supplier) => void }> = ({ id, onClose, onChanged, onEdit }) => {
   const { can } = useAccess();
   const navigate = useNavigate();
+  const showsLedger = useShowsLedger();
   const [s, setS] = useState<Supplier | null>(null);
   const [busy, setBusy] = useState(false);
   const load = useCallback(() => {
@@ -356,6 +359,11 @@ const SupplierProfile: React.FC<{ id: number | null; onClose: () => void; onChan
               {can("purchases.bills") && (
                 <Button icon={<WalletOutlined />} onClick={() => navigate(`/app/purchase-bills?pay=${s.id}`)}>
                   Pay
+                </Button>
+              )}
+              {showsLedger && (
+                <Button icon={<BookOutlined />} onClick={() => navigate(ledgerPath("supplier", s.id))}>
+                  Ledger
                 </Button>
               )}
               {can("purchases.create") && (

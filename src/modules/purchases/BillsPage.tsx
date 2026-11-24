@@ -21,6 +21,8 @@ import { type BillDetail, type BillRow, type BillSummary, type PaymentRow, apiEr
 import { BILL_STATUS, PAY_MODE_SHORT, TAX_TYPE, day, qtyText, rs, rs2 } from "./format";
 import { BillForm, PayModal } from "./BillDialogs";
 import { askReason } from "./PoDrawer";
+import { RollbackOutlined } from "@ant-design/icons";
+import { useModules } from "@/session/useModules";
 import "./purchases.scss";
 
 const FILTERS = [
@@ -53,6 +55,9 @@ const alertText = (b: BillRow) => {
 
 const BillDrawer: React.FC<{ id: number | null; onClose: () => void; onChanged: () => void; onPay: (supplierId: number, billId: number) => void; reloadKey: number }> = ({ id, onClose, onChanged, onPay, reloadKey }) => {
   const navigate = useNavigate();
+  const { can: canDo } = useAccess();
+  const { hasModule } = useModules();
+  const canDebitNote = hasModule("accounts") && canDo("accounts.record");
   const [b, setB] = useState<BillDetail | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const load = useCallback(() => {
@@ -120,6 +125,11 @@ const BillDrawer: React.FC<{ id: number | null; onClose: () => void; onChanged: 
               {b.po_id && (
                 <Button icon={<FileDoneOutlined />} onClick={() => navigate(`/app/purchase-orders?open=${b.po_id}`)}>
                   {b.po_number}
+                </Button>
+              )}
+              {canDebitNote && b.status !== "CANCELLED" && (
+                <Button icon={<RollbackOutlined />} onClick={() => navigate(`/app/notes?new=debit&bill=${b.id}`)}>
+                  Debit note
                 </Button>
               )}
               {b.can.cancel && (

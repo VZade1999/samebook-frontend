@@ -3,7 +3,7 @@
 import api from "@/api/axios";
 
 export type ActionStatus = "PENDING" | "RUNNING" | "DONE" | "FAILED" | "CANCELLED" | "EXPIRED";
-export type RecordType = "customer" | "product" | "quotation" | "challan" | "invoice" | "warehouse" | "company" | "purchase_order" | "supplier_bill";
+export type RecordType = "customer" | "product" | "quotation" | "challan" | "invoice" | "warehouse" | "company" | "purchase_order" | "supplier_bill" | "customer_ledger" | "supplier_ledger" | "expense";
 
 export interface AiRecord {
   type: RecordType;
@@ -186,6 +186,9 @@ export const RECORD_WORD: Record<RecordType, string> = {
   company: "Company",
   purchase_order: "Purchase order",
   supplier_bill: "Supplier bill",
+  customer_ledger: "Ledger",
+  supplier_ledger: "Ledger",
+  expense: "Expense",
 };
 
 export const recordLink = (r: AiRecord) => {
@@ -206,6 +209,12 @@ export const recordLink = (r: AiRecord) => {
       return `/app/purchase-orders?open=${r.id}`;
     case "supplier_bill":
       return `/app/purchase-bills?open=${r.id}`;
+    case "customer_ledger":
+      return `/app/ledger?party=customer:${r.id}`;
+    case "supplier_ledger":
+      return `/app/ledger?party=supplier:${r.id}`;
+    case "expense":
+      return `/app/expenses?open=expense:${r.id}`;
     default:
       return "/app/companies";
   }

@@ -47,6 +47,10 @@ import {
 } from "./shared";
 import LinkedDocuments from "@/modules/document-links/LinkedDocuments";
 import { docTaxesTransport, gstBase } from "@/utils/transportGst";
+import { RollbackOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { useAccess } from "@/permissions/useAccess";
+import { useModules } from "@/session/useModules";
 
 export interface DrawerActions {
   canPay: boolean;
@@ -173,6 +177,10 @@ const InvoiceDrawer: React.FC<{
   isMobile: boolean;
   today: Dayjs;
 }> = ({ open, inv, fromCache, timeline, actions: a, onClose, isMobile, today }) => {
+  const navigate = useNavigate();
+  const { can } = useAccess();
+  const { hasModule } = useModules();
+  const canCreditNote = hasModule("accounts") && can("accounts.record");
   const billing = parseJsonField(inv?.billing_address_snapshot) || {};
   const shipping = parseJsonField(inv?.shipping_address_snapshot) || {};
   const business = parseJsonField(inv?.business_details_snapshot) || {};
@@ -580,6 +588,11 @@ const InvoiceDrawer: React.FC<{
               {state !== "paid" && state !== "cancelled" && (
                 <button type="button" className="qp-btn glass" onClick={a.onCopyReminder} disabled={fromCache} title="Copy a polite payment reminder to paste into WhatsApp or email">
                   <MessageOutlined /> Copy reminder
+                </button>
+              )}
+              {canCreditNote && state !== "cancelled" && inv?.id && (
+                <button type="button" className="qp-btn glass" disabled={fromCache} onClick={() => navigate(`/app/notes?new=credit&invoice=${inv.id}`)} title="Goods returned or price reduced — a GST credit note against this invoice">
+                  <RollbackOutlined /> Credit note
                 </button>
               )}
               {a.canCancel && a.onCancelInvoice && (

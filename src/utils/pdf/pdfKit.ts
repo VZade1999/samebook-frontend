@@ -19,7 +19,7 @@ import { amount, amountInWords, initials, money } from "./pdfFormat";
 import { loadCompanySignature } from "@/modules/companies/signature/signatureStore";
 
 export type RGB = [number, number, number];
-export type DocKind = "quotation" | "invoice" | "challan" | "purchase";
+export type DocKind = "quotation" | "invoice" | "challan" | "purchase" | "ledger";
 export type Weight = "regular" | "medium" | "semibold" | "bold";
 
 export const INK: RGB = [15, 23, 42];
@@ -45,6 +45,8 @@ const THEMES: Record<DocKind, Theme> = {
   challan: { primary: [194, 65, 12], deep: [154, 52, 18], soft: [255, 247, 237], tint: [254, 215, 170], grad: [[194, 65, 12], [245, 158, 11]] },
   // Purchase orders: blue, so they never look like a sales document.
   purchase: { primary: [29, 78, 216], deep: [30, 58, 138], soft: [239, 246, 255], tint: [191, 219, 254], grad: [[29, 78, 216], [14, 165, 233]] },
+  // Statements of account (the ledger): cyan.
+  ledger: { primary: [14, 116, 144], deep: [21, 94, 117], soft: [236, 254, 255], tint: [165, 243, 252], grad: [[14, 116, 144], [6, 182, 212]] },
 };
 
 // ── Fonts ───────────────────────────────────────────────────────────────────

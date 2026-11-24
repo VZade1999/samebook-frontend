@@ -12,7 +12,13 @@ export const docPath = (type: SearchType, id: number) =>
         ? `/app/purchase-orders?open=${id}`
         : type === "supplier_bill"
           ? `/app/purchase-bills?open=${id}`
-          : `/app/invoice?open=${id}`;
+          : type === "receipt" || type === "refund"
+            ? `/app/cash-bank?tab=daybook&open=${type}:${id}`
+            : type === "expense"
+              ? `/app/expenses?open=expense:${id}`
+              : type === "credit_note" || type === "debit_note"
+                ? `/app/notes?open=${type === "credit_note" ? "credit" : "debit"}:${id}`
+                : `/app/invoice?open=${id}`;
 
 export const DOC_LABEL: Record<SearchType, string> = {
   quotation: "Quotation",
@@ -21,6 +27,11 @@ export const DOC_LABEL: Record<SearchType, string> = {
   purchase_order: "Purchase order",
   grn: "Goods received",
   supplier_bill: "Supplier bill",
+  receipt: "Receipt",
+  expense: "Expense",
+  refund: "Refund",
+  credit_note: "Credit note",
+  debit_note: "Debit note",
 };
 
 const dataOf = <T,>(res: any): T => {

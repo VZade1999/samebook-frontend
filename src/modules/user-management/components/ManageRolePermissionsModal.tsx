@@ -30,6 +30,7 @@ const MODULE_STYLES: Record<string, { bg: string; color: string; icon: string }>
   companies:  { bg: '#E1F5EE', color: '#0F6E56', icon: '🏢' },
   ai_agent:   { bg: '#FAECE7', color: '#993C1D', icon: '🤖' },
   purchases:  { bg: '#EFF6FF', color: '#1D4ED8', icon: '🛒' },
+  accounts:   { bg: '#ECFEFF', color: '#0E7490', icon: '📒' },
   dashboard:  { bg: '#F1EFE8', color: '#5F5E5A', icon: '📊' },
   general:    { bg: '#F1EFE8', color: '#5F5E5A', icon: '⚙️' },
 };

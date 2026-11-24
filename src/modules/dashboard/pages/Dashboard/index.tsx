@@ -30,6 +30,8 @@ import { StorageService } from "@/storage";
 import { useSalesFlow } from "@/modules/companies/salesFlow/salesFlow";
 import { SalesFlowPrompt } from "@/modules/companies/salesFlow/SalesFlowPicker";
 import PurchasesCard, { useShowsPurchases } from "@/modules/purchases/DashboardCard";
+import AccountsCard from "@/modules/accounts/DashboardCard";
+import { useShowsLedger } from "@/modules/accounts/useShowsLedger";
 import { dashboardService, overviewKey } from "../../services/dashboardService";
 import { forgetOverview, rememberOverview } from "../../redux/dashboardSlice";
 import type { Overview, SeriesKey } from "../../types";
@@ -107,6 +109,7 @@ const Row: React.FC<{ spans: number[]; children: React.ReactNode[] }> = ({ spans
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch();
   const showsPurchases = useShowsPurchases();
+  const showsAccounts = useShowsLedger();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const today = useMemo(() => dayjs().startOf("day"), []);
@@ -771,6 +774,8 @@ const DashboardPage: React.FC = () => {
             <Row spans={[6, 6]}>{[challanCard, stockCard]}</Row>
             {/* Purchases (add-on): on order, late, what you owe suppliers. */}
             <Row spans={[12]}>{[showsPurchases ? <PurchasesCard key="pu" /> : null]}</Row>
+            {/* Accounts (add-on): cash & bank, you'll get, you owe, profit this FY. */}
+            <Row spans={[12]}>{[showsAccounts ? <AccountsCard key="ac" /> : null]}</Row>
             {addOns.some(Boolean) && (
               <>
                 <div className="db-section-head">Workspace</div>

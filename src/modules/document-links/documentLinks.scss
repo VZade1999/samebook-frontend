@@ -41,6 +41,12 @@
   &.purchase_order,
   &.grn,
   &.supplier_bill { --tone: #2563eb; }
+  // Accounts: cyan, like the ledger PDFs.
+  &.receipt,
+  &.expense,
+  &.refund,
+  &.credit_note,
+  &.debit_note { --tone: #0891b2; }
 }
 .dl-main {
   display: flex;
